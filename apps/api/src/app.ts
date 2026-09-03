@@ -24,6 +24,10 @@ import { searchRoutes } from './modules/search/search.routes.js';
 export function createApp() {
   const app = express();
 
+  if (env.nodeEnv === 'production') {
+    app.set('trust proxy', 1);
+  }
+
   app.use(cors({ origin: true, credentials: true }));
   app.use(express.json());
   app.use(cookieParser());
@@ -35,7 +39,7 @@ export function createApp() {
       saveUninitialized: false,
       cookie: {
         httpOnly: true,
-        sameSite: 'lax',
+        sameSite: env.nodeEnv === 'production' ? 'none' : 'lax',
         secure: env.nodeEnv === 'production',
         maxAge: 1000 * 60 * 60 * 24 * 7
       }
