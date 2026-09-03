@@ -1,0 +1,29 @@
+@import url('https://fonts.googleapis.com/css2?family=Alien+Block&family=Open+Sans:ital,wght@0,300..800;1,300..800&family=Valley+Sans:ital,wght@0,100..900;1,100..900&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+  background: #030303;
+  color: #f8f8f8;
+  font-family: "Open Sans", "Valley Sans", "Alien Block", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  background: #030303;
+  font-family: "Open Sans", "Valley Sans", "Alien Block", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
