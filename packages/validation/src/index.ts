@@ -1,5 +1,7 @@
 import {
   ACTIVITY_ENTITY_TYPES,
+  DOCUMENT_STATUSES,
+  DOCUMENT_TEMPLATE_TYPES,
   EXPENSE_CATEGORIES,
   INVOICE_PAYMENT_STATUSES,
   LEAD_STATUSES,
@@ -247,6 +249,40 @@ export const fileUploadMetadataSchema = z.object({
 });
 
 export type FileUploadMetadataInput = z.infer<typeof fileUploadMetadataSchema>;
+
+export const documentTemplateSchema = z.object({
+  name: z.string().trim().min(1, 'Name is required'),
+  type: z.enum(DOCUMENT_TEMPLATE_TYPES),
+  html: z.string().max(500_000, 'Template is too large')
+});
+
+export type DocumentTemplateInput = z.infer<typeof documentTemplateSchema>;
+
+export const updateDocumentTemplateSchema = documentTemplateSchema.partial();
+
+export type UpdateDocumentTemplateInput = z.infer<typeof updateDocumentTemplateSchema>;
+
+export const documentContextSchema = z.object({
+  client: objectId,
+  project: optionalObjectId
+});
+
+export type DocumentContextInput = z.infer<typeof documentContextSchema>;
+
+export const createDocumentSchema = documentContextSchema.extend({
+  template: objectId,
+  title: z.preprocess((value) => (value === '' ? undefined : value), z.string().trim().min(1).optional())
+});
+
+export type CreateDocumentInput = z.infer<typeof createDocumentSchema>;
+
+export const documentFilterSchema = z.object({
+  client: optionalObjectId,
+  project: optionalObjectId,
+  status: z.enum(DOCUMENT_STATUSES).optional()
+});
+
+export type DocumentFilterInput = z.infer<typeof documentFilterSchema>;
 
 export const globalSearchSchema = z.object({
   q: z.string().trim().min(1)

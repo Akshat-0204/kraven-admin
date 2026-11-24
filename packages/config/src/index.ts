@@ -30,6 +30,10 @@ export const EXPENSE_CATEGORIES = [
   'Other'
 ] as const;
 
+export const DOCUMENT_TEMPLATE_TYPES = ['Proposal', 'Contract', 'Agreement', 'Statement of Work', 'Other'] as const;
+
+export const DOCUMENT_STATUSES = ['Draft', 'Sent', 'Viewed', 'Signed'] as const;
+
 export const ACTIVITY_ENTITY_TYPES = [
   'Lead',
   'Client',
@@ -45,6 +49,7 @@ export const SIDEBAR_ITEMS = [
   { label: 'Leads', path: '/leads' },
   { label: 'Projects', path: '/projects' },
   { label: 'Clients', path: '/clients' },
+  { label: 'Templates', path: '/templates' },
   {
     label: 'Finance',
     path: '/finance',

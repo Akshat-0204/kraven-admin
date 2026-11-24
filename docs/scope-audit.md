@@ -37,12 +37,19 @@ Modules: auth, leads, clients, projects, finance (invoices, payments, expenses),
 - Invoice `remainingAmount`/`paymentStatus` are persisted on invoice and payment writes. "Overdue" is time-dependent and derived at read time (`dueDate` before today with a remaining balance).
 - Revenue chart is grouped by month (`YYYY-MM`, UTC), last 12 months with activity.
 
+### Documents (Stage 2)
+
+- `DocumentTemplate` (sanitized Tiptap HTML with escaped `{{var}}` placeholders, `version` bumps on edit) and `Document` (immutable rendered-HTML snapshot, `templateVersion`, status Draft/Sent/Viewed/Signed, `pdfKey`).
+- Variables: `client.*`, `project.*`, `agency.*` (from `AGENCY_*` env), `today`; `GET /document-templates/variables`.
+- PDFs rendered by Gotenberg from the snapshot, stored at `documents/<id>.pdf`, reused while the snapshot hash is unchanged.
+- `npm run seed:templates -w @kraven/api` inserts one generic "Project Proposal" template (insert-only).
+
 ## Planned (see plan for detail)
 
 | Stage | Scope |
 | --- | --- |
 | 1 | Foundations + storage (this stage): MinIO, CORS/CSRF/helmet/rate limit, read-only dashboard |
-| 2 | Document templates (Tiptap, Handlebars-style variables) rendered to PDF via Gotenberg, stored in MinIO |
+| 2 | Document templates (Tiptap, Handlebars-style variables) rendered to PDF via Gotenberg, stored in MinIO (done) |
 | 3 | Client portal: `/c/<slug>` + admin-set access code (bcrypt), signed cookie, lockout; project updates, documents, payments (UPI deep-link/QR), downloads of `clientVisible` files |
 | 4 | Packs (grouped sends) + in-house e-sign (audit capture, `pdf-lib` seal, SHA-256) |
 | 5 | Email via Resend (webhooks, reminders), "Waiting on client" widget, invoice line items/tax/PDF |

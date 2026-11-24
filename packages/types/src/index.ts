@@ -249,3 +249,48 @@ export interface GlobalSearchResult {
   subtitle?: string;
   href: string;
 }
+
+export type DocumentTemplateType = 'Proposal' | 'Contract' | 'Agreement' | 'Statement of Work' | 'Other';
+
+export type DocumentStatus = 'Draft' | 'Sent' | 'Viewed' | 'Signed';
+
+export interface DocumentVariable {
+  key: string;
+  label: string;
+  group: 'client' | 'project' | 'agency' | 'general';
+}
+
+export interface DocumentTemplateRecord {
+  id: string;
+  name: string;
+  type: DocumentTemplateType;
+  html: string;
+  /** Variable keys referenced by the template HTML. */
+  variables: string[];
+  version: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface DocumentRecord {
+  id: string;
+  title: string;
+  client: string;
+  project?: string;
+  template: string;
+  templateVersion: number;
+  status: DocumentStatus;
+  hasPdf: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface DocumentDetailRecord extends DocumentRecord {
+  /** Rendered HTML snapshot; never changes when the template is edited later. */
+  html: string;
+}
+
+export interface DocumentPdfLink {
+  url: string;
+  expiresIn: number;
+}

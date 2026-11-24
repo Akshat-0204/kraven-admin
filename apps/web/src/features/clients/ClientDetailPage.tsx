@@ -20,6 +20,7 @@ import {
 } from './clientApi';
 import { clientInitials, formatDate } from './clientFormat';
 import { ClientFormModal } from './ClientFormModal';
+import { DocumentsPanel } from '../documents/DocumentsPanel';
 
 type LinkInput = EntityLink;
 
@@ -282,6 +283,8 @@ export function ClientDetailPage() {
               </div>
             )}
           </section>
+
+          <DocumentsPanel scope={{ client: client.id }} />
 
           <section className="rounded border border-border bg-panel p-4">
             <h2 className="mb-4 text-sm font-semibold">Activity</h2>

@@ -6,6 +6,7 @@ import { ClientListPage } from '../features/clients/ClientListPage';
 import { ExpensesPage } from '../features/finance/ExpensesPage';
 import { FinanceOverviewPage } from '../features/finance/FinanceOverviewPage';
 import { InvoicesPaymentsPage } from '../features/finance/InvoicesPaymentsPage';
+import { TemplateListPage } from '../features/documents/TemplateListPage';
 import { DashboardPage } from '../features/dashboard/DashboardPage';
 import { LeadDetailPage } from '../features/leads/LeadDetailPage';
 import { LeadListPage } from '../features/leads/LeadListPage';
@@ -53,6 +54,17 @@ export const router = createBrowserRouter([
           {
             path: 'clients/:id',
             element: <ClientDetailPage />
+          },
+          {
+            path: 'templates',
+            element: <TemplateListPage />
+          },
+          {
+            path: 'templates/:id',
+            // Lazy so the Tiptap editor bundle loads only on this page.
+            lazy: async () => ({
+              Component: (await import('../features/documents/TemplateEditorPage')).TemplateEditorPage
+            })
           },
           {
             path: 'finance',

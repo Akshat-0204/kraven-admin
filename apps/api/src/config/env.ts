@@ -24,6 +24,15 @@ export const env = {
     region: process.env.S3_REGION ?? 'us-east-1'
   },
   gotenbergUrl: process.env.GOTENBERG_URL ?? 'http://127.0.0.1:3000',
+  gotenbergTimeoutMs: Number(process.env.GOTENBERG_TIMEOUT_MS ?? 30_000),
+  /** Agency details exposed to document templates as {{agency.*}}. */
+  agency: {
+    name: process.env.AGENCY_NAME ?? 'Kraven',
+    email: process.env.AGENCY_EMAIL ?? '',
+    phone: process.env.AGENCY_PHONE ?? '',
+    address: process.env.AGENCY_ADDRESS ?? '',
+    website: process.env.AGENCY_WEBSITE ?? ''
+  },
   adminUsers: [
     {
       email: process.env.ADMIN_EMAIL_1,

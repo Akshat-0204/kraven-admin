@@ -27,3 +27,21 @@ a {
   color: inherit;
   text-decoration: none;
 }
+
+/* Tiptap template editor (minimal; the print look comes from the API's PDF stylesheet). */
+.kraven-editor .tiptap {
+  min-height: 400px;
+  outline: none;
+}
+.kraven-editor .tiptap h1 { font-size: 1.5rem; font-weight: 600; margin: 0.75rem 0; }
+.kraven-editor .tiptap h2 { font-size: 1.25rem; font-weight: 600; margin: 0.75rem 0; }
+.kraven-editor .tiptap h3 { font-size: 1.1rem; font-weight: 600; margin: 0.5rem 0; }
+.kraven-editor .tiptap p { margin: 0.4rem 0; }
+.kraven-editor .tiptap ul { list-style: disc; padding-left: 1.5rem; }
+.kraven-editor .tiptap ol { list-style: decimal; padding-left: 1.5rem; }
+.kraven-editor .tiptap a { text-decoration: underline; }
+.kraven-editor .tiptap table { border-collapse: collapse; width: 100%; margin: 0.75rem 0; }
+.kraven-editor .tiptap td,
+.kraven-editor .tiptap th { border: 1px solid #333; padding: 0.35rem 0.5rem; vertical-align: top; }
+.kraven-editor .tiptap th { background: #1a1a1a; text-align: left; }
+.kraven-editor .tiptap .selectedCell { background: rgba(255, 255, 255, 0.08); }

@@ -14,6 +14,8 @@ import { requestLogger } from './middleware/requestLogger.js';
 import { authRoutes } from './modules/auth/auth.routes.js';
 import { clientRoutes } from './modules/clients/client.routes.js';
 import { dashboardRoutes } from './modules/dashboard/dashboard.routes.js';
+import { documentRoutes } from './modules/documents/document.routes.js';
+import { documentTemplateRoutes } from './modules/documents/documentTemplate.routes.js';
 import { expenseRoutes } from './modules/finance/expense.routes.js';
 import { financeRoutes } from './modules/finance/finance.routes.js';
 import { invoiceRoutes } from './modules/finance/invoice.routes.js';
@@ -80,6 +82,8 @@ export function createApp() {
   app.use('/expenses', expenseRoutes);
   app.use('/finance', financeRoutes);
   app.use('/files', filesRoutes);
+  app.use('/document-templates', documentTemplateRoutes);
+  app.use('/documents', documentRoutes);
   app.use((_req, res) => {
     res.status(404).json({ message: 'Not found' });
   });

@@ -37,6 +37,7 @@ import {
 } from './projectApi';
 import { formatCurrency, formatDate } from './projectFormat';
 import { ProjectFormModal } from './ProjectFormModal';
+import { DocumentsPanel } from '../documents/DocumentsPanel';
 
 type LinkInput = EntityLink;
 
@@ -370,6 +371,8 @@ export function ProjectDetailPage() {
               </div>
             )}
           </section>
+
+          <DocumentsPanel scope={{ client: client.id, project: project.id }} />
 
           <section className="rounded border border-border bg-panel p-4">
             <h2 className="mb-4 text-sm font-semibold">Activity</h2>
