@@ -20,7 +20,7 @@ export async function verifyPortalCode(rawSlug: string, body: unknown, now = new
   const slug = portalSlugSchema.safeParse(rawSlug);
 
   const client = slug.success
-    ? await ClientModel.findOne({ 'portalAccess.slug': slug.data }).select('+portalAccess.codeHash portalAccess')
+    ? await ClientModel.findOne({ 'portalAccess.slug': slug.data }).select('+portalAccess.codeHash')
     : null;
   const access = client?.portalAccess;
 
@@ -81,7 +81,7 @@ async function recordFailedAttempt(clientId: string, now: Date) {
 
 async function loadClientPortal(clientId: string) {
   if (!isValidObjectId(clientId)) throw new HttpError(404, 'Client not found');
-  const client = await ClientModel.findById(clientId).select('+portalAccess.codeHash portalAccess').lean();
+  const client = await ClientModel.findById(clientId).select('+portalAccess.codeHash').lean();
   if (!client) throw new HttpError(404, 'Client not found');
   return client;
 }
