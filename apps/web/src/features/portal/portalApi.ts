@@ -5,6 +5,7 @@ import type {
   PortalDocumentRecord,
   PortalFileRecord,
   PortalOverview,
+  EmailLogRecord,
   PackRecord,
   PortalPackItem,
   PortalPackRecord,
@@ -186,8 +187,25 @@ export function createPack(input: PackInputBody) {
   return requestJson<{ pack: PackRecord }>('/packs', { method: 'POST', body: JSON.stringify(input) });
 }
 
-export function sendPack(id: string) {
-  return requestJson<{ pack: PackRecord }>(`/packs/${id}/send`, { method: 'POST' });
+export function sendPack(id: string, email = false) {
+  return requestJson<{ pack: PackRecord; email?: EmailLogRecord; emailError?: string }>(`/packs/${id}/send`, {
+    method: 'POST',
+    body: JSON.stringify({ email })
+  });
+}
+
+export function emailPack(id: string) {
+  return requestJson<{ email: EmailLogRecord }>(`/packs/${id}/email`, { method: 'POST' });
+}
+
+export const emailQueryKeys = { client: (clientId: string) => ['emails', clientId] as const };
+
+export function listClientEmails(clientId: string) {
+  return requestJson<{ emails: EmailLogRecord[] }>(`/clients/${clientId}/emails`);
+}
+
+export function sendPortalEmail(clientId: string) {
+  return requestJson<{ email: EmailLogRecord }>(`/clients/${clientId}/emails/portal`, { method: 'POST' });
 }
 
 export function deletePack(id: string) {

@@ -83,3 +83,19 @@ export async function changePassword(input: ChangePasswordInput): Promise<{ mess
     body: JSON.stringify(input)
   });
 }
+
+/** Fetches a file with the session cookie and saves it in the browser. */
+export async function downloadFile(path: string, fallbackName: string): Promise<void> {
+  const response = await fetch(`${API_BASE_URL}${path}`, { credentials: 'include' });
+  if (!response.ok) {
+    const body = await response.json().catch(() => ({ message: 'Download failed' }));
+    throw new Error(body.message ?? 'Download failed');
+  }
+  const match = /filename="?([^";]+)"?/.exec(response.headers.get('Content-Disposition') ?? '');
+  const url = URL.createObjectURL(await response.blob());
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = match?.[1] ?? fallbackName;
+  link.click();
+  URL.revokeObjectURL(url);
+}

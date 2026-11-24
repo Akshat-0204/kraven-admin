@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { sendPackEmail } from '../email/email.actions.js';
 import { asyncHandler } from '../../middleware/asyncHandler.js';
 import {
   createPack,
@@ -40,7 +41,24 @@ packRoutes.delete(
 packRoutes.post(
   '/:id/send',
   asyncHandler(async (req, res) => {
-    res.json({ pack: await sendPack(req.params.id) });
+    const pack = await sendPack(req.params.id);
+    // Optional: `{ "email": true }` also emails the client a portal link (best effort; the send is logged).
+    let email;
+    let emailError: string | undefined;
+    if (req.body?.email === true) {
+      try {
+        email = await sendPackEmail(req.params.id);
+      } catch (error) {
+        emailError = error instanceof Error ? error.message : 'Email failed';
+      }
+    }
+    res.json({ pack, email, emailError });
+  })
+);
+packRoutes.post(
+  '/:id/email',
+  asyncHandler(async (req, res) => {
+    res.status(201).json({ email: await sendPackEmail(req.params.id) });
   })
 );
 packRoutes.patch(

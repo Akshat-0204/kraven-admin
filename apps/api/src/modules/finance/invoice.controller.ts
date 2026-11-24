@@ -1,4 +1,5 @@
 import type { Request, Response } from 'express';
+import { generateInvoicePdf } from './invoice.pdf.js';
 import { createInvoice, deleteInvoice, getInvoiceById, listInvoices, updateInvoice } from './invoice.service.js';
 import { serializeInvoice } from './finance.serializer.js';
 
@@ -25,4 +26,11 @@ export async function updateInvoiceController(req: Request, res: Response) {
 export async function deleteInvoiceController(req: Request, res: Response) {
   await deleteInvoice(req.params.id);
   res.status(204).send();
+}
+
+export async function downloadInvoicePdfController(req: Request, res: Response) {
+  const { pdf, filename } = await generateInvoicePdf(req.params.id);
+  res.setHeader('Content-Type', 'application/pdf');
+  res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+  res.send(pdf);
 }

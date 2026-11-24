@@ -10,6 +10,8 @@ export interface PackItemDocument {
   amount?: number;
   reference?: string;
   paymentStatus?: (typeof PACK_PAYMENT_STATUSES)[number];
+  /** When the reminder job last emailed about this item. */
+  lastRemindedAt?: Date;
 }
 
 export interface PackDocument {
@@ -33,7 +35,8 @@ const packItemSchema = new Schema<PackItemDocument>({
   amount: { type: Number, min: 0 },
   reference: String,
   // Set by admins only; the portal can never change it.
-  paymentStatus: { type: String, enum: PACK_PAYMENT_STATUSES }
+  paymentStatus: { type: String, enum: PACK_PAYMENT_STATUSES },
+  lastRemindedAt: Date
 });
 
 const packSchema = new Schema<PackDocument>(

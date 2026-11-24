@@ -139,12 +139,23 @@ export interface FileMetadataRecord {
   updatedAt: string;
 }
 
+export interface InvoiceLineItem {
+  description: string;
+  quantity: number;
+  unitPrice: number;
+}
+
 export interface InvoiceRecord {
   id: string;
   client: string;
   project?: string;
   invoiceNumber: string;
+  /** Grand total (subtotal + tax); kept as `amount` for compatibility. */
   amount: number;
+  lineItems: InvoiceLineItem[];
+  taxRate: number;
+  subtotal: number;
+  taxAmount: number;
   invoiceDate: string;
   dueDate: string;
   paymentStatus: InvoicePaymentStatus;
@@ -236,7 +247,38 @@ export interface RevenuePoint {
   expenses: number;
 }
 
+export interface WaitingOnClientItem {
+  id: string;
+  client: string;
+  clientName: string;
+  title: string;
+  detail?: string;
+  href: string;
+  date?: string;
+}
+
+export interface WaitingOnClient {
+  unsignedDocuments: WaitingOnClientItem[];
+  unpaidItems: WaitingOnClientItem[];
+  overdueInvoices: WaitingOnClientItem[];
+}
+
+export type EmailLogStatus = 'queued' | 'sent' | 'delivered' | 'opened' | 'bounced' | 'failed';
+
+export interface EmailLogRecord {
+  id: string;
+  to: string;
+  type: 'portal-access' | 'pack-sent' | 'reminder';
+  subject: string;
+  client?: string;
+  pack?: string;
+  status: EmailLogStatus;
+  error?: string;
+  createdAt: string;
+}
+
 export interface DashboardSummary {
+  waitingOnClient: WaitingOnClient;
   leads: LeadDashboardStats;
   projects: ProjectDashboardStats;
   finance: AgencyFinancialSummary;

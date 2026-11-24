@@ -2,6 +2,7 @@ import { createApp } from './app.js';
 import { connectDatabase } from './config/db.js';
 import { env } from './config/env.js';
 import { ensureBucket } from './modules/files/storage.service.js';
+import { startReminderJob } from './modules/reminders/reminder.cron.js';
 import { logger } from './shared/logger/logger.js';
 
 async function ensureStorage() {
@@ -17,6 +18,7 @@ async function bootstrap() {
   await connectDatabase();
   await ensureStorage();
 
+  startReminderJob();
   createApp().listen(env.port, () => {
     logger.info({ port: env.port }, 'Kraven API listening');
   });

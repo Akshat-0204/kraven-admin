@@ -7,8 +7,13 @@ import type {
   LeadStatus,
   ProjectDashboardStats,
   ProjectStatus,
-  RevenuePoint
+  RevenuePoint,
+  WaitingOnClient,
+  WaitingOnClientItem
 } from '@kraven/types';
+import { ClientModel } from '../clients/client.model.js';
+import { DocumentModel } from '../documents/document.model.js';
+import { PackModel } from '../packs/pack.model.js';
 import { ExpenseModel } from '../finance/expense.model.js';
 import { InvoiceModel } from '../finance/invoice.model.js';
 import { LeadModel } from '../leads/lead.model.js';
@@ -39,15 +44,16 @@ function createClock(now = new Date()): DashboardClock {
 
 export async function getDashboardSummary(): Promise<DashboardSummary> {
   const clock = createClock();
-  const [leads, projects, finance, alerts, revenueOverTime] = await Promise.all([
+  const [leads, projects, finance, alerts, revenueOverTime, waitingOnClient] = await Promise.all([
     getLeadStats(),
     getProjectStats(clock),
     getFinanceSummary(clock),
     getAlerts(clock),
-    getRevenueOverTime()
+    getRevenueOverTime(),
+    getWaitingOnClient(clock)
   ]);
 
-  return { leads, projects, finance, alerts, revenueOverTime };
+  return { leads, projects, finance, alerts, revenueOverTime, waitingOnClient };
 }
 
 export async function getDashboardRevenue() {
@@ -247,4 +253,61 @@ async function getRevenueOverTime(): Promise<RevenuePoint[]> {
 
 function approachingDeadlineFilter(clock: DashboardClock) {
   return { expectedCompletionDate: { $gte: clock.now, $lte: clock.deadlineHorizon } };
+}
+
+const MAX_WAITING = 10;
+
+/** What clients still owe us: unsigned documents and unpaid items in sent packs, plus overdue invoices. */
+export async function getWaitingOnClient(clock: DashboardClock): Promise<WaitingOnClient> {
+  const [packs, overdueInvoices] = await Promise.all([
+    PackModel.find({ status: 'Sent' }).sort({ sentAt: -1 }).limit(50).lean(),
+    InvoiceModel.find({ remainingAmount: { $gt: 0 }, dueDate: { $lt: clock.startOfToday } })
+      .sort({ dueDate: 1 })
+      .limit(MAX_WAITING)
+      .select('client invoiceNumber remainingAmount dueDate')
+      .lean()
+  ]);
+  const live = packs.filter((pack) => !(pack.expiresAt && new Date(pack.expiresAt) <= clock.now));
+  const docIds = live.flatMap((pack) => pack.items.filter((item) => item.document).map((item) => item.document));
+  const docs = docIds.length ? await DocumentModel.find({ _id: { $in: docIds } }).select('title status').lean() : [];
+  const docById = new Map(docs.map((doc) => [String(doc._id), doc]));
+  const clientIds = [...live.map((pack) => pack.client), ...overdueInvoices.map((invoice) => invoice.client)];
+  const clients = clientIds.length ? await ClientModel.find({ _id: { $in: clientIds } }).select('companyName').lean() : [];
+  const nameOf = new Map(clients.map((client) => [String(client._id), client.companyName]));
+
+  const unsignedDocuments: WaitingOnClientItem[] = [];
+  const unpaidItems: WaitingOnClientItem[] = [];
+  for (const pack of live) {
+    const client = String(pack.client);
+    const base = { client, clientName: nameOf.get(client) ?? 'Client', href: `/clients/${client}`, date: pack.sentAt?.toISOString() };
+    for (const item of pack.items) {
+      if (item.kind === 'document') {
+        const doc = item.document ? docById.get(String(item.document)) : undefined;
+        if (doc && doc.status !== 'Signed') {
+          unsignedDocuments.push({ ...base, id: `doc-${item._id}`, title: doc.title, detail: pack.title });
+        }
+      } else if (item.kind === 'payment' && item.paymentStatus !== 'Paid') {
+        unpaidItems.push({
+          ...base,
+          id: `pay-${item._id}`,
+          title: item.label ?? 'Payment',
+          detail: `${item.amount ?? 0} - ${pack.title}`
+        });
+      }
+    }
+  }
+
+  return {
+    unsignedDocuments: unsignedDocuments.slice(0, MAX_WAITING),
+    unpaidItems: unpaidItems.slice(0, MAX_WAITING),
+    overdueInvoices: overdueInvoices.map((invoice) => ({
+      id: `invoice-${invoice._id}`,
+      client: String(invoice.client),
+      clientName: nameOf.get(String(invoice.client)) ?? 'Client',
+      title: `Invoice ${invoice.invoiceNumber}`,
+      detail: `Outstanding ${invoice.remainingAmount}`,
+      href: '/finance/invoices',
+      date: invoice.dueDate?.toISOString()
+    }))
+  };
 }

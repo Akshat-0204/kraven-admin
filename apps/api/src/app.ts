@@ -12,6 +12,8 @@ import { errorHandler } from './middleware/errorHandler.js';
 import { originCheck } from './middleware/originCheck.js';
 import { requestLogger } from './middleware/requestLogger.js';
 import { authRoutes } from './modules/auth/auth.routes.js';
+import { clientEmailRoutes } from './modules/email/email.routes.js';
+import { resendWebhookRoutes } from './modules/email/email.webhook.js';
 import { clientRoutes } from './modules/clients/client.routes.js';
 import { dashboardRoutes } from './modules/dashboard/dashboard.routes.js';
 import { documentRoutes } from './modules/documents/document.routes.js';
@@ -47,6 +49,9 @@ export function createApp() {
       credentials: true
     })
   );
+  // Provider webhook: server-to-server (no cookies), authenticated by its Svix signature and parsed raw,
+  // so it is mounted before the origin check and the JSON body parser.
+  app.use('/webhooks/resend', resendWebhookRoutes);
   app.use(originCheck(env.corsOrigins));
   // 400kb leaves room for a drawn signature PNG (capped at 200KB decoded) on the sign endpoint.
   app.use(express.json({ limit: '400kb' }));
@@ -83,6 +88,7 @@ export function createApp() {
   app.use(authenticate);
   app.use('/leads', leadRoutes);
   app.use('/clients/:id/portal', portalAdminRoutes);
+  app.use('/clients/:id/emails', clientEmailRoutes);
   app.use('/clients', clientRoutes);
   app.use('/projects', projectRoutes);
   app.use('/dashboard', dashboardRoutes);

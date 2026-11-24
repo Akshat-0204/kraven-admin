@@ -21,6 +21,7 @@ import {
 import { clientInitials, formatDate } from './clientFormat';
 import { ClientFormModal } from './ClientFormModal';
 import { DocumentsPanel } from '../documents/DocumentsPanel';
+import { EmailLogPanel } from '../portal/EmailLogPanel';
 import { PacksPanel } from '../portal/PacksPanel';
 import { PortalPanel, slugifyCompanyName } from '../portal/PortalPanel';
 import { SharedFilesPanel } from '../portal/SharedFilesPanel';
@@ -291,6 +292,8 @@ export function ClientDetailPage() {
           <DocumentsPanel scope={{ client: client.id }} />
 
           <PortalPanel clientId={client.id} defaultSlug={slugifyCompanyName(client.companyName)} />
+
+          <EmailLogPanel clientId={client.id} hasEmail={Boolean(client.email)} />
 
           <PacksPanel clientId={client.id} />
 

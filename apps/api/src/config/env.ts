@@ -33,6 +33,15 @@ export const env = {
   portalCookieSecret: requireProductionSecret('PORTAL_COOKIE_SECRET', process.env.PORTAL_COOKIE_SECRET, DEV_PORTAL_SECRET),
   /** Web origin that serves client portal pages (`/c/<slug>`); used to build portal links. */
   portalBaseUrl: process.env.PORTAL_BASE_URL ?? 'http://localhost:5173',
+  /** Resend email. With no API key the email service logs and sends nothing (dev/tests). */
+  resendApiKey: process.env.RESEND_API_KEY ?? '',
+  emailFrom: process.env.EMAIL_FROM ?? 'Kraven <noreply@example.com>',
+  resendWebhookSecret: process.env.RESEND_WEBHOOK_SECRET ?? '',
+  remindersEnabled: process.env.REMINDERS_ENABLED === 'true',
+  /** Cron expression for the daily reminder job. */
+  remindersCron: process.env.REMINDERS_CRON ?? '0 9 * * *',
+  /** Unsigned/unpaid pack items older than this many days get a reminder. */
+  reminderAfterDays: Number(process.env.REMINDER_AFTER_DAYS ?? 3),
   corsOrigins: parseList(process.env.CORS_ORIGINS, ['http://localhost:5173', 'http://127.0.0.1:5173']),
   s3: {
     endpoint: s3Endpoint,

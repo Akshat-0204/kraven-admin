@@ -2,9 +2,9 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import type { InvoiceRecord } from '@kraven/types';
 import { invoiceSchema, type InvoiceInput } from '@kraven/validation';
 import { useQuery } from '@tanstack/react-query';
-import { X } from 'lucide-react';
+import { Plus, Trash2, X } from 'lucide-react';
 import { useMemo } from 'react';
-import { useForm } from 'react-hook-form';
+import { useFieldArray, useForm, useWatch } from 'react-hook-form';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Select } from '../../components/ui/select';
@@ -47,6 +47,8 @@ export function InvoiceFormModal({ invoice, isOpen, onClose, onSubmit }: Invoice
       project: invoice?.project ?? '',
       invoiceNumber: invoice?.invoiceNumber ?? '',
       amount: invoice?.amount ?? 0,
+      lineItems: invoice?.lineItems ?? [],
+      taxRate: invoice?.taxRate ?? 0,
       invoiceDate: invoice?.invoiceDate ? new Date(invoice.invoiceDate) : new Date(),
       dueDate: invoice?.dueDate ? new Date(invoice.dueDate) : new Date(),
       paymentStatus: invoice?.paymentStatus ?? 'Pending',
@@ -62,6 +64,7 @@ export function InvoiceFormModal({ invoice, isOpen, onClose, onSubmit }: Invoice
 
   const {
     register,
+    control,
     handleSubmit,
     reset,
     formState: { errors, isSubmitting }
@@ -69,6 +72,12 @@ export function InvoiceFormModal({ invoice, isOpen, onClose, onSubmit }: Invoice
     resolver: zodResolver(invoiceSchema),
     values: defaultValues
   });
+
+  const { fields, append, remove } = useFieldArray({ control, name: 'lineItems' });
+  const watchedItems = useWatch({ control, name: 'lineItems' }) ?? [];
+  const taxRate = Number(useWatch({ control, name: 'taxRate' }) ?? 0);
+  const subtotal = watchedItems.reduce((sum, item) => sum + Number(item?.quantity ?? 0) * Number(item?.unitPrice ?? 0), 0);
+  const tax = (subtotal * taxRate) / 100;
 
   if (!isOpen) return null;
 
@@ -112,8 +121,36 @@ export function InvoiceFormModal({ invoice, isOpen, onClose, onSubmit }: Invoice
             <Input {...register('invoiceNumber')} />
           </label>
           <label className="space-y-2">
-            <span className="text-sm text-muted">Amount</span>
-            <Input type="number" min="0" {...register('amount')} />
+            <span className="text-sm text-muted">Amount{fields.length > 0 ? ' (computed from line items)' : ''}</span>
+            <Input type="number" min="0" step="any" disabled={fields.length > 0} {...register('amount')} />
+          </label>
+          <div className="space-y-2 md:col-span-2">
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-muted">Line items</span>
+              <Button type="button" className="h-8 px-2" onClick={() => append({ description: '', quantity: 1, unitPrice: 0 })}>
+                <Plus className="mr-1 h-4 w-4" aria-hidden="true" />
+                Add item
+              </Button>
+            </div>
+            {fields.map((field, index) => (
+              <div key={field.id} className="grid grid-cols-[1fr_5rem_7rem_2rem] gap-2">
+                <Input placeholder="Description" aria-label={`Item ${index + 1} description`} {...register(`lineItems.${index}.description`)} />
+                <Input type="number" min="0" step="any" aria-label={`Item ${index + 1} quantity`} {...register(`lineItems.${index}.quantity`)} />
+                <Input type="number" min="0" step="any" aria-label={`Item ${index + 1} unit price`} {...register(`lineItems.${index}.unitPrice`)} />
+                <Button type="button" className="h-9 w-8 bg-transparent p-0 text-white hover:bg-white/10" aria-label="Remove item" onClick={() => remove(index)}>
+                  <Trash2 className="h-4 w-4" aria-hidden="true" />
+                </Button>
+              </div>
+            ))}
+            {fields.length > 0 ? (
+              <div className="text-right text-xs text-muted">
+                Subtotal {subtotal.toFixed(2)} · Tax {tax.toFixed(2)} · Total {(subtotal + tax).toFixed(2)}
+              </div>
+            ) : null}
+          </div>
+          <label className="space-y-2">
+            <span className="text-sm text-muted">Tax rate (%)</span>
+            <Input type="number" min="0" max="100" step="any" disabled={fields.length === 0} {...register('taxRate')} />
           </label>
           <label className="space-y-2">
             <span className="text-sm text-muted">Invoice date</span>

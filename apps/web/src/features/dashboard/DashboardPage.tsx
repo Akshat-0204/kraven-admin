@@ -18,6 +18,7 @@ import {
 } from 'recharts';
 import { ProgressBar } from '../../components/ui/progressBar';
 import { dashboardQueryKeys, getDashboardSummary } from './dashboardApi';
+import type { WaitingOnClient } from '@kraven/types';
 import { formatCurrency } from '../finance/financeFormat';
 
 const leadStatusColors: Record<string, string> = {
@@ -117,6 +118,8 @@ export function DashboardPage() {
           </div>
         </section>
       </div>
+
+      <WaitingOnClientCard data={dashboard.waitingOnClient} />
 
       <section className="rounded border border-border bg-panel p-4">
         <h2 className="mb-4 text-sm font-semibold">Attention</h2>
@@ -311,6 +314,47 @@ function ChartPanel({ title, children }: { title: string; children: React.ReactN
     <section className="rounded border border-border bg-panel p-4">
       <h2 className="mb-4 text-sm font-semibold">{title}</h2>
       {children}
+    </section>
+  );
+}
+
+function WaitingOnClientCard({ data }: { data: WaitingOnClient }) {
+  const groups = [
+    { label: 'Unsigned documents', items: data.unsignedDocuments },
+    { label: 'Unpaid items', items: data.unpaidItems },
+    { label: 'Overdue invoices', items: data.overdueInvoices }
+  ];
+  const total = groups.reduce((sum, group) => sum + group.items.length, 0);
+
+  return (
+    <section className="rounded border border-border bg-panel p-4">
+      <h2 className="mb-4 text-sm font-semibold">Waiting on client</h2>
+      {total === 0 ? (
+        <div className="rounded border border-dashed border-border p-4 text-sm text-muted">Nothing is waiting on a client.</div>
+      ) : (
+        <div className="grid gap-4 md:grid-cols-3">
+          {groups.map((group) => (
+            <div key={group.label}>
+              <div className="mb-2 text-xs text-muted">
+                {group.label} ({group.items.length})
+              </div>
+              <ul className="space-y-2">
+                {group.items.map((item) => (
+                  <li key={item.id}>
+                    <Link to={item.href} className="block rounded border border-border bg-black p-2 text-sm hover:border-indigo-500/50">
+                      <div className="font-medium text-white">{item.title}</div>
+                      <div className="text-xs text-muted">
+                        {item.clientName}
+                        {item.detail ? ` · ${item.detail}` : ''}
+                      </div>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+      )}
     </section>
   );
 }

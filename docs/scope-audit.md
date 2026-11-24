@@ -64,7 +64,7 @@ Modules: auth, leads, clients, projects, finance (invoices, payments, expenses),
 | 2 | Document templates (Tiptap, Handlebars-style variables) rendered to PDF via Gotenberg, stored in MinIO (done) |
 | 3 | Client portal: `/c/<slug>` + admin-set access code (bcrypt), signed cookie, lockout; project updates, documents, payments (UPI deep-link/QR), downloads of `clientVisible` files (done) |
 | 4 | Packs (grouped sends) + in-house e-sign (audit capture, `pdf-lib` seal, SHA-256) |
-| 5 | Email via Resend (webhooks, reminders), "Waiting on client" widget, invoice line items/tax/PDF |
+| 5 | Email via Resend (no-op without a key; `EmailLog`; Svix-verified `POST /webhooks/resend`, exempt from origin check), daily reminder cron (`REMINDERS_ENABLED`, 3-day throttle via `lastRemindedAt`), "Waiting on client" dashboard widget, invoice line items/tax/PDF (`GET /invoices/:id/pdf`); invoice GETs no longer write (done) |
 
 ## Still out of scope
 

@@ -1,7 +1,7 @@
 import { INVOICE_PAYMENT_STATUSES } from '@kraven/config';
 import type { InvoiceFilterInput, InvoiceInput, PaymentInput } from '@kraven/validation';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Plus, Search, Trash2 } from 'lucide-react';
+import { Download, Plus, Search, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { Button } from '../../components/ui/button';
@@ -18,6 +18,7 @@ import {
   recordPayment
 } from './financeApi';
 import { formatCurrency, formatDate } from './financeFormat';
+import { downloadFile } from '../../lib/api';
 import { InvoiceFormModal } from './InvoiceFormModal';
 import { PaymentFormModal } from './PaymentFormModal';
 import type { InvoiceRecord } from '@kraven/types';
@@ -151,6 +152,13 @@ export function InvoicesPaymentsPage() {
                   <td className="px-3 py-3 text-muted">{formatDate(invoice.dueDate)}</td>
                   <td className="px-3 py-3">
                     <div className="flex gap-2">
+                      <Button
+                        className="h-8 w-8 bg-transparent p-0 text-white hover:bg-white/10"
+                        aria-label={`Download invoice ${invoice.invoiceNumber} PDF`}
+                        onClick={() => downloadFile(`/invoices/${invoice.id}/pdf`, `${invoice.invoiceNumber}.pdf`).catch((error: Error) => toast.error(error.message))}
+                      >
+                        <Download className="h-4 w-4" aria-hidden="true" />
+                      </Button>
                       <Button className="h-8 px-2" disabled={invoice.remainingAmount <= 0} onClick={() => setPaymentInvoice(invoice)}>Pay</Button>
                       <Button
                         className="h-8 w-8 bg-transparent p-0 text-white hover:bg-white/10"

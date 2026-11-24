@@ -11,6 +11,7 @@ import {
   getDocumentSignature,
   listPacks,
   packQueryKeys,
+  emailPack,
   sendPack,
   setPackPaymentStatus
 } from './portalApi';
@@ -38,7 +39,22 @@ function SignatureAudit({ documentId }: { documentId: string }) {
 }
 
 function PackCard({ pack, onChange }: { pack: PackRecord; onChange: () => void }) {
-  const send = useMutation({ mutationFn: () => sendPack(pack.id), onSuccess: onChange, onError: (e) => toast.error(e.message) });
+  const send = useMutation({
+    mutationFn: (email: boolean) => sendPack(pack.id, email),
+    onSuccess: (result) => {
+      if (result.emailError) toast.error(`Pack sent, but email failed: ${result.emailError}`);
+      onChange();
+    },
+    onError: (e) => toast.error(e.message)
+  });
+  const email = useMutation({
+    mutationFn: () => emailPack(pack.id),
+    onSuccess: () => {
+      toast.success('Email queued');
+      onChange();
+    },
+    onError: (e) => toast.error(e.message)
+  });
   const remove = useMutation({ mutationFn: () => deletePack(pack.id), onSuccess: onChange, onError: (e) => toast.error(e.message) });
   const advance = useMutation({
     mutationFn: ({ itemId, status }: { itemId: string; status: 'Sent' | 'Paid' }) => setPackPaymentStatus(pack.id, itemId, status),
@@ -54,8 +70,17 @@ function PackCard({ pack, onChange }: { pack: PackRecord; onChange: () => void }
         </p>
         <div className="flex gap-2">
           {pack.status === 'Draft' ? (
-            <Button type="button" onClick={() => send.mutate()} disabled={send.isPending}>
-              Send
+            <>
+              <Button type="button" onClick={() => send.mutate(false)} disabled={send.isPending}>
+                Send
+              </Button>
+              <Button type="button" onClick={() => send.mutate(true)} disabled={send.isPending}>
+                Send + email
+              </Button>
+            </>
+          ) : pack.status === 'Sent' ? (
+            <Button type="button" onClick={() => email.mutate()} disabled={email.isPending}>
+              Email client
             </Button>
           ) : null}
           <Button type="button" className="bg-transparent text-white hover:bg-white/10" onClick={() => remove.mutate()}>

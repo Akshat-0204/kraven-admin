@@ -164,11 +164,23 @@ export const attachProjectDocumentSchema = fileReferenceSchema;
 
 export type AttachProjectDocumentInput = z.infer<typeof attachProjectDocumentSchema>;
 
+export const invoiceLineItemSchema = z.object({
+  description: z.string().trim().min(1),
+  quantity: z.coerce.number().positive(),
+  unitPrice: z.coerce.number().nonnegative()
+});
+
+export type InvoiceLineItemInput = z.infer<typeof invoiceLineItemSchema>;
+
 export const invoiceSchema = z.object({
   client: objectId,
   project: optionalObjectId,
   invoiceNumber: z.string().min(1),
+  /** Ignored (recomputed as the total) when `lineItems` is non-empty. */
   amount: z.coerce.number().nonnegative(),
+  lineItems: z.array(invoiceLineItemSchema).max(100).default([]),
+  /** Tax percentage applied to the line items subtotal. */
+  taxRate: z.coerce.number().min(0).max(100).default(0),
   invoiceDate: z.coerce.date(),
   dueDate: z.coerce.date(),
   paymentStatus: z.enum(INVOICE_PAYMENT_STATUSES).default('Pending'),
