@@ -11,6 +11,7 @@ import { DashboardPage } from '../features/dashboard/DashboardPage';
 import { LeadDetailPage } from '../features/leads/LeadDetailPage';
 import { LeadListPage } from '../features/leads/LeadListPage';
 import { PortalPage } from '../features/portal/PortalPage';
+import { PortalSignPage } from '../features/portal/PortalSignPage';
 import { PortalPayPage } from '../features/portal/PortalPayPage';
 import { ProjectDetailPage } from '../features/projects/ProjectDetailPage';
 import { ProjectListPage } from '../features/projects/ProjectListPage';
@@ -30,6 +31,14 @@ export const router = createBrowserRouter([
   {
     path: '/c/:slug/pay/:invoiceId',
     element: <PortalPayPage />
+  },
+  {
+    path: '/c/:slug/pay-item/:packId/:itemId',
+    element: <PortalPayPage />
+  },
+  {
+    path: '/c/:slug/sign/:documentId',
+    element: <PortalSignPage />
   },
   {
     path: '/',

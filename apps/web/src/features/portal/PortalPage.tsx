@@ -7,12 +7,13 @@ import { toast } from 'sonner';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { ProgressBar } from '../../components/ui/progressBar';
-import { PortalRequestError, portalApi, portalDocumentPdfUrl, portalQueryKeys } from './portalApi';
+import { PortalRequestError, portalApi, portalDocumentPdfUrl, portalQueryKeys, portalSignedPdfUrl } from './portalApi';
 
-type PortalTab = 'overview' | 'updates' | 'documents' | 'payments' | 'downloads';
+type PortalTab = 'overview' | 'packs' | 'updates' | 'documents' | 'payments' | 'downloads';
 
 const TABS: { id: PortalTab; label: string }[] = [
   { id: 'overview', label: 'Overview' },
+  { id: 'packs', label: 'Packs' },
   { id: 'updates', label: 'Updates' },
   { id: 'documents', label: 'Documents' },
   { id: 'payments', label: 'Payments' },
@@ -151,6 +152,7 @@ export function PortalPage() {
 
       <section className="mt-6">
         {tab === 'overview' ? <OverviewTab projects={me.data.projects} /> : null}
+        {tab === 'packs' ? <PacksTab slug={slug} /> : null}
         {tab === 'updates' ? <UpdatesTab /> : null}
         {tab === 'documents' ? <DocumentsTab /> : null}
         {tab === 'payments' ? <PaymentsTab slug={slug} /> : null}
@@ -287,7 +289,7 @@ function PaymentsTab({ slug }: { slug: string }) {
   );
 }
 
-function DownloadButton({ id, filename }: { id: string; filename: string }) {
+function DownloadButton({ id, filename, packFile }: { id: string; filename: string; packFile?: boolean }) {
   const [pending, setPending] = useState(false);
 
   async function open() {
@@ -295,7 +297,7 @@ function DownloadButton({ id, filename }: { id: string; filename: string }) {
     const tab = window.open('', '_blank');
     setPending(true);
     try {
-      const { url } = await portalApi.downloadUrl(id);
+      const { url } = await (packFile ? portalApi.packFileUrl(id) : portalApi.downloadUrl(id));
       if (tab) {
         tab.opener = null;
         tab.location.href = url;
@@ -338,4 +340,73 @@ function DownloadsTab() {
       ))}
     </ul>
   );
+}
+
+function PacksTab({ slug }: { slug: string }) {
+  const query = useQuery({ queryKey: portalQueryKeys.section('packs'), queryFn: portalApi.packs });
+  if (!query.data) return <SectionState isLoading={query.isLoading} error={query.error} />;
+  if (query.data.packs.length === 0) return <Empty>Nothing has been sent to you yet.</Empty>;
+
+  return (
+    <div className="space-y-4">
+      {query.data.packs.map((pack) => (
+        <section key={pack.id} className="rounded border border-border bg-panel">
+          <h2 className="border-b border-border p-4 font-medium">
+            {pack.title}
+            {pack.expiresAt ? <span className="ml-2 text-xs text-muted">Expires {formatDate(pack.expiresAt)}</span> : null}
+          </h2>
+          <ul className="divide-y divide-border">
+            {pack.items.map((item) => (
+              <li key={item.id} className="flex flex-wrap items-center justify-between gap-3 p-4">
+                <div className="min-w-0">
+                  <p className="truncate">{item.title}</p>
+                  <p className="text-xs text-muted">
+                    {item.kind === 'document' ? item.documentStatus : null}
+                    {item.kind === 'payment' ? `${formatInr(item.amount ?? 0)} · ${item.paymentStatus}` : null}
+                    {item.kind === 'file' ? 'File' : null}
+                  </p>
+                </div>
+                <PackItemActions slug={slug} packId={pack.id} item={item} />
+              </li>
+            ))}
+          </ul>
+        </section>
+      ))}
+    </div>
+  );
+}
+
+function PackItemActions({ slug, packId, item }: { slug: string; packId: string; item: import('@kraven/types').PortalPackItem }) {
+  if (item.kind === 'document' && item.document) {
+    if (item.documentStatus === 'Signed') {
+      return (
+        <Button asChild>
+          <a href={portalSignedPdfUrl(item.document)} target="_blank" rel="noopener noreferrer">
+            Download signed PDF
+          </a>
+        </Button>
+      );
+    }
+    return (
+      <div className="flex gap-2">
+        <Button asChild className="bg-transparent text-white hover:bg-white/10">
+          <a href={portalDocumentPdfUrl(item.document)} target="_blank" rel="noopener noreferrer">
+            View PDF
+          </a>
+        </Button>
+        <Button asChild>
+          <Link to={`/c/${encodeURIComponent(slug)}/sign/${item.document}`}>Sign</Link>
+        </Button>
+      </div>
+    );
+  }
+  if (item.kind === 'payment' && item.paymentStatus !== 'Paid' && item.payee) {
+    return (
+      <Button asChild>
+        <Link to={`/c/${encodeURIComponent(slug)}/pay-item/${packId}/${item.id}`}>Pay</Link>
+      </Button>
+    );
+  }
+  if (item.kind === 'file' && item.file) return <DownloadButton id={item.file} filename="Download" packFile />;
+  return null;
 }

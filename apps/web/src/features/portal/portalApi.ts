@@ -5,7 +5,11 @@ import type {
   PortalDocumentRecord,
   PortalFileRecord,
   PortalOverview,
+  PackRecord,
+  PortalPackItem,
+  PortalPackRecord,
   PortalPaymentRecord,
+  SignatureRecord,
   PortalSettingsRecord,
   PortalUpdateRecord,
   ProjectUpdateRecord
@@ -54,6 +58,15 @@ export const portalApi = {
   updates: () => portalRequest<{ updates: PortalUpdateRecord[] }>('/updates'),
   documents: () => portalRequest<{ documents: PortalDocumentRecord[] }>('/documents'),
   payments: () => portalRequest<{ payments: PortalPaymentRecord[] }>('/payments'),
+  packs: () => portalRequest<{ packs: PortalPackRecord[] }>('/packs'),
+  packPayment: (packId: string, itemId: string) =>
+    portalRequest<{ item: PortalPackItem }>(`/packs/${packId}/items/${itemId}/payment`),
+  packFileUrl: (id: string) => portalRequest<{ url: string; expiresIn: number }>(`/packs/files/${id}/url`),
+  sign: (documentId: string, input: { signerName: string; method: 'typed' | 'drawn'; signatureImage?: string; consent: boolean }) =>
+    portalRequest<{ id: string; status: 'Signed'; signedAt: string }>(`/documents/${documentId}/sign`, {
+      method: 'POST',
+      body: JSON.stringify(input)
+    }),
   downloads: () => portalRequest<{ downloads: PortalFileRecord[] }>('/downloads'),
   downloadUrl: (id: string) => portalRequest<{ url: string; expiresIn: number }>(`/downloads/${id}/url`)
 };
@@ -61,6 +74,10 @@ export const portalApi = {
 /** Streams through the API with the portal cookie; opening it marks a Sent document as Viewed. */
 export function portalDocumentPdfUrl(id: string) {
   return apiUrl(`/public/portal/documents/${id}/pdf`);
+}
+
+export function portalSignedPdfUrl(id: string) {
+  return apiUrl(`/public/portal/documents/${id}/signed.pdf`);
 }
 
 // ---- Admin (session) API ----
@@ -143,4 +160,47 @@ export function updatePayeeProfile(id: string, input: Partial<PayeeProfileInput>
 
 export function deletePayeeProfile(id: string) {
   return requestJson<void>(`/payee-profiles/${id}`, { method: 'DELETE' });
+}
+
+export const packQueryKeys = {
+  list: (clientId: string) => ['packs', clientId] as const,
+  signature: (documentId: string) => ['signature', documentId] as const
+};
+
+export function listPacks(clientId: string) {
+  return requestJson<{ packs: PackRecord[] }>(`/packs?client=${encodeURIComponent(clientId)}`);
+}
+
+export type PackInputBody = {
+  client: string;
+  title: string;
+  expiresAt?: string | null;
+  items: (
+    | { kind: 'document'; document: string }
+    | { kind: 'file'; file: string }
+    | { kind: 'payment'; label: string; amount: number; reference?: string }
+  )[];
+};
+
+export function createPack(input: PackInputBody) {
+  return requestJson<{ pack: PackRecord }>('/packs', { method: 'POST', body: JSON.stringify(input) });
+}
+
+export function sendPack(id: string) {
+  return requestJson<{ pack: PackRecord }>(`/packs/${id}/send`, { method: 'POST' });
+}
+
+export function deletePack(id: string) {
+  return requestJson<void>(`/packs/${id}`, { method: 'DELETE' });
+}
+
+export function setPackPaymentStatus(packId: string, itemId: string, status: 'Sent' | 'Paid') {
+  return requestJson<{ pack: PackRecord }>(`/packs/${packId}/items/${itemId}/payment-status`, {
+    method: 'PATCH',
+    body: JSON.stringify({ status })
+  });
+}
+
+export function getDocumentSignature(documentId: string) {
+  return requestJson<{ signature: SignatureRecord }>(`/documents/${documentId}/signature`);
 }

@@ -20,7 +20,9 @@ vi.mock('./portalApi', async (importOriginal) => {
       documents: vi.fn(),
       payments: vi.fn(),
       downloads: vi.fn(),
-      downloadUrl: vi.fn()
+      downloadUrl: vi.fn(),
+      packs: vi.fn(),
+      packPayment: vi.fn()
     }
   };
 });

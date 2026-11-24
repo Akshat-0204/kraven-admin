@@ -1,3 +1,4 @@
+import type { PortalPaymentRecord } from '@kraven/types';
 import { useQuery } from '@tanstack/react-query';
 import { ArrowLeft, Copy, QrCode, Smartphone, X } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
@@ -18,14 +19,37 @@ const APPS = [
 
 /** Port of the devhouse PayPage: UPI deep links per app plus a scannable QR for the remaining amount. */
 export function PortalPayPage() {
-  const { slug = '', invoiceId = '' } = useParams();
+  const { slug = '', invoiceId = '', packId = '', itemId = '' } = useParams();
+  const isPackItem = Boolean(packId);
   const [showQr, setShowQr] = useState(false);
-  const payments = useQuery({ queryKey: portalQueryKeys.section('payments'), queryFn: portalApi.payments, retry: false });
+  const invoices = useQuery({ queryKey: portalQueryKeys.section('payments'), queryFn: portalApi.payments, retry: false, enabled: !isPackItem });
+  const packItem = useQuery({
+    queryKey: portalQueryKeys.section(`pack-payment-${packId}-${itemId}`),
+    queryFn: () => portalApi.packPayment(packId, itemId),
+    retry: false,
+    enabled: isPackItem
+  });
+  const payments = isPackItem ? packItem : invoices;
   const backTo = `/c/${encodeURIComponent(slug)}`;
 
   if (payments.error instanceof PortalRequestError && payments.error.status === 401) return <Navigate to={backTo} replace />;
 
-  const payment = payments.data?.payments.find((item) => item.id === invoiceId);
+  const item = packItem.data?.item;
+  const payment: PortalPaymentRecord | undefined = isPackItem
+    ? item && item.paymentStatus !== 'Paid'
+      ? {
+          id: item.id,
+          invoiceNumber: item.reference || item.title,
+          amount: item.amount ?? 0,
+          amountPaid: 0,
+          remainingAmount: item.amount ?? 0,
+          invoiceDate: '',
+          dueDate: '',
+          paymentStatus: 'Pending',
+          payee: item.payee ?? null
+        }
+      : undefined
+    : invoices.data?.payments.find((entry) => entry.id === invoiceId);
 
   if (payments.isLoading) {
     return (
@@ -50,7 +74,7 @@ export function PortalPayPage() {
     vpa: payment.payee.vpa,
     name: payment.payee.name,
     amount: payment.remainingAmount,
-    note: `Invoice ${payment.invoiceNumber}`
+    note: isPackItem ? payment.invoiceNumber : `Invoice ${payment.invoiceNumber}`
   };
   const upiUri = buildUpiUri(request);
 
@@ -68,10 +92,10 @@ export function PortalPayPage() {
       <BackLink to={backTo} />
       <div className="mx-auto mt-6 max-w-md space-y-6">
         <div className="rounded border border-border bg-panel p-6 text-center">
-          <p className="text-xs uppercase tracking-widest text-muted">Invoice {payment.invoiceNumber}</p>
+          <p className="text-xs uppercase tracking-widest text-muted">{isPackItem ? payment.invoiceNumber : `Invoice ${payment.invoiceNumber}`}</p>
           <p className="mt-3 text-4xl font-semibold">{formatInr(payment.remainingAmount)}</p>
           <p className="mt-2 text-sm text-muted">
-            Pay to {request.name} · Due {formatDate(payment.dueDate)}
+            Pay to {request.name}{payment.dueDate ? ` · Due ${formatDate(payment.dueDate)}` : ''}
           </p>
           <button
             type="button"
