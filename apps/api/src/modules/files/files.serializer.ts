@@ -7,6 +7,7 @@ export function serializeFileMetadata(file: FileMetadataDocument & { _id: unknow
     filename: file.filename,
     contentType: file.contentType,
     length: file.length,
+    clientVisible: file.clientVisible ?? false,
     associatedEntityType: file.associatedEntityType,
     associatedEntityId: file.associatedEntityId ? String(file.associatedEntityId) : undefined,
     createdAt: file.createdAt.toISOString(),

@@ -5,9 +5,11 @@ import cookieParser from 'cookie-parser';
 import cors from 'cors';
 import express from 'express';
 import session from 'express-session';
+import helmet from 'helmet';
 import { env } from './config/env.js';
 import { authenticate } from './middleware/authenticate.js';
 import { errorHandler } from './middleware/errorHandler.js';
+import { originCheck } from './middleware/originCheck.js';
 import { requestLogger } from './middleware/requestLogger.js';
 import { authRoutes } from './modules/auth/auth.routes.js';
 import { clientRoutes } from './modules/clients/client.routes.js';
@@ -28,7 +30,17 @@ export function createApp() {
     app.set('trust proxy', 1);
   }
 
-  app.use(cors({ origin: true, credentials: true }));
+  const allowedOrigins = new Set(env.corsOrigins);
+
+  // The API serves JSON and file downloads to a separate web origin, so allow cross-origin resource loads.
+  app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
+  app.use(
+    cors({
+      origin: (origin, callback) => callback(null, !origin || allowedOrigins.has(origin)),
+      credentials: true
+    })
+  );
+  app.use(originCheck(env.corsOrigins));
   app.use(express.json());
   app.use(cookieParser());
   app.use(

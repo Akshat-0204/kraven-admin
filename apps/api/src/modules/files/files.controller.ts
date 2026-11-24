@@ -1,7 +1,8 @@
 import { fileUploadMetadataSchema } from '@kraven/validation';
 import type { Request, Response } from 'express';
 import { HttpError } from '../../shared/errors/httpError.js';
-import { openFileDownload, storeFile } from './gridfs.service.js';
+import { logger } from '../../shared/logger/logger.js';
+import { getFileDownloadUrl, openFileDownload, storeFile } from './storage.service.js';
 import { serializeFileMetadata } from './files.serializer.js';
 
 export async function uploadFile(req: Request, res: Response) {
@@ -26,5 +27,13 @@ export async function downloadFile(req: Request, res: Response) {
 
   res.setHeader('Content-Type', metadata.contentType ?? 'application/octet-stream');
   res.setHeader('Content-Disposition', `attachment; filename="${metadata.filename}"`);
+  stream.on('error', (error) => {
+    logger.error({ error, fileId: req.params.id }, 'file download stream failed');
+    res.destroy(error);
+  });
   stream.pipe(res);
+}
+
+export async function getDownloadUrl(req: Request, res: Response) {
+  res.json(await getFileDownloadUrl(req.params.id));
 }

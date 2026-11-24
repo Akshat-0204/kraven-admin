@@ -132,6 +132,7 @@ export interface FileMetadataRecord {
   filename: string;
   contentType?: string;
   length: number;
+  clientVisible: boolean;
   associatedEntityType?: string;
   associatedEntityId?: string;
   createdAt: string;
