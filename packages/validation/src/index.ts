@@ -5,7 +5,10 @@ import {
   EXPENSE_CATEGORIES,
   INVOICE_PAYMENT_STATUSES,
   LEAD_STATUSES,
+  PACK_ITEM_KINDS,
+  PACK_PAYMENT_STATUSES,
   PORTAL_RESERVED_SLUGS,
+  SIGNATURE_IMAGE_MAX_BYTES,
   PORTAL_SLUG_MAX_LENGTH,
   PORTAL_SLUG_MIN_LENGTH,
   PORTAL_SLUG_PATTERN,
@@ -375,3 +378,43 @@ export type PayeeProfileInput = z.input<typeof payeeProfileSchema>;
 export const updatePayeeProfileSchema = payeeProfileSchema.partial();
 
 export type UpdatePayeeProfileInput = z.input<typeof updatePayeeProfileSchema>;
+
+export const packItemSchema = z.discriminatedUnion('kind', [
+  z.object({ kind: z.literal('document'), document: objectId }),
+  z.object({ kind: z.literal('file'), file: objectId }),
+  z.object({
+    kind: z.literal('payment'),
+    label: z.string().trim().min(1).max(200),
+    amount: z.coerce.number().positive(),
+    reference: z.string().trim().max(100).optional()
+  })
+]);
+
+export const packSchema = z.object({
+  client: objectId,
+  project: objectId.optional(),
+  title: z.string().trim().min(1).max(200),
+  items: z.array(packItemSchema).max(50).default([]),
+  expiresAt: z.coerce.date().nullable().optional()
+});
+export type PackInput = z.infer<typeof packSchema>;
+
+export const updatePackSchema = packSchema.omit({ client: true }).partial();
+export type UpdatePackInput = z.infer<typeof updatePackSchema>;
+
+export const packPaymentStatusSchema = z.object({ status: z.enum(PACK_PAYMENT_STATUSES) });
+
+const SIGNATURE_DATA_URL = /^data:image\/png;base64,[A-Za-z0-9+/]+={0,2}$/;
+
+export const signDocumentSchema = z
+  .object({
+    signerName: z.string().trim().min(2).max(120),
+    method: z.enum(['typed', 'drawn']),
+    signatureImage: z.string().max(Math.ceil((SIGNATURE_IMAGE_MAX_BYTES * 4) / 3) + 64).regex(SIGNATURE_DATA_URL).optional(),
+    consent: z.literal(true, { errorMap: () => ({ message: 'Consent is required' }) })
+  })
+  .refine((value) => value.method === 'typed' || Boolean(value.signatureImage), {
+    message: 'A drawn signature is required',
+    path: ['signatureImage']
+  });
+export type SignDocumentInput = z.infer<typeof signDocumentSchema>;

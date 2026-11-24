@@ -11,14 +11,26 @@ function parseList(value: string | undefined, fallback: string[]) {
 
 const s3Endpoint = process.env.S3_ENDPOINT ?? 'http://127.0.0.1:9000';
 
+const DEV_SESSION_SECRET = 'kraven-development-session-secret';
+const DEV_PORTAL_SECRET = 'kraven-development-portal-secret';
+
+/** Production must set real secrets; refuse to boot on missing or development defaults. */
+function requireProductionSecret(name: string, value: string | undefined, devDefault: string) {
+  if (process.env.NODE_ENV !== 'production') return value ?? devDefault;
+  if (!value || value === devDefault) {
+    throw new Error(`${name} must be set to a strong, non-default value in production`);
+  }
+  return value;
+}
+
 export const env = {
   nodeEnv: process.env.NODE_ENV ?? 'development',
   port: Number(process.env.PORT ?? 4000),
   mongoUri: process.env.MONGODB_URI ?? 'mongodb://127.0.0.1:27017/kraven',
   requireDatabase: process.env.REQUIRE_DATABASE === 'true',
-  sessionSecret: process.env.SESSION_SECRET ?? 'kraven-development-session-secret',
+  sessionSecret: requireProductionSecret('SESSION_SECRET', process.env.SESSION_SECRET, DEV_SESSION_SECRET),
   /** Signs the client portal cookie. Set a long random value in production. */
-  portalCookieSecret: process.env.PORTAL_COOKIE_SECRET ?? 'kraven-development-portal-secret',
+  portalCookieSecret: requireProductionSecret('PORTAL_COOKIE_SECRET', process.env.PORTAL_COOKIE_SECRET, DEV_PORTAL_SECRET),
   /** Web origin that serves client portal pages (`/c/<slug>`); used to build portal links. */
   portalBaseUrl: process.env.PORTAL_BASE_URL ?? 'http://localhost:5173',
   corsOrigins: parseList(process.env.CORS_ORIGINS, ['http://localhost:5173', 'http://127.0.0.1:5173']),

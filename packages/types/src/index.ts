@@ -394,3 +394,56 @@ export interface PortalPaymentRecord {
   /** Resolved payee (invoice's profile or the default); null when none is configured. */
   payee: PortalPayee | null;
 }
+
+export type PackStatus = 'Draft' | 'Sent' | 'Closed';
+export type PackPaymentStatus = 'Pending' | 'Sent' | 'Paid';
+
+export interface PackItemRecord {
+  id: string;
+  kind: 'document' | 'payment' | 'file';
+  document?: string;
+  file?: string;
+  /** Resolved display title (document title, file name or payment label). */
+  title: string;
+  documentStatus?: DocumentStatus;
+  amount?: number;
+  reference?: string;
+  paymentStatus?: PackPaymentStatus;
+}
+
+export interface PackRecord {
+  id: string;
+  client: string;
+  project?: string;
+  title: string;
+  status: PackStatus;
+  items: PackItemRecord[];
+  expiresAt?: string;
+  sentAt?: string;
+  createdAt: string;
+}
+
+export interface PortalPackItem extends PackItemRecord {
+  payee?: PortalPayee | null;
+  signedAt?: string;
+}
+
+export interface PortalPackRecord {
+  id: string;
+  title: string;
+  sentAt?: string;
+  expiresAt?: string;
+  items: PortalPackItem[];
+}
+
+export interface SignatureRecord {
+  id: string;
+  document: string;
+  signerName: string;
+  method: 'typed' | 'drawn';
+  signedAt: string;
+  ip: string;
+  userAgent: string;
+  originalSha256: string;
+  sealedSha256: string;
+}

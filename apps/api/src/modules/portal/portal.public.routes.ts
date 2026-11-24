@@ -1,8 +1,11 @@
 import { Router } from 'express';
 import { rateLimit } from 'express-rate-limit';
+import { HttpError } from '../../shared/errors/httpError.js';
 import { asyncHandler } from '../../middleware/asyncHandler.js';
 import { pipeStreamToResponse } from '../files/files.controller.js';
 import { attachmentContentDisposition } from '../files/storage.service.js';
+import { findPortalPaymentItem, fileInLivePack, listPortalPacks } from '../packs/pack.service.js';
+import { openSealedPdf, signPortalDocument } from '../packs/sign.service.js';
 import { verifyPortalCode } from './portal.access.service.js';
 import { getPortalClientId, requirePortalAccess } from './portal.auth.js';
 import {
@@ -15,6 +18,7 @@ import {
   openPortalDocumentPdf
 } from './portal.content.service.js';
 import { clearPortalCookie, setPortalCookie } from './portal.cookie.js';
+import { getPackFileUrl } from '../packs/packFile.js';
 import { PORTAL_VERIFY_RATE_LIMIT } from './portal.rules.js';
 
 /**
@@ -81,6 +85,49 @@ export function createPublicPortalRoutes() {
     '/payments',
     asyncHandler(async (req, res) => {
       res.json({ payments: await listPortalPayments(getPortalClientId(req)) });
+    })
+  );
+  router.get(
+    '/packs',
+    asyncHandler(async (req, res) => {
+      res.json({ packs: await listPortalPacks(getPortalClientId(req)) });
+    })
+  );
+  router.get(
+    '/packs/:packId/items/:itemId/payment',
+    asyncHandler(async (req, res) => {
+      const { pack, item } = await findPortalPaymentItem(getPortalClientId(req), req.params.packId, req.params.itemId);
+      const packs = await listPortalPacks(getPortalClientId(req));
+      const found = packs.find((entry) => entry.id === String(pack._id))?.items.find((entry) => entry.id === String(item._id));
+      res.json({ item: found });
+    })
+  );
+  router.get(
+    '/packs/files/:id/url',
+    asyncHandler(async (req, res) => {
+      const clientId = getPortalClientId(req);
+      if (!(await fileInLivePack(clientId, req.params.id))) throw new HttpError(404, 'Not found');
+      res.json(await getPackFileUrl(req.params.id));
+    })
+  );
+  router.post(
+    '/documents/:id/sign',
+    asyncHandler(async (req, res) => {
+      const result = await signPortalDocument(getPortalClientId(req), req.params.id, req.body, {
+        ip: req.ip ?? '',
+        userAgent: String(req.get('user-agent') ?? '').slice(0, 500)
+      });
+      res.json(result);
+    })
+  );
+  router.get(
+    '/documents/:id/signed.pdf',
+    asyncHandler(async (req, res) => {
+      const { filename, stream } = await openSealedPdf(getPortalClientId(req), req.params.id);
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', attachmentContentDisposition(filename));
+      res.setHeader('Cache-Control', 'private, no-store');
+      await pipeStreamToResponse(stream, res, { documentId: req.params.id, portal: true });
     })
   );
   router.get(

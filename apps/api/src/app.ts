@@ -22,6 +22,7 @@ import { invoiceRoutes } from './modules/finance/invoice.routes.js';
 import { paymentRoutes } from './modules/finance/payment.routes.js';
 import { filesRoutes } from './modules/files/files.routes.js';
 import { leadRoutes } from './modules/leads/lead.routes.js';
+import { packRoutes } from './modules/packs/pack.routes.js';
 import { payeeProfileRoutes } from './modules/payees/payeeProfile.routes.js';
 import { portalAdminRoutes } from './modules/portal/portal.admin.routes.js';
 import { createPublicPortalRoutes } from './modules/portal/portal.public.routes.js';
@@ -47,7 +48,8 @@ export function createApp() {
     })
   );
   app.use(originCheck(env.corsOrigins));
-  app.use(express.json());
+  // 400kb leaves room for a drawn signature PNG (capped at 200KB decoded) on the sign endpoint.
+  app.use(express.json({ limit: '400kb' }));
   // The secret signs the client portal cookie (`kraven_portal`).
   app.use(cookieParser(env.portalCookieSecret));
   app.use(
@@ -93,6 +95,7 @@ export function createApp() {
   app.use('/document-templates', documentTemplateRoutes);
   app.use('/documents', documentRoutes);
   app.use('/project-updates', projectUpdateRoutes);
+  app.use('/packs', packRoutes);
   app.use('/payee-profiles', payeeProfileRoutes);
   app.use((_req, res) => {
     res.status(404).json({ message: 'Not found' });

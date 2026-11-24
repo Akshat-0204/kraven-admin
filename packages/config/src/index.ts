@@ -88,3 +88,9 @@ export const SIDEBAR_ITEMS = [
   },
   { label: 'Settings', path: '/settings' }
 ] as const;
+
+export const PACK_STATUSES = ['Draft', 'Sent', 'Closed'] as const;
+export const PACK_ITEM_KINDS = ['document', 'payment', 'file'] as const;
+export const PACK_PAYMENT_STATUSES = ['Pending', 'Sent', 'Paid'] as const;
+/** Decoded size cap for a drawn signature PNG. */
+export const SIGNATURE_IMAGE_MAX_BYTES = 200_000;
