@@ -85,6 +85,12 @@ function encodeRfc5987(value: string) {
   return encodeURIComponent(value).replace(/['()*]/g, (char) => `%${char.charCodeAt(0).toString(16).toUpperCase()}`);
 }
 
+/** `attachment` Content-Disposition with an ASCII-safe `filename` fallback plus the exact UTF-8 name (RFC 6266). */
+export function attachmentContentDisposition(filename: string) {
+  const asciiFallback = filename.replace(/[^\x20-\x7e]|["\\]/g, '_');
+  return `attachment; filename="${asciiFallback}"; filename*=UTF-8''${encodeRfc5987(filename)}`;
+}
+
 export function presignObject(key: string, options: { filename?: string; expiresIn?: number } = {}) {
   return getSignedUrl(
     getS3Client(),

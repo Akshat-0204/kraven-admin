@@ -16,7 +16,7 @@ export interface FileMetadataDocument {
 
 const fileMetadataSchema = new Schema<FileMetadataDocument>(
   {
-    bucketKey: { type: String, required: true, unique: true },
+    bucketKey: { type: String, required: true },
     filename: { type: String, required: true, trim: true },
     contentType: { type: String, trim: true },
     length: { type: Number, required: true, min: 0 },
@@ -28,6 +28,11 @@ const fileMetadataSchema = new Schema<FileMetadataDocument>(
   { timestamps: true }
 );
 
+// Partial so legacy GridFS-era docs without a bucketKey do not block the index build.
+fileMetadataSchema.index(
+  { bucketKey: 1 },
+  { unique: true, partialFilterExpression: { bucketKey: { $exists: true } } }
+);
 fileMetadataSchema.index({ associatedEntityType: 1, associatedEntityId: 1 });
 
 export const FileMetadataModel = model<FileMetadataDocument>('FileMetadata', fileMetadataSchema);

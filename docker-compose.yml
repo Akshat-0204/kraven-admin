@@ -21,7 +21,7 @@ services:
     restart: unless-stopped
 
   gotenberg:
-    image: gotenberg/gotenberg:8
+    image: gotenberg/gotenberg:8.40.0
     ports:
       - '3000:3000'
     restart: unless-stopped

@@ -18,9 +18,11 @@ Modules: auth, leads, clients, projects, finance (invoices, payments, expenses),
 - Files: **MinIO (S3 API)** via `@aws-sdk/client-s3` (`apps/api/src/modules/files/storage.service.ts`). GridFS is no longer used.
   - Objects live under `files/<metadataId>` in `S3_BUCKET`; the bucket is created on API startup if missing.
   - Metadata stays in Mongo (`FileMetadata`: `bucketKey`, `filename`, `contentType`, `length`, `clientVisible` default `false`, entity association, uploader).
+  - `bucketKey` has a unique index that is partial (`bucketKey: { $exists: true }`), so legacy GridFS-era docs without it do not break the index build.
+  - Existing databases may still carry a stale `gridFsId_1` index from the GridFS era. It is harmless but can be dropped: `db.filemetadatas.dropIndex('gridFsId_1')`.
   - `POST /files` (multipart) and `GET /files/:id` (streamed download) keep their original contract.
   - `GET /files/:id/url` returns a 60-second presigned download URL (authenticated).
-- Local infra: `docker-compose.yml` runs MinIO (API `:9000`, console `:9001`) and Gotenberg (`:3000`, unused until Stage 2).
+- Local infra: `docker-compose.yml` runs MinIO (API `:9000`, console `:9001`) and Gotenberg (`:3000`, pinned `8.40.0`).
 
 ### Security
 

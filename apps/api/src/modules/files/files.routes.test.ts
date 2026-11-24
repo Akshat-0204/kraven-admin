@@ -1,4 +1,4 @@
-import { Readable } from 'node:stream';
+import { PassThrough, Readable } from 'node:stream';
 import { DeleteObjectCommand, GetObjectCommand, PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import { mockClient } from 'aws-sdk-client-mock';
 import { Types } from 'mongoose';
@@ -8,6 +8,7 @@ import { createApp } from '../../app.js';
 import { env } from '../../config/env.js';
 import { TEST_USER_ID } from '../../test/mockAuthenticate.js';
 import { FileMetadataModel } from './file.model.js';
+import { pipeStreamToResponse } from './files.controller.js';
 
 vi.mock('../../middleware/authenticate.js', async () => {
   const { authenticateAsTestUser } = await import('../../test/mockAuthenticate.js');
@@ -97,8 +98,32 @@ describe('files routes', () => {
     const response = await request(createApp()).get(`/files/${file._id}`).buffer(true).expect(200);
 
     expect(response.headers['content-type']).toBe('application/pdf');
-    expect(response.headers['content-disposition']).toBe('attachment; filename="brief.pdf"');
+    expect(response.headers['content-disposition']).toBe(
+      `attachment; filename="brief.pdf"; filename*=UTF-8''brief.pdf`
+    );
     expect(Buffer.from(response.body).toString()).toBe('hello');
+  });
+
+  it('sends an ASCII-safe filename plus the exact UTF-8 name', async () => {
+    const file = storedFile({ filename: 'Résumé "final".pdf' });
+    vi.spyOn(FileMetadataModel, 'findById').mockResolvedValue(new FileMetadataModel(file) as never);
+    s3.on(GetObjectCommand, { Key: file.bucketKey }).resolves({ Body: Readable.from(['hello']) as never });
+
+    const response = await request(createApp()).get(`/files/${file._id}`).buffer(true).expect(200);
+
+    expect(response.headers['content-disposition']).toBe(
+      `attachment; filename="R_sum_ _final_.pdf"; filename*=UTF-8''R%C3%A9sum%C3%A9%20%22final%22.pdf`
+    );
+  });
+
+  it('destroys the object body when the client aborts the download', async () => {
+    const body = new PassThrough();
+    body.write('partial');
+    const res = new PassThrough();
+    const piping = pipeStreamToResponse(body, res as never, {});
+    res.destroy();
+    await piping;
+    expect(body.destroyed).toBe(true);
   });
 
   it('returns a short-lived presigned URL', async () => {
