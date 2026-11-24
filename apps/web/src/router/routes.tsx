@@ -10,6 +10,8 @@ import { TemplateListPage } from '../features/documents/TemplateListPage';
 import { DashboardPage } from '../features/dashboard/DashboardPage';
 import { LeadDetailPage } from '../features/leads/LeadDetailPage';
 import { LeadListPage } from '../features/leads/LeadListPage';
+import { PortalPage } from '../features/portal/PortalPage';
+import { PortalPayPage } from '../features/portal/PortalPayPage';
 import { ProjectDetailPage } from '../features/projects/ProjectDetailPage';
 import { ProjectListPage } from '../features/projects/ProjectListPage';
 import { SettingsPage } from '../features/settings/SettingsPage';
@@ -19,6 +21,15 @@ export const router = createBrowserRouter([
   {
     path: '/login',
     element: <LoginPage />
+  },
+  // Client portal: public, outside the admin session and layout.
+  {
+    path: '/c/:slug',
+    element: <PortalPage />
+  },
+  {
+    path: '/c/:slug/pay/:invoiceId',
+    element: <PortalPayPage />
   },
   {
     path: '/',

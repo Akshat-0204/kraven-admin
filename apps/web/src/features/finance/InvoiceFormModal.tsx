@@ -10,6 +10,7 @@ import { Input } from '../../components/ui/input';
 import { Select } from '../../components/ui/select';
 import { Textarea } from '../../components/ui/textarea';
 import { clientQueryKeys, listClients } from '../clients/clientApi';
+import { listPayeeProfiles, portalAdminQueryKeys } from '../portal/portalApi';
 import { listProjects, projectQueryKeys } from '../projects/projectApi';
 
 interface InvoiceFormModalProps {
@@ -34,6 +35,11 @@ export function InvoiceFormModal({ invoice, isOpen, onClose, onSubmit }: Invoice
     queryFn: () => listProjects({}),
     enabled: isOpen
   });
+  const payeesQuery = useQuery({
+    queryKey: portalAdminQueryKeys.payees,
+    queryFn: listPayeeProfiles,
+    enabled: isOpen
+  });
 
   const defaultValues = useMemo<InvoiceInput>(
     () => ({
@@ -48,7 +54,8 @@ export function InvoiceFormModal({ invoice, isOpen, onClose, onSubmit }: Invoice
       paymentDate: invoice?.paymentDate ? new Date(invoice.paymentDate) : undefined,
       paymentMethod: invoice?.paymentMethod ?? '',
       transactionReferenceId: invoice?.transactionReferenceId ?? '',
-      notes: invoice?.notes ?? ''
+      notes: invoice?.notes ?? '',
+      payeeProfile: invoice?.payeeProfile ?? ''
     }),
     [invoice]
   );
@@ -115,6 +122,17 @@ export function InvoiceFormModal({ invoice, isOpen, onClose, onSubmit }: Invoice
           <label className="space-y-2">
             <span className="text-sm text-muted">Due date</span>
             <Input type="date" {...register('dueDate')} defaultValue={toDateInput(invoice?.dueDate)} />
+          </label>
+          <label className="space-y-2 md:col-span-2">
+            <span className="text-sm text-muted">UPI payee (client portal Pay button)</span>
+            <Select aria-label="UPI payee" {...register('payeeProfile')}>
+              <option value="">Default payee</option>
+              {(payeesQuery.data?.payeeProfiles ?? []).map((payee) => (
+                <option key={payee.id} value={payee.id}>
+                  {payee.name} ({payee.vpa}){payee.isDefault ? ' · default' : ''}
+                </option>
+              ))}
+            </Select>
           </label>
           <label className="space-y-2 md:col-span-2">
             <span className="text-sm text-muted">Notes</span>

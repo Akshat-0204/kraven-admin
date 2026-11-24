@@ -38,6 +38,8 @@ import {
 import { formatCurrency, formatDate } from './projectFormat';
 import { ProjectFormModal } from './ProjectFormModal';
 import { DocumentsPanel } from '../documents/DocumentsPanel';
+import { ProjectUpdatesPanel } from '../portal/ProjectUpdatesPanel';
+import { SharedFilesPanel } from '../portal/SharedFilesPanel';
 
 type LinkInput = EntityLink;
 
@@ -64,6 +66,7 @@ export function ProjectDetailPage() {
   function refreshProject(clientId?: string) {
     queryClient.invalidateQueries({ queryKey: projectQueryKeys.all });
     queryClient.invalidateQueries({ queryKey: projectQueryKeys.detail(projectId) });
+    queryClient.invalidateQueries({ queryKey: ['files'] });
 
     if (clientId) {
       queryClient.invalidateQueries({ queryKey: clientQueryKeys.detail(clientId) });
@@ -373,6 +376,10 @@ export function ProjectDetailPage() {
           </section>
 
           <DocumentsPanel scope={{ client: client.id, project: project.id }} />
+
+          <ProjectUpdatesPanel projectId={project.id} />
+
+          <SharedFilesPanel entityType="Project" entityId={project.id} />
 
           <section className="rounded border border-border bg-panel p-4">
             <h2 className="mb-4 text-sm font-semibold">Activity</h2>

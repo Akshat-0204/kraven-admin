@@ -76,6 +76,11 @@ export async function generateDocumentPdf(id: string) {
   return requestJson<DocumentPdfLink & { generated: boolean }>(`/documents/${id}/pdf`, { method: 'POST' });
 }
 
+/** Draft -> Sent, so the document appears in the client portal. Later statuses are left alone. */
+export function shareDocument(id: string) {
+  return requestJson<{ document: DocumentRecord }>(`/documents/${id}/share`, { method: 'POST' });
+}
+
 /** Streams through the API, so it works even when object storage is not publicly reachable. */
 export function documentPdfDownloadUrl(id: string) {
   return apiUrl(`/documents/${id}/pdf`);

@@ -21,7 +21,8 @@ import {
   Sliders,
   Sparkles,
   Trash2,
-  User
+  User,
+  Wallet
 } from 'lucide-react';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
@@ -36,8 +37,9 @@ import { listLeads } from '../leads/leadApi';
 import { listClients } from '../clients/clientApi';
 import { listProjects } from '../projects/projectApi';
 import { listInvoices } from '../finance/financeApi';
+import { PayeeProfilesSection } from '../portal/PayeeProfilesSection';
 
-type TabType = 'account' | 'workspace' | 'pipeline' | 'system';
+type TabType = 'account' | 'workspace' | 'pipeline' | 'payments' | 'system';
 
 export function SettingsPage() {
   const { user } = useAuth();
@@ -174,6 +176,12 @@ export function SettingsPage() {
           label="Pipelines & Stages"
           active={activeTab === 'pipeline'}
           onClick={() => setActiveTab('pipeline')}
+        />
+        <TabButton
+          icon={<Wallet className="h-4 w-4" />}
+          label="Payments"
+          active={activeTab === 'payments'}
+          onClick={() => setActiveTab('payments')}
         />
         <TabButton
           icon={<Server className="h-4 w-4" />}
@@ -407,6 +415,12 @@ export function SettingsPage() {
               </div>
             </section>
           </div>
+        </div>
+      )}
+
+      {activeTab === 'payments' && (
+        <div className="max-w-2xl">
+          <PayeeProfilesSection />
         </div>
       )}
 

@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Download, FilePlus2, FileText } from 'lucide-react';
+import { Download, FilePlus2, FileText, Send } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { Button } from '../../components/ui/button';
@@ -12,7 +12,8 @@ import {
   generateDocumentPdf,
   listDocumentTemplates,
   listDocuments,
-  previewDocumentTemplate
+  previewDocumentTemplate,
+  shareDocument
 } from './documentApi';
 
 /** Template-generated documents for a client or project: pick template, preview, create + PDF, download. */
@@ -64,6 +65,15 @@ export function DocumentsPanel({ scope }: { scope: DocumentScope }) {
     onSuccess: (_result, documentId) => {
       queryClient.invalidateQueries({ queryKey: documentQueryKeys.documents });
       download(documentId);
+    },
+    onError: (error) => toast.error(error.message)
+  });
+
+  const shareMutation = useMutation({
+    mutationFn: shareDocument,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: documentQueryKeys.documents });
+      toast.success('Shared in the client portal');
     },
     onError: (error) => toast.error(error.message)
   });
@@ -134,6 +144,17 @@ export function DocumentsPanel({ scope }: { scope: DocumentScope }) {
                   {new Date(document.createdAt).toLocaleDateString('en-IN')}
                 </p>
               </div>
+              {document.status === 'Draft' ? (
+                <Button
+                  className="h-7 w-7 bg-transparent p-0 text-white hover:bg-white/10"
+                  aria-label={`Share ${document.title} in the client portal`}
+                  title="Share in client portal"
+                  disabled={shareMutation.isPending}
+                  onClick={() => shareMutation.mutate(document.id)}
+                >
+                  <Send className="h-3 w-3" aria-hidden="true" />
+                </Button>
+              ) : null}
               <Button
                 className="h-7 w-7 bg-transparent p-0 text-white hover:bg-white/10"
                 aria-label={`Download ${document.title}`}

@@ -21,6 +21,8 @@ import {
 import { clientInitials, formatDate } from './clientFormat';
 import { ClientFormModal } from './ClientFormModal';
 import { DocumentsPanel } from '../documents/DocumentsPanel';
+import { PortalPanel, slugifyCompanyName } from '../portal/PortalPanel';
+import { SharedFilesPanel } from '../portal/SharedFilesPanel';
 
 type LinkInput = EntityLink;
 
@@ -42,6 +44,7 @@ export function ClientDetailPage() {
   function refreshClient() {
     queryClient.invalidateQueries({ queryKey: clientQueryKeys.all });
     queryClient.invalidateQueries({ queryKey: clientQueryKeys.detail(clientId) });
+    queryClient.invalidateQueries({ queryKey: ['files'] });
   }
 
   const updateMutation = useMutation({
@@ -285,6 +288,10 @@ export function ClientDetailPage() {
           </section>
 
           <DocumentsPanel scope={{ client: client.id }} />
+
+          <PortalPanel clientId={client.id} defaultSlug={slugifyCompanyName(client.companyName)} />
+
+          <SharedFilesPanel entityType="Client" entityId={client.id} />
 
           <section className="rounded border border-border bg-panel p-4">
             <h2 className="mb-4 text-sm font-semibold">Activity</h2>

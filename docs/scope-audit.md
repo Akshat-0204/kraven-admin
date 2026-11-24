@@ -1,6 +1,6 @@
 # Kraven Scope Audit
 
-Last updated: Stage 1 of the [CRM portal plan](plans/crm-portal-plan.md).
+Last updated: Stage 3 of the [CRM portal plan](plans/crm-portal-plan.md).
 
 ## Current state
 
@@ -46,13 +46,23 @@ Modules: auth, leads, clients, projects, finance (invoices, payments, expenses),
 - PDFs rendered by Gotenberg from the snapshot, stored at `documents/<id>.pdf`, reused while the snapshot hash is unchanged.
 - `npm run seed:templates -w @kraven/api` inserts one generic "Project Proposal" template (insert-only).
 
+### Client portal (Stage 3)
+
+- Web routes `/c/:slug` and `/c/:slug/pay/:invoiceId`, outside the admin session and layout. Link base: `PORTAL_BASE_URL`.
+- `Client.portalAccess`: slug (lowercase `[a-z0-9-]`, 3-40, unique, reserved words rejected), enabled, optional expiry, bcrypt `codeHash` only, `accessVersion`, lockout counters, `lastLoginAt`/`lastViewedAt`.
+- Code: 10 characters from an unambiguous alphabet, or admin-set (8+), case-insensitive, shown once. 5 failures lock the slug for 15 minutes; verify is also rate limited per IP. Every failure is the same 401; locked is 429.
+- Signed `kraven_portal` cookie (`PORTAL_COOKIE_SECRET`), httpOnly, path `/public/portal`, 30 days, carries clientId + accessVersion. Revoke, a new code, disabling or expiry invalidates it.
+- Public API `/public/portal/*`: verify, logout, me, updates, documents, documents/:id/pdf, payments, downloads, downloads/:id/url; all scoped to the cookie's client.
+- Portal shows client-visible project updates, non-Draft documents (opening a Sent one marks it Viewed), invoices with a UPI Pay page (deep links + QR), and `clientVisible` files.
+- Admin: Portal + shared-files panels on the client page, Updates + shared-files panels on the project page, Share button on Draft documents, UPI payees in Settings > Payments, payee per invoice. `npm run seed:payees -w @kraven/api` seeds the two payees.
+
 ## Planned (see plan for detail)
 
 | Stage | Scope |
 | --- | --- |
 | 1 | Foundations + storage (this stage): MinIO, CORS/CSRF/helmet/rate limit, read-only dashboard |
 | 2 | Document templates (Tiptap, Handlebars-style variables) rendered to PDF via Gotenberg, stored in MinIO (done) |
-| 3 | Client portal: `/c/<slug>` + admin-set access code (bcrypt), signed cookie, lockout; project updates, documents, payments (UPI deep-link/QR), downloads of `clientVisible` files |
+| 3 | Client portal: `/c/<slug>` + admin-set access code (bcrypt), signed cookie, lockout; project updates, documents, payments (UPI deep-link/QR), downloads of `clientVisible` files (done) |
 | 4 | Packs (grouped sends) + in-house e-sign (audit capture, `pdf-lib` seal, SHA-256) |
 | 5 | Email via Resend (webhooks, reminders), "Waiting on client" widget, invoice line items/tax/PDF |
 
