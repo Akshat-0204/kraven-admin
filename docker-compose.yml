@@ -22,6 +22,13 @@ services:
 
   gotenberg:
     image: gotenberg/gotenberg:8.40.0
+    # SSRF guard: Chromium must not fetch loopback, private (RFC 1918), link-local/metadata (169.254.x),
+    # IPv6 literals or the internal compose hosts referenced from template HTML. The regex replaces
+    # Gotenberg's default deny list, so the default `file:` rule (only /tmp allowed) is kept in it.
+    # Chromium canonicalises hosts (lowercase, dotted IPv4) before Gotenberg matches the URL.
+    command:
+      - gotenberg
+      - '--chromium-deny-list=^(file:(?!//\/tmp/)|[a-z][a-z0-9+.-]*://([^/@]*@)?(([^/@:]*\.)?localhost(:|/|$)|127\.|0\.|10\.|172\.(1[6-9]|2[0-9]|3[01])\.|192\.168\.|169\.254\.|\[|(minio|mongo|mongodb|gotenberg|api|host\.docker\.internal)(:|/|$))).*'
     ports:
       - '3000:3000'
     restart: unless-stopped

@@ -22,6 +22,7 @@ Modules: auth, leads, clients, projects, finance (invoices, payments, expenses),
   - Existing databases may still carry a stale `gridFsId_1` index from the GridFS era. It is harmless but can be dropped: `db.filemetadatas.dropIndex('gridFsId_1')`.
   - `POST /files` (multipart) and `GET /files/:id` (streamed download) keep their original contract.
   - `GET /files/:id/url` returns a 60-second presigned download URL (authenticated).
+  - Presigned URLs are signed against `S3_PUBLIC_ENDPOINT` (defaults to `S3_ENDPOINT`), so the API can reach storage by an internal hostname while browsers get a reachable URL. Their `response-content-disposition` uses the same RFC 6266 value as streamed downloads.
 - Local infra: `docker-compose.yml` runs MinIO (API `:9000`, console `:9001`) and Gotenberg (`:3000`, pinned `8.40.0`).
 
 ### Security
@@ -30,6 +31,7 @@ Modules: auth, leads, clients, projects, finance (invoices, payments, expenses),
 - CSRF: the production session cookie is `SameSite=None`, so state-changing requests (anything but GET/HEAD/OPTIONS) are rejected with 403 when their `Origin` (or `Referer` fallback) is not allowlisted. Requests with neither header (non-browser clients) pass.
 - `helmet` security headers (Cross-Origin-Resource-Policy relaxed to `cross-origin` because the web app is served from a different origin).
 - Login rate limit: 10 failed attempts per IP per 15 minutes (`express-rate-limit`).
+- Gotenberg SSRF: template HTML can reference remote URLs that Chromium fetches. `docker-compose.yml` starts Gotenberg with `--chromium-deny-list` covering loopback, `*.localhost`, RFC 1918, link-local/metadata (`169.254.x`), IPv6 literals and internal compose hosts (`minio`, `mongo`, `api`, ...), keeping Gotenberg's default `file:` rule. A hostname that *resolves* to a private address is not caught by a URL regex, so production should also run Gotenberg on a network with no route to internal services.
 
 ### Dashboard
 

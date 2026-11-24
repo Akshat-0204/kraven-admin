@@ -19,10 +19,11 @@ import { FileMetadataModel } from './file.model.js';
 export const PRESIGNED_URL_TTL_SECONDS = 60;
 
 let s3Client: S3Client | undefined;
+let presignClient: S3Client | undefined;
 
-export function getS3Client() {
-  s3Client ??= new S3Client({
-    endpoint: env.s3.endpoint,
+function createS3Client(endpoint: string) {
+  return new S3Client({
+    endpoint,
     region: env.s3.region,
     forcePathStyle: true,
     credentials: {
@@ -30,8 +31,22 @@ export function getS3Client() {
       secretAccessKey: env.s3.secretKey
     }
   });
+}
 
+/** Client the API uses to talk to object storage (may be an internal hostname). */
+export function getS3Client() {
+  s3Client ??= createS3Client(env.s3.endpoint);
   return s3Client;
+}
+
+/**
+ * Client used only to sign download URLs. The host is part of the signature, so URLs handed to
+ * browsers must be signed against the publicly reachable endpoint (`S3_PUBLIC_ENDPOINT`).
+ */
+export function getPresignClient() {
+  if (env.s3.publicEndpoint === env.s3.endpoint) return getS3Client();
+  presignClient ??= createS3Client(env.s3.publicEndpoint);
+  return presignClient;
 }
 
 function isNotFound(error: unknown) {
@@ -87,19 +102,18 @@ function encodeRfc5987(value: string) {
 
 /** `attachment` Content-Disposition with an ASCII-safe `filename` fallback plus the exact UTF-8 name (RFC 6266). */
 export function attachmentContentDisposition(filename: string) {
-  const asciiFallback = filename.replace(/[^\x20-\x7e]|["\\]/g, '_');
+  // `%` is replaced too: some clients percent-decode the plain `filename` parameter.
+  const asciiFallback = filename.replace(/[^\x20-\x7e]|["\\%]/g, '_');
   return `attachment; filename="${asciiFallback}"; filename*=UTF-8''${encodeRfc5987(filename)}`;
 }
 
 export function presignObject(key: string, options: { filename?: string; expiresIn?: number } = {}) {
   return getSignedUrl(
-    getS3Client(),
+    getPresignClient(),
     new GetObjectCommand({
       Bucket: env.s3.bucket,
       Key: key,
-      ResponseContentDisposition: options.filename
-        ? `attachment; filename*=UTF-8''${encodeRfc5987(options.filename)}`
-        : undefined
+      ResponseContentDisposition: options.filename ? attachmentContentDisposition(options.filename) : undefined
     }),
     { expiresIn: options.expiresIn ?? PRESIGNED_URL_TTL_SECONDS }
   );

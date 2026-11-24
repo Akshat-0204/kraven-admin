@@ -9,6 +9,8 @@ function parseList(value: string | undefined, fallback: string[]) {
     .filter(Boolean);
 }
 
+const s3Endpoint = process.env.S3_ENDPOINT ?? 'http://127.0.0.1:9000';
+
 export const env = {
   nodeEnv: process.env.NODE_ENV ?? 'development',
   port: Number(process.env.PORT ?? 4000),
@@ -17,7 +19,9 @@ export const env = {
   sessionSecret: process.env.SESSION_SECRET ?? 'kraven-development-session-secret',
   corsOrigins: parseList(process.env.CORS_ORIGINS, ['http://localhost:5173', 'http://127.0.0.1:5173']),
   s3: {
-    endpoint: process.env.S3_ENDPOINT ?? 'http://127.0.0.1:9000',
+    endpoint: s3Endpoint,
+    /** Endpoint browsers use for presigned URLs; defaults to `S3_ENDPOINT`. */
+    publicEndpoint: process.env.S3_PUBLIC_ENDPOINT || s3Endpoint,
     accessKey: process.env.S3_ACCESS_KEY ?? 'minioadmin',
     secretKey: process.env.S3_SECRET_KEY ?? 'minioadmin',
     bucket: process.env.S3_BUCKET ?? 'kraven',

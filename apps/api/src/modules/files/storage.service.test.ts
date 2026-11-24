@@ -14,6 +14,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { env } from '../../config/env.js';
 import { HttpError } from '../../shared/errors/httpError.js';
 import {
+  attachmentContentDisposition,
   deleteObject,
   ensureBucket,
   presignObject,
@@ -92,8 +93,26 @@ describe('storage service', () => {
     expect(url.pathname).toBe(`/${env.s3.bucket}/files/abc`);
     expect(url.searchParams.get('X-Amz-Expires')).toBe('60');
     expect(url.searchParams.get('response-content-disposition')).toBe(
-      "attachment; filename*=UTF-8''report%20v1.pdf"
+      'attachment; filename="report v1.pdf"; filename*=UTF-8\'\'report%20v1.pdf'
     );
+  });
+
+  it('builds an RFC 6266 disposition with an ASCII fallback that has no quotes, backslashes or %', () => {
+    expect(attachmentContentDisposition('50% "off"\\ café.pdf')).toBe(
+      "attachment; filename=\"50_ _off__ caf_.pdf\"; filename*=UTF-8''50%25%20%22off%22%5C%20caf%C3%A9.pdf"
+    );
+  });
+
+  it('signs presigned URLs against S3_PUBLIC_ENDPOINT when set', async () => {
+    const original = env.s3.publicEndpoint;
+    env.s3.publicEndpoint = 'https://files.example.test';
+    try {
+      const url = new URL(await presignObject('files/abc'));
+      expect(url.origin).toBe('https://files.example.test');
+      expect(url.pathname).toBe(`/${env.s3.bucket}/files/abc`);
+    } finally {
+      env.s3.publicEndpoint = original;
+    }
   });
 
   it('deletes objects', async () => {
