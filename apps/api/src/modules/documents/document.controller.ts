@@ -2,7 +2,14 @@ import type { Request, Response } from 'express';
 import { pipeStreamToResponse } from '../files/files.controller.js';
 import { attachmentContentDisposition } from '../files/storage.service.js';
 import { serializeDocument, serializeDocumentDetail } from './document.serializer.js';
-import { createDocument, getDocument, getDocumentPdfUrl, listDocuments, openDocumentPdf } from './document.service.js';
+import {
+  createDocument,
+  getDocument,
+  getDocumentPdfUrl,
+  listDocuments,
+  openDocumentPdf,
+  shareDocument
+} from './document.service.js';
 
 export async function listDocumentsController(req: Request, res: Response) {
   const documents = await listDocuments(req.query as Record<string, string | undefined>);
@@ -29,4 +36,8 @@ export async function downloadDocumentPdfController(req: Request, res: Response)
   res.setHeader('Content-Type', 'application/pdf');
   res.setHeader('Content-Disposition', attachmentContentDisposition(filename));
   await pipeStreamToResponse(stream, res, { documentId: req.params.id });
+}
+
+export async function shareDocumentController(req: Request, res: Response) {
+  res.json({ document: serializeDocumentDetail(await shareDocument(req.params.id)) });
 }

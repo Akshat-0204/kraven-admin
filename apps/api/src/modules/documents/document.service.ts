@@ -107,3 +107,19 @@ export async function openDocumentPdf(documentId: string) {
     stream: await streamObject(document.pdfKey)
   };
 }
+
+/** Shares a draft with the client portal (Draft -> Sent). Documents already shared are left as they are. */
+export async function shareDocument(documentId: string) {
+  const document = await getDocument(documentId);
+  if (document.status === 'Draft') {
+    document.status = 'Sent';
+    await document.save();
+    await logActivity({
+      entityType: 'Client',
+      entityId: String(document.client),
+      action: 'document-shared',
+      description: `Document shared on the portal - ${document.title}`
+    });
+  }
+  return document;
+}

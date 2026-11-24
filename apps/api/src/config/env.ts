@@ -17,6 +17,10 @@ export const env = {
   mongoUri: process.env.MONGODB_URI ?? 'mongodb://127.0.0.1:27017/kraven',
   requireDatabase: process.env.REQUIRE_DATABASE === 'true',
   sessionSecret: process.env.SESSION_SECRET ?? 'kraven-development-session-secret',
+  /** Signs the client portal cookie. Set a long random value in production. */
+  portalCookieSecret: process.env.PORTAL_COOKIE_SECRET ?? 'kraven-development-portal-secret',
+  /** Web origin that serves client portal pages (`/c/<slug>`); used to build portal links. */
+  portalBaseUrl: process.env.PORTAL_BASE_URL ?? 'http://localhost:5173',
   corsOrigins: parseList(process.env.CORS_ORIGINS, ['http://localhost:5173', 'http://127.0.0.1:5173']),
   s3: {
     endpoint: s3Endpoint,

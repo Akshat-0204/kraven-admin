@@ -7,7 +7,9 @@ import { logger } from '../../shared/logger/logger.js';
 import {
   attachmentContentDisposition,
   getFileDownloadUrl,
+  listEntityFiles,
   openFileDownload,
+  setFileClientVisible,
   storeFile
 } from './storage.service.js';
 import { serializeFileMetadata } from './files.serializer.js';
@@ -53,4 +55,12 @@ export async function pipeStreamToResponse(stream: Readable, res: Response, cont
 
 export async function getDownloadUrl(req: Request, res: Response) {
   res.json(await getFileDownloadUrl(req.params.id));
+}
+
+export async function listFiles(req: Request, res: Response) {
+  res.json({ files: (await listEntityFiles(req.query)).map(serializeFileMetadata) });
+}
+
+export async function updateFileVisibility(req: Request, res: Response) {
+  res.json({ file: serializeFileMetadata(await setFileClientVisible(req.params.id, req.body)) });
 }

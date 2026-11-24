@@ -23,6 +23,7 @@ export function serializeInvoice(invoice: InvoiceDocument & { _id: unknown }): I
     paymentMethod: invoice.paymentMethod,
     transactionReferenceId: invoice.transactionReferenceId,
     notes: invoice.notes,
+    payeeProfile: invoice.payeeProfile ? String(invoice.payeeProfile) : undefined,
     createdAt: invoice.createdAt.toISOString(),
     updatedAt: invoice.updatedAt.toISOString()
   };

@@ -154,6 +154,8 @@ export interface InvoiceRecord {
   paymentMethod?: string;
   transactionReferenceId?: string;
   notes?: string;
+  /** Payee profile used for UPI payment; the default profile applies when unset. */
+  payeeProfile?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -293,4 +295,102 @@ export interface DocumentDetailRecord extends DocumentRecord {
 export interface DocumentPdfLink {
   url: string;
   expiresIn: number;
+}
+
+export interface PayeeProfileRecord {
+  id: string;
+  name: string;
+  /** UPI virtual payment address, e.g. `name@bank`. */
+  vpa: string;
+  isDefault: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** Admin view of a client's portal access. The code hash is never exposed. */
+export interface PortalSettingsRecord {
+  slug?: string;
+  enabled: boolean;
+  expiresAt?: string;
+  hasCode: boolean;
+  codeUpdatedAt?: string;
+  lastLoginAt?: string;
+  lastViewedAt?: string;
+  lockedUntil?: string;
+  /** Portal link, built from PORTAL_BASE_URL, when a slug is set. */
+  url?: string;
+}
+
+export interface PortalCodeResult {
+  portal: PortalSettingsRecord;
+  /** Plaintext code. Returned only by this call and never stored. */
+  code: string;
+}
+
+export interface ProjectUpdateRecord {
+  id: string;
+  project: string;
+  title: string;
+  body: string;
+  clientVisible: boolean;
+  attachments: string[];
+  postedAt: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface PortalProjectRecord {
+  id: string;
+  projectName: string;
+  status: ProjectStatus;
+  progressPercentage: number;
+  startDate?: string;
+  expectedCompletionDate?: string;
+}
+
+export interface PortalOverview {
+  client: { companyName: string; contactPerson: string };
+  projects: PortalProjectRecord[];
+}
+
+export interface PortalFileRecord {
+  id: string;
+  filename: string;
+  contentType?: string;
+  length: number;
+  createdAt: string;
+}
+
+export interface PortalUpdateRecord {
+  id: string;
+  project: { id: string; projectName: string };
+  title: string;
+  body: string;
+  postedAt: string;
+  attachments: PortalFileRecord[];
+}
+
+export interface PortalDocumentRecord {
+  id: string;
+  title: string;
+  status: DocumentStatus;
+  createdAt: string;
+}
+
+export interface PortalPayee {
+  name: string;
+  vpa: string;
+}
+
+export interface PortalPaymentRecord {
+  id: string;
+  invoiceNumber: string;
+  amount: number;
+  amountPaid: number;
+  remainingAmount: number;
+  invoiceDate: string;
+  dueDate: string;
+  paymentStatus: InvoicePaymentStatus;
+  /** Resolved payee (invoice's profile or the default); null when none is configured. */
+  payee: PortalPayee | null;
 }

@@ -22,6 +22,10 @@ import { invoiceRoutes } from './modules/finance/invoice.routes.js';
 import { paymentRoutes } from './modules/finance/payment.routes.js';
 import { filesRoutes } from './modules/files/files.routes.js';
 import { leadRoutes } from './modules/leads/lead.routes.js';
+import { payeeProfileRoutes } from './modules/payees/payeeProfile.routes.js';
+import { portalAdminRoutes } from './modules/portal/portal.admin.routes.js';
+import { createPublicPortalRoutes } from './modules/portal/portal.public.routes.js';
+import { projectUpdateRoutes } from './modules/projectUpdates/projectUpdate.routes.js';
 import { projectRoutes } from './modules/projects/project.routes.js';
 import { searchRoutes } from './modules/search/search.routes.js';
 
@@ -44,7 +48,8 @@ export function createApp() {
   );
   app.use(originCheck(env.corsOrigins));
   app.use(express.json());
-  app.use(cookieParser());
+  // The secret signs the client portal cookie (`kraven_portal`).
+  app.use(cookieParser(env.portalCookieSecret));
   app.use(
     session({
       name: 'kraven.sid',
@@ -71,8 +76,11 @@ export function createApp() {
   });
 
   app.use('/auth', authRoutes);
+  // Client portal: public, guarded by its own signed cookie instead of the admin session.
+  app.use('/public/portal', createPublicPortalRoutes());
   app.use(authenticate);
   app.use('/leads', leadRoutes);
+  app.use('/clients/:id/portal', portalAdminRoutes);
   app.use('/clients', clientRoutes);
   app.use('/projects', projectRoutes);
   app.use('/dashboard', dashboardRoutes);
@@ -84,6 +92,8 @@ export function createApp() {
   app.use('/files', filesRoutes);
   app.use('/document-templates', documentTemplateRoutes);
   app.use('/documents', documentRoutes);
+  app.use('/project-updates', projectUpdateRoutes);
+  app.use('/payee-profiles', payeeProfileRoutes);
   app.use((_req, res) => {
     res.status(404).json({ message: 'Not found' });
   });

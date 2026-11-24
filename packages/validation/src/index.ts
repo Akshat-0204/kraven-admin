@@ -5,6 +5,10 @@ import {
   EXPENSE_CATEGORIES,
   INVOICE_PAYMENT_STATUSES,
   LEAD_STATUSES,
+  PORTAL_RESERVED_SLUGS,
+  PORTAL_SLUG_MAX_LENGTH,
+  PORTAL_SLUG_MIN_LENGTH,
+  PORTAL_SLUG_PATTERN,
   PROJECT_STATUSES
 } from '@kraven/config';
 import { z } from 'zod';
@@ -12,6 +16,8 @@ import { z } from 'zod';
 const optionalDate = z.preprocess((value) => (value === '' ? undefined : value), z.coerce.date().optional());
 const objectId = z.string().min(1, 'Required id');
 const optionalObjectId = z.preprocess((value) => (value === '' ? undefined : value), objectId.optional());
+/** Strict 24-hex ObjectId, so bad ids are a 400 rather than a cast error. */
+const hexObjectId = z.string().regex(/^[a-f0-9]{24}$/i, 'Invalid id');
 
 export const healthResponseSchema = z.object({
   app: z.string(),
@@ -167,7 +173,9 @@ export const invoiceSchema = z.object({
   paymentDate: optionalDate,
   paymentMethod: z.string().optional(),
   transactionReferenceId: z.string().optional(),
-  notes: z.string().optional()
+  notes: z.string().optional(),
+  /** `null`/empty clears it, falling back to the default payee. */
+  payeeProfile: z.preprocess((value) => (value === '' ? null : value), hexObjectId.nullable().optional())
 });
 
 export type InvoiceInput = z.infer<typeof invoiceSchema>;
@@ -289,3 +297,81 @@ export const globalSearchSchema = z.object({
 });
 
 export type GlobalSearchInput = z.infer<typeof globalSearchSchema>;
+
+export const fileVisibilitySchema = z.object({
+  clientVisible: z.boolean()
+});
+
+export type FileVisibilityInput = z.infer<typeof fileVisibilitySchema>;
+
+export const fileListFilterSchema = z.object({
+  associatedEntityType: z.enum(ACTIVITY_ENTITY_TYPES),
+  associatedEntityId: hexObjectId
+});
+
+export type FileListFilterInput = z.infer<typeof fileListFilterSchema>;
+
+const reservedSlugs = new Set<string>(PORTAL_RESERVED_SLUGS);
+
+export const portalSlugSchema = z
+  .string()
+  .trim()
+  .toLowerCase()
+  .min(PORTAL_SLUG_MIN_LENGTH, `Slug must be at least ${PORTAL_SLUG_MIN_LENGTH} characters`)
+  .max(PORTAL_SLUG_MAX_LENGTH, `Slug must be at most ${PORTAL_SLUG_MAX_LENGTH} characters`)
+  .regex(PORTAL_SLUG_PATTERN, 'Use lowercase letters, numbers and single hyphens')
+  .refine((slug) => !reservedSlugs.has(slug), 'This slug is reserved');
+
+export const portalSettingsSchema = z.object({
+  slug: portalSlugSchema,
+  enabled: z.boolean(),
+  expiresAt: z.preprocess((value) => (value === '' ? null : value), z.coerce.date().nullable().optional())
+});
+
+export type PortalSettingsInput = z.infer<typeof portalSettingsSchema>;
+
+/** Omit `code` to have the server generate one. */
+export const portalCodeSchema = z.object({
+  code: z.preprocess(
+    (value) => (typeof value === 'string' && value.trim() === '' ? undefined : value),
+    z.string().trim().min(8, 'Code must be at least 8 characters').max(64).optional()
+  )
+});
+
+export type PortalCodeInput = z.infer<typeof portalCodeSchema>;
+
+export const portalVerifySchema = z.object({
+  code: z.string().max(128)
+});
+
+export type PortalVerifyInput = z.infer<typeof portalVerifySchema>;
+
+export const projectUpdateSchema = z.object({
+  project: hexObjectId,
+  title: z.string().trim().min(1, 'Title is required').max(200),
+  body: z.string().max(20_000).default(''),
+  clientVisible: z.boolean().default(false),
+  attachments: z.array(hexObjectId).max(20).default([]),
+  postedAt: z.coerce.date().optional()
+});
+
+export type ProjectUpdateInput = z.input<typeof projectUpdateSchema>;
+
+export const updateProjectUpdateSchema = projectUpdateSchema.omit({ project: true }).partial();
+
+export type UpdateProjectUpdateInput = z.input<typeof updateProjectUpdateSchema>;
+
+export const payeeProfileSchema = z.object({
+  name: z.string().trim().min(1, 'Name is required').max(100),
+  vpa: z
+    .string()
+    .trim()
+    .regex(/^[a-zA-Z0-9._-]{2,256}@[a-zA-Z][a-zA-Z0-9.-]{1,63}$/, 'Enter a valid UPI ID (name@bank)'),
+  isDefault: z.boolean().default(false)
+});
+
+export type PayeeProfileInput = z.input<typeof payeeProfileSchema>;
+
+export const updatePayeeProfileSchema = payeeProfileSchema.partial();
+
+export type UpdatePayeeProfileInput = z.input<typeof updatePayeeProfileSchema>;

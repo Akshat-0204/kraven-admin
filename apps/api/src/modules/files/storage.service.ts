@@ -10,11 +10,12 @@ import {
 } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { ACTIVITY_ENTITY_TYPES } from '@kraven/config';
+import { fileListFilterSchema, fileVisibilitySchema } from '@kraven/validation';
 import { isValidObjectId, Types } from 'mongoose';
 import { env } from '../../config/env.js';
 import { HttpError } from '../../shared/errors/httpError.js';
 import { logger } from '../../shared/logger/logger.js';
-import { FileMetadataModel } from './file.model.js';
+import { FileMetadataModel, type FileMetadataDocument } from './file.model.js';
 
 export const PRESIGNED_URL_TTL_SECONDS = 60;
 
@@ -181,4 +182,21 @@ export async function getFileDownloadUrl(id: string) {
     url: await presignObject(metadata.bucketKey, { filename: metadata.filename }),
     expiresIn: PRESIGNED_URL_TTL_SECONDS
   };
+}
+
+/** Admin listing of the files attached to one entity. */
+export async function listEntityFiles(query: unknown): Promise<(FileMetadataDocument & { _id: Types.ObjectId })[]> {
+  const filter = fileListFilterSchema.parse(query);
+  return FileMetadataModel.find(filter).sort({ createdAt: -1 }).limit(500).lean<
+    (FileMetadataDocument & { _id: Types.ObjectId })[]
+  >();
+}
+
+/** Shares a file with the client portal, or stops sharing it. */
+export async function setFileClientVisible(id: string, body: unknown) {
+  const { clientVisible } = fileVisibilitySchema.parse(body);
+  const metadata = await getFileMetadata(id);
+  metadata.clientVisible = clientVisible;
+  await metadata.save();
+  return metadata;
 }

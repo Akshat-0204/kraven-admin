@@ -15,6 +15,8 @@ export interface InvoiceDocument {
   paymentMethod?: string;
   transactionReferenceId?: string;
   notes?: string;
+  /** UPI payee for this invoice; the default payee profile applies when unset. */
+  payeeProfile?: Types.ObjectId | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -35,7 +37,8 @@ const invoiceSchema = new Schema<InvoiceDocument>(
     paymentDate: Date,
     paymentMethod: { type: String, trim: true },
     transactionReferenceId: { type: String, trim: true },
-    notes: String
+    notes: String,
+    payeeProfile: { type: Schema.Types.ObjectId, ref: 'PayeeProfile' }
   },
   { timestamps: true }
 );

@@ -10,6 +10,7 @@
     "start": "node dist/server.js",
     "lifecycle:check": "tsx src/test/lifecycle-check.ts",
     "seed:demo": "tsx src/test/seed-demo.ts",
+    "seed:payees": "tsx src/modules/payees/seed-payees.ts",
     "seed:templates": "tsx src/modules/documents/seed-templates.ts",
     "seed:users": "tsx src/modules/auth/seed-users.ts",
     "test": "vitest run",

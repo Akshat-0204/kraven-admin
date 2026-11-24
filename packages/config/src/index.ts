@@ -34,6 +34,33 @@ export const DOCUMENT_TEMPLATE_TYPES = ['Proposal', 'Contract', 'Agreement', 'St
 
 export const DOCUMENT_STATUSES = ['Draft', 'Sent', 'Viewed', 'Signed'] as const;
 
+/** Client portal slug rules: `/c/<slug>`. */
+export const PORTAL_SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+export const PORTAL_SLUG_MIN_LENGTH = 3;
+export const PORTAL_SLUG_MAX_LENGTH = 40;
+export const PORTAL_RESERVED_SLUGS = [
+  'admin',
+  'api',
+  'app',
+  'auth',
+  'c',
+  'clients',
+  'dashboard',
+  'help',
+  'kraven',
+  'login',
+  'logout',
+  'me',
+  'new',
+  'pay',
+  'portal',
+  'public',
+  'settings',
+  'static',
+  'support',
+  'www'
+] as const;
+
 export const ACTIVITY_ENTITY_TYPES = [
   'Lead',
   'Client',

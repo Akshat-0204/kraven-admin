@@ -5,7 +5,8 @@ import {
   downloadDocumentPdfController,
   generateDocumentPdfController,
   getDocumentController,
-  listDocumentsController
+  listDocumentsController,
+  shareDocumentController
 } from './document.controller.js';
 
 export const documentRoutes = Router();
@@ -15,3 +16,4 @@ documentRoutes.post('/', asyncHandler(createDocumentController));
 documentRoutes.get('/:id', asyncHandler(getDocumentController));
 documentRoutes.post('/:id/pdf', asyncHandler(generateDocumentPdfController));
 documentRoutes.get('/:id/pdf', asyncHandler(downloadDocumentPdfController));
+documentRoutes.post('/:id/share', asyncHandler(shareDocumentController));
