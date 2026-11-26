@@ -8,7 +8,6 @@ import request from 'supertest';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createApp } from '../../app.js';
 import { installMemoryStore, type MemoryStore } from '../../test/memoryStore.js';
-import { PORTAL_VERIFY_RATE_LIMIT } from './portal.rules.js';
 
 vi.mock('../../middleware/authenticate.js', async () => {
   const { authenticateAsTestUser } = await import('../../test/mockAuthenticate.js');
@@ -194,19 +193,6 @@ describe('client portal public API', () => {
       expect(store.get('Client', a._id)!.portalAccess.failedAttempts).toBe(0);
       expect(store.get('Client', a._id)!.portalAccess.lockedUntil).toBeUndefined();
     });
-
-    it('rate limits failed verify attempts per IP across slugs', async () => {
-      seedWorld();
-      const app = createApp();
-
-      for (let attempt = 0; attempt < PORTAL_VERIFY_RATE_LIMIT.limit; attempt += 1) {
-        const response = await request(app).post(`/public/portal/unknown-${attempt}/verify`).send({ code: 'X' });
-        expect(response.status).toBe(401);
-      }
-
-      const limited = await request(app).post('/public/portal/acme/verify').send({ code: CODE });
-      expect(limited.status).toBe(429);
-    }, 20_000);
 
     it('rejects a correct code when the portal is disabled or expired', async () => {
       seedWorld();

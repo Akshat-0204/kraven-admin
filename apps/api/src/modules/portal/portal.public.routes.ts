@@ -1,5 +1,4 @@
 import { Router } from 'express';
-import { rateLimit } from 'express-rate-limit';
 import { HttpError } from '../../shared/errors/httpError.js';
 import { asyncHandler } from '../../middleware/asyncHandler.js';
 import { pipeStreamToResponse } from '../files/files.controller.js';
@@ -19,26 +18,15 @@ import {
 } from './portal.content.service.js';
 import { clearPortalCookie, setPortalCookie } from './portal.cookie.js';
 import { getPackFileUrl } from '../packs/packFile.js';
-import { PORTAL_VERIFY_RATE_LIMIT } from './portal.rules.js';
 
 /**
  * Public client portal API, mounted at `/public/portal` before admin `authenticate`.
- * Built per app so the per-IP verify limiter's memory store is not shared between app instances.
  */
 export function createPublicPortalRoutes() {
   const router = Router();
 
-  const verifyRateLimiter = rateLimit({
-    ...PORTAL_VERIFY_RATE_LIMIT,
-    skipSuccessfulRequests: true,
-    standardHeaders: 'draft-7',
-    legacyHeaders: false,
-    message: { message: 'Too many attempts. Try again later.' }
-  });
-
   router.post(
     '/:slug/verify',
-    verifyRateLimiter,
     asyncHandler(async (req, res) => {
       const session = await verifyPortalCode(req.params.slug, req.body);
       setPortalCookie(res, session);
