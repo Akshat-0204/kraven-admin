@@ -7,7 +7,7 @@ import type {
   DocumentVariable,
   ResolvedDocumentVariable
 } from '@kraven/types';
-import type { DocumentContextInput, DocumentTemplateInput } from '@kraven/validation';
+import type { DocumentTemplateInput } from '@kraven/validation';
 import { apiUrl, requestJson } from '../../lib/api';
 
 /*
@@ -30,10 +30,7 @@ export interface UpdateDocumentInput {
   project?: string | null;
 }
 
-export type UpdateDocumentTemplateInput = Partial<DocumentTemplateInput> & {
-  headerHtml?: string;
-  footerHtml?: string;
-};
+export type UpdateDocumentTemplateInput = Partial<DocumentTemplateInput>;
 
 /** A ref the API may return either as an id or populated. */
 export type EditorRef = string | { _id?: string; id?: string; companyName?: string; projectName?: string; name?: string };
@@ -48,7 +45,7 @@ export type EditorDocument = Omit<DocumentDetailRecord, 'client' | 'project' | '
   mergedAt?: string | null;
 };
 
-export type EditorTemplate = DocumentTemplateRecord & { headerHtml?: string; footerHtml?: string };
+export type EditorTemplate = DocumentTemplateRecord;
 
 export type { ResolvedDocumentVariable };
 
@@ -109,11 +106,8 @@ export async function updateDocumentTemplate(id: string, input: UpdateDocumentTe
   });
 }
 
-export async function previewDocumentTemplate(id: string, context: DocumentContextInput) {
-  return requestJson<{ html: string }>(`/document-templates/${id}/preview`, {
-    method: 'POST',
-    body: JSON.stringify(context)
-  });
+export async function deleteDocumentTemplate(id: string) {
+  await requestJson<unknown>(`/document-templates/${id}`, { method: 'DELETE' });
 }
 
 /** Project scope lists that project's documents; client scope lists every document for the client. */

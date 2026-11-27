@@ -9,7 +9,6 @@ import { htmlToPdf } from '../pdf/pdf.renderer.js';
 import { loadOptionalMergeSource } from './document.context.js';
 import { DocumentModel, type DocumentDocument } from './document.model.js';
 import { resolveDocumentVariables, type MergeSource } from './document.variables.js';
-import { getDocumentTemplate } from './documentTemplate.service.js';
 import { extractBody, isPrintShell, mergeTemplate, wrapPrintDocument, type MergeOptions } from './merge.service.js';
 import { sanitizeTemplateHtml } from './template.sanitize.js';
 
@@ -75,7 +74,11 @@ export async function getDocument(documentId: string) {
  */
 export async function createDocument(input: CreateDocumentInput, userId?: string) {
   const payload = createDocumentSchema.parse(input);
-  const template = payload.template ? await getDocumentTemplate(payload.template) : null;
+  if (payload.template) {
+    // Stage 3 replaces this with a Drive copy of the template Google Doc.
+    throw new HttpError(501, 'Creating a document from a template is not available yet');
+  }
+  const template = null as { _id: unknown; name: string; version: number; html: string; headerHtml: string; footerHtml: string } | null;
   const source = await loadOptionalMergeSource(payload.client, payload.project);
   const title = payload.title ?? template?.name ?? 'Untitled document';
 

@@ -1,13 +1,13 @@
-import type { DocumentContextInput, DocumentTemplateInput, UpdateDocumentTemplateInput } from '@kraven/validation';
-import { documentContextSchema, documentTemplateSchema, updateDocumentTemplateSchema } from '@kraven/validation';
+import type { UpdateDocumentTemplateInput, DocumentTemplateInput } from '@kraven/validation';
+import { documentTemplateSchema, updateDocumentTemplateSchema } from '@kraven/validation';
 import { isValidObjectId } from 'mongoose';
 import { HttpError } from '../../shared/errors/httpError.js';
-import { loadMergeSource } from './document.context.js';
+import { getConnection } from '../google/google.client.js';
+import { getFile, parseDocId } from '../google/drive.service.js';
 import { DocumentTemplateModel } from './documentTemplate.model.js';
-import { prepareTemplateHtml, renderDocumentHtml } from './merge.service.js';
 
 export async function listDocumentTemplates() {
-  return DocumentTemplateModel.find().sort({ name: 1 });
+  return DocumentTemplateModel.find({ active: { $ne: false } }).sort({ name: 1 });
 }
 
 export async function getDocumentTemplate(templateId: string) {
@@ -18,55 +18,53 @@ export async function getDocumentTemplate(templateId: string) {
   return template;
 }
 
-/** Sanitizes body/header/footer and records the variables used across all three. */
-function prepareTemplateParts(html: string, headerHtml: string, footerHtml: string) {
-  const body = prepareTemplateHtml(html);
-  const header = prepareTemplateHtml(headerHtml, { allowPageTokens: true });
-  const footer = prepareTemplateHtml(footerHtml, { allowPageTokens: true });
-  return {
-    html: body.html,
-    headerHtml: header.html,
-    footerHtml: footer.html,
-    variables: [...new Set([...body.variables, ...header.variables, ...footer.variables])]
-  };
+/** Parses the link and confirms the connected account can read it. Returns the file id and Drive title. */
+async function resolveLink(googleDocUrl: string) {
+  const fileId = parseDocId(googleDocUrl);
+  if (!fileId) throw new HttpError(400, 'That does not look like a Google Doc link');
+  try {
+    const file = await getFile(fileId);
+    return { fileId, title: file.name };
+  } catch (error) {
+    if (error instanceof HttpError && (error.statusCode === 404 || error.statusCode === 403)) {
+      const connection = await getConnection();
+      const who = connection?.email ?? 'the connected Google account';
+      throw new HttpError(403, `Share this doc with ${who} so the app can copy it`);
+    }
+    throw error;
+  }
 }
 
 export async function createDocumentTemplate(input: DocumentTemplateInput) {
   const payload = documentTemplateSchema.parse(input);
-  const prepared = prepareTemplateParts(payload.html, payload.headerHtml ?? '', payload.footerHtml ?? '');
-  return DocumentTemplateModel.create({ name: payload.name, type: payload.type, ...prepared, version: 1 });
+  const { fileId, title } = await resolveLink(payload.googleDocUrl);
+  return DocumentTemplateModel.create({
+    name: payload.name || title,
+    type: payload.type,
+    googleDocUrl: payload.googleDocUrl,
+    googleFileId: fileId,
+    active: true
+  });
 }
 
-/** Applies an edit and bumps `version` when anything changed. Existing documents keep their snapshots. */
 export async function updateDocumentTemplate(templateId: string, input: UpdateDocumentTemplateInput) {
   const payload = updateDocumentTemplateSchema.parse(input);
   const template = await getDocumentTemplate(templateId);
 
-  if (payload.name !== undefined) template.name = payload.name;
   if (payload.type !== undefined) template.type = payload.type;
-  if (payload.html !== undefined || payload.headerHtml !== undefined || payload.footerHtml !== undefined) {
-    const prepared = prepareTemplateParts(
-      payload.html ?? template.html,
-      payload.headerHtml ?? template.headerHtml ?? '',
-      payload.footerHtml ?? template.footerHtml ?? ''
-    );
-    // Assign only real changes so a no-op save does not bump the version.
-    if (prepared.html !== template.html) template.html = prepared.html;
-    if (prepared.headerHtml !== (template.headerHtml ?? '')) template.headerHtml = prepared.headerHtml;
-    if (prepared.footerHtml !== (template.footerHtml ?? '')) template.footerHtml = prepared.footerHtml;
-    if (prepared.variables.join() !== template.variables.join()) template.variables = prepared.variables;
+  if (payload.googleDocUrl !== undefined && payload.googleDocUrl !== template.googleDocUrl) {
+    const { fileId, title } = await resolveLink(payload.googleDocUrl);
+    template.googleDocUrl = payload.googleDocUrl;
+    template.googleFileId = fileId;
+    if (!payload.name && !template.name) template.name = title;
   }
+  if (payload.name) template.name = payload.name;
 
-  if (template.isModified()) {
-    template.version += 1;
-    await template.save();
-  }
+  await template.save();
   return template;
 }
 
-export async function previewDocumentTemplate(templateId: string, input: DocumentContextInput) {
-  const context = documentContextSchema.parse(input);
+export async function deleteDocumentTemplate(templateId: string) {
   const template = await getDocumentTemplate(templateId);
-  const source = await loadMergeSource(context.client, context.project);
-  return renderDocumentHtml(template.html, template.name, source);
+  await template.deleteOne();
 }

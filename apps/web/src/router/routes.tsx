@@ -60,12 +60,6 @@ export const router = createBrowserRouter([
         })
       },
       {
-        path: 'templates/:id',
-        lazy: async () => ({
-          Component: (await import('../features/documents/editor/TemplateEditorPage')).TemplateEditorPage
-        })
-      },
-      {
         element: <AppShell />,
         children: [
           {

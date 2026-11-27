@@ -27,11 +27,9 @@ const template = {
   id: 'tpl-1',
   name: 'Project Proposal',
   type: 'Proposal' as const,
-  html: '<h1>Proposal</h1><p>Prepared for {{client.company}}</p>',
-  headerHtml: '',
-  footerHtml: '',
-  variables: ['client.company'],
-  version: 3,
+  googleDocUrl: 'https://docs.google.com/document/d/abc/edit',
+  googleFileId: 'abc',
+  active: true,
   createdAt: '2026-01-01T00:00:00.000Z',
   updatedAt: '2026-01-01T00:00:00.000Z'
 };
@@ -96,7 +94,6 @@ describe('DocumentsPanel', () => {
     await waitFor(() => expect(within(dialog).getByRole('combobox', { name: 'Client' })).toHaveValue('client-1'));
     expect(within(dialog).getByRole('button', { name: 'Use Blank document' })).toBeInTheDocument();
     const card = await within(dialog).findByRole('button', { name: 'Use Project Proposal' });
-    expect(card).toHaveTextContent('Prepared for {{client.company}}');
 
     await user.click(card);
 

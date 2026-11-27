@@ -11,6 +11,8 @@ import { authenticate } from './middleware/authenticate.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import { originCheck } from './middleware/originCheck.js';
 import { requestLogger } from './middleware/requestLogger.js';
+import { adminsRoutes } from './modules/auth/admins.routes.js';
+import { googleRoutes } from './modules/google/google.oauth.js';
 import { authRoutes } from './modules/auth/auth.routes.js';
 import { clientEmailRoutes } from './modules/email/email.routes.js';
 import { resendWebhookRoutes } from './modules/email/email.webhook.js';
@@ -86,6 +88,8 @@ export function createApp() {
   // Client portal: public, guarded by its own signed cookie instead of the admin session.
   app.use('/public/portal', createPublicPortalRoutes());
   app.use(authenticate);
+  app.use('/google', googleRoutes);
+  app.use('/admins', adminsRoutes);
   app.use('/leads', leadRoutes);
   app.use('/clients/:id/portal', portalAdminRoutes);
   app.use('/clients/:id/emails', clientEmailRoutes);

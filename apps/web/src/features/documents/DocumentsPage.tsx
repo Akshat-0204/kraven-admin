@@ -1,5 +1,5 @@
 import { DOCUMENT_STATUSES } from '@kraven/config';
-import type { DocumentStatus } from '@kraven/types';
+import type { DocumentStatus, DocumentTemplateRecord } from '@kraven/types';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { ChevronLeft, ChevronRight, FilePlus2, Plus, Search } from 'lucide-react';
 import { useEffect, useState } from 'react';
@@ -12,7 +12,7 @@ import { clientQueryKeys, listClients } from '../clients/clientApi';
 import { documentQueryKeys, searchDocuments } from './documentApi';
 import { DocumentStatusBadge, relativeTime } from './documentFormat';
 import { NewDocumentDialog } from './NewDocumentDialog';
-import { TemplatesTab } from './TemplatesTab';
+import { TemplateDialog, TemplatesTab } from './TemplatesTab';
 
 const PAGE_SIZE = 20;
 
@@ -30,6 +30,7 @@ export function DocumentsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const tab = searchParams.get('tab') === 'templates' ? 'templates' : 'documents';
   const [isNewOpen, setIsNewOpen] = useState(false);
+  const [templateDialog, setTemplateDialog] = useState<{ template?: DocumentTemplateRecord } | null>(null);
 
   function selectTab(next: 'documents' | 'templates') {
     setSearchParams(next === 'templates' ? { tab: 'templates' } : {}, { replace: true });
@@ -43,11 +44,9 @@ export function DocumentsPage() {
           <h1 className="mt-2 text-2xl font-semibold">Documents</h1>
         </div>
         {tab === 'templates' ? (
-          <Button asChild>
-            <Link to="/templates/new">
-              <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
-              New template
-            </Link>
+          <Button onClick={() => setTemplateDialog({})}>
+            <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
+            New template
           </Button>
         ) : (
           <Button onClick={() => setIsNewOpen(true)}>
@@ -75,8 +74,9 @@ export function DocumentsPage() {
         ))}
       </div>
 
-      {tab === 'templates' ? <TemplatesTab /> : <DocumentsTab onNew={() => setIsNewOpen(true)} />}
+      {tab === 'templates' ? <TemplatesTab onEdit={(template) => setTemplateDialog({ template })} /> : <DocumentsTab onNew={() => setIsNewOpen(true)} />}
 
+      {templateDialog ? <TemplateDialog template={templateDialog.template} onClose={() => setTemplateDialog(null)} /> : null}
       <NewDocumentDialog open={isNewOpen} onClose={() => setIsNewOpen(false)} />
     </section>
   );

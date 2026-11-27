@@ -8,7 +8,6 @@ import { Button } from '../../components/ui/button';
 import { Select } from '../../components/ui/select';
 import { clientQueryKeys, listClients } from '../clients/clientApi';
 import { createDocument, documentQueryKeys, listDocumentTemplates } from './documentApi';
-import { htmlSnippet } from './documentFormat';
 
 export interface NewDocumentDialogProps {
   open: boolean;
@@ -145,12 +144,10 @@ function TemplateCard({
   pending: boolean;
   onPick: () => void;
 }) {
-  const snippet = htmlSnippet(template.html);
   return (
     <PickerCard
       title={template.name}
-      subtitle={`${template.type} · v${template.version}`}
-      snippet={snippet || 'Empty template'}
+      subtitle={template.type}
       icon={<FileText className="h-5 w-5" aria-hidden="true" />}
       disabled={disabled}
       pending={pending}

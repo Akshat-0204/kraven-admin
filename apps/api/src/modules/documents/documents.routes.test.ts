@@ -9,6 +9,8 @@ import { TEST_USER_ID } from '../../test/mockAuthenticate.js';
 import { ClientModel } from '../clients/client.model.js';
 import { ProjectModel } from '../projects/project.model.js';
 import { DocumentModel } from './document.model.js';
+import { GoogleConnectionModel } from '../google/google.connection.model.js';
+import { getFile } from '../google/drive.service.js';
 import { DocumentTemplateModel } from './documentTemplate.model.js';
 import { HttpError } from '../../shared/errors/httpError.js';
 import { htmlToPdf } from '../pdf/pdf.renderer.js';
@@ -18,6 +20,10 @@ vi.mock('../../middleware/authenticate.js', async () => {
   const { authenticateAsTestUser } = await import('../../test/mockAuthenticate.js');
   return { authenticate: authenticateAsTestUser };
 });
+vi.mock('../google/drive.service.js', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../google/drive.service.js')>()),
+  getFile: vi.fn()
+}));
 vi.mock('../pdf/pdf.renderer.js', () => ({ htmlToPdf: vi.fn() }));
 vi.mock('../../shared/activity/activity.service.js', () => ({
   logActivity: vi.fn(async () => undefined),
@@ -60,11 +66,9 @@ function stubStore() {
         _id: templateId,
         name: 'Proposal',
         type: 'Proposal',
-        html: '<p>Hello {{client.company}} - {{project.name}}</p>',
-        headerHtml: '<p>{{client.company}}</p>',
-        footerHtml: '<p>Page {{page.number}} of {{page.total}}</p>',
-        variables: ['client.company', 'project.name'],
-        version: 1,
+        googleDocUrl: 'https://docs.google.com/document/d/1AbCdEfGhIjKlMnOpQrStUvWxYz0123456789/edit',
+        googleFileId: '1AbCdEfGhIjKlMnOpQrStUvWxYz0123456789',
+        active: true,
         ...timestamps
       })
     ]
@@ -96,8 +100,25 @@ function stubStore() {
 
 const pdfBytes = Buffer.from('%PDF-1.7 fake');
 
+const fixtureHtml = {
+  html: '<p>Hello {{client.company}} - {{project.name}}</p>',
+  headerHtml: '<p>{{client.company}}</p>',
+  footerHtml: '<p>Page {{page.number}} of {{page.total}}</p>'
+};
+
+/** Creates a blank Draft through the API, then seeds the old template-derived body (templates no longer carry HTML). */
+async function createFixtureDoc(app: ReturnType<typeof createApp>, body: Record<string, unknown>) {
+  const response = await request(app).post('/documents').send({ title: 'Proposal', ...body }).expect(201);
+  Object.assign(documents.get(response.body.document.id)!, fixtureHtml);
+  return { ...response, body: { document: { ...response.body.document, ...fixtureHtml } } };
+}
+
 describe('document template routes', () => {
-  beforeEach(stubStore);
+  const docUrl = 'https://docs.google.com/document/d/1AbCdEfGhIjKlMnOpQrStUvWxYz0123456789/edit';
+  beforeEach(() => {
+    stubStore();
+    vi.mocked(getFile).mockReset().mockResolvedValue({ id: '1AbCdEfGhIjKlMnOpQrStUvWxYz0123456789', name: 'Drive title' });
+  });
   afterEach(() => vi.restoreAllMocks());
 
   it('lists the available variables', async () => {
@@ -106,59 +127,55 @@ describe('document template routes', () => {
     expect(keys).toEqual(expect.arrayContaining(['client.company', 'project.name', 'today', 'agency.name']));
   });
 
-  it('sanitizes template HTML and records its variables on create', async () => {
+  it('saves a link: parses the id, checks access and falls back to the Drive title', async () => {
     const response = await request(createApp())
       .post('/document-templates')
-      .send({ name: 'NDA', type: 'Agreement', html: '<p onclick="x()">Hi {{client.contactName}}</p><script>alert(1)</script>' })
+      .send({ name: '', type: 'Agreement', googleDocUrl: docUrl })
       .expect(201);
-
+    expect(getFile).toHaveBeenCalledWith('1AbCdEfGhIjKlMnOpQrStUvWxYz0123456789');
     expect(response.body.template).toMatchObject({
-      name: 'NDA',
+      name: 'Drive title',
       type: 'Agreement',
-      html: '<p>Hi {{client.contactName}}</p>',
-      variables: ['client.contactName'],
-      version: 1
+      googleDocUrl: docUrl,
+      googleFileId: '1AbCdEfGhIjKlMnOpQrStUvWxYz0123456789'
     });
   });
 
-  it.each([
-    ['unknown variable', '<p>{{client.secret}}</p>'],
-    ['triple-stache', '<p>{{{client.company}}}</p>'],
-    ['block helper', '<p>{{#each client}}x{{/each}}</p>']
-  ])('rejects a template with a %s', async (_label, html) => {
-    await request(createApp()).post('/document-templates').send({ name: 'Bad', type: 'Other', html }).expect(400);
+  it('rejects a link that is not a Google Doc (400)', async () => {
+    await request(createApp()).post('/document-templates').send({ name: 'Bad', type: 'Other', googleDocUrl: 'https://example.com/x' }).expect(400);
+    expect(getFile).not.toHaveBeenCalled();
   });
 
-  it('bumps the version on edit and not on a no-op save', async () => {
+  it('tells the owner to share the doc when the account cannot read it (403)', async () => {
+    vi.mocked(getFile).mockRejectedValue(new HttpError(404, 'nope'));
+    vi.spyOn(GoogleConnectionModel, 'findOne').mockReturnValue({ sort: () => Promise.resolve({ email: 'agency@example.com' }) } as never);
+    const response = await request(createApp()).post('/document-templates').send({ name: 'X', type: 'Other', googleDocUrl: docUrl }).expect(403);
+    expect(response.body.message).toMatch(/Share this doc/);
+  });
+
+  it('updates the link and re-checks access only when it changes', async () => {
     const app = createApp();
-    const current = templates.get(String(templateId))!;
-
-    const unchanged = await request(app)
-      .patch(`/document-templates/${String(templateId)}`)
-      .send({ name: current.name, html: current.html })
-      .expect(200);
-    expect(unchanged.body.template.version).toBe(1);
-
-    const edited = await request(app)
-      .patch(`/document-templates/${String(templateId)}`)
-      .send({ html: '<p>Changed {{client.email}}</p>' })
-      .expect(200);
-    expect(edited.body.template).toMatchObject({ version: 2, variables: ['client.email', 'client.company'] });
+    await request(app).patch(`/document-templates/${String(templateId)}`).send({ name: 'Renamed' }).expect(200);
+    expect(getFile).not.toHaveBeenCalled();
+    const edited = await request(app).patch(`/document-templates/${String(templateId)}`).send({ googleDocUrl: 'https://docs.google.com/document/d/1AbCdEfGhIjKlMnOpQrStUvWxYz0123456789zz/edit' }).expect(200);
+    expect(getFile).toHaveBeenCalledTimes(1);
+    expect(edited.body.template.googleFileId).toBe('1AbCdEfGhIjKlMnOpQrStUvWxYz0123456789zz');
   });
 
-  it('previews the merged, escaped HTML', async () => {
-    const response = await request(createApp())
-      .post(`/document-templates/${String(templateId)}/preview`)
-      .send({ client: String(clientId), project: String(projectId) })
-      .expect(200);
-
-    expect(response.body.html).toContain('<!doctype html>');
-    expect(response.body.html).toContain('Hello Acme &lt;Corp&gt; - Website');
+  it('deletes a template', async () => {
+    const template = templates.get(String(templateId))!;
+    vi.spyOn(template, 'deleteOne').mockResolvedValue({} as never);
+    await request(createApp()).delete(`/document-templates/${String(templateId)}`).expect(204);
+    expect(template.deleteOne).toHaveBeenCalled();
   });
 
   it('returns 404 for an unknown template', async () => {
     await request(createApp()).get(`/document-templates/${String(new Types.ObjectId())}`).expect(404);
     await request(createApp()).get('/document-templates/not-an-id').expect(404);
+  });
+
+  it('answers 501 when creating a document from a template (until Stage 3)', async () => {
+    await request(createApp()).post('/documents').send({ template: String(templateId) }).expect(501);
   });
 });
 
@@ -173,42 +190,9 @@ describe('document routes', () => {
   });
 
   async function createDoc(app = createApp()) {
-    const response = await request(app)
-      .post('/documents')
-      .send({ template: String(templateId), client: String(clientId), project: String(projectId) })
-      .expect(201);
+    const response = await createFixtureDoc(app, { client: String(clientId), project: String(projectId) });
     return response.body.document;
   }
-
-  it('creates a Draft with the template body/header/footer unmerged, unaffected by later template edits', async () => {
-    const app = createApp();
-    const created = await createDoc(app);
-
-    expect(created).toMatchObject({
-      title: 'Proposal',
-      client: String(clientId),
-      project: String(projectId),
-      template: String(templateId),
-      templateVersion: 1,
-      status: 'Draft',
-      hasPdf: false,
-      html: '<p>Hello {{client.company}} - {{project.name}}</p>',
-      headerHtml: '<p>{{client.company}}</p>',
-      footerHtml: '<p>Page {{page.number}} of {{page.total}}</p>'
-    });
-    expect(created.mergedAt).toBeUndefined();
-    const saved = vi.mocked(DocumentModel.create).mock.calls[0][0] as unknown as Record<string, unknown>;
-    expect(String(saved.createdBy)).toBe(TEST_USER_ID);
-
-    await request(app)
-      .patch(`/document-templates/${String(templateId)}`)
-      .send({ html: '<p>Rewritten {{client.email}}</p>' })
-      .expect(200);
-
-    const fetched = await request(app).get(`/documents/${created.id}`).expect(200);
-    expect(fetched.body.document.html).toBe(created.html);
-    expect(fetched.body.document.templateVersion).toBe(1);
-  });
 
   it('creates a blank, unassigned document without logging client activity', async () => {
     vi.mocked(logActivity).mockClear();
@@ -316,7 +300,7 @@ describe('document routes', () => {
     vi.mocked(htmlToPdf).mockClear().mockResolvedValue(pdfBytes);
     s3.on(PutObjectCommand).resolves({});
     const app = createApp();
-    const created = await request(app).post('/documents').send({ template: String(templateId), client: String(clientId) }).expect(201);
+    const created = await createFixtureDoc(app, { client: String(clientId) });
 
     await request(app).post(`/documents/${created.body.document.id}/pdf`).expect(200);
     const [html, options] = vi.mocked(htmlToPdf).mock.calls[0];
@@ -334,7 +318,7 @@ describe('document routes', () => {
     );
     const response = await request(createApp())
       .post('/documents')
-      .send({ template: String(templateId), client: String(clientId), project: String(projectId) })
+      .send({ client: String(clientId), project: String(projectId) })
       .expect(400);
     expect(response.body.message ?? response.body.error).toMatch(/does not belong/);
   });
@@ -434,10 +418,7 @@ describe('PATCH /documents/:id', () => {
   afterEach(() => vi.restoreAllMocks());
 
   async function createDoc(app: ReturnType<typeof createApp>) {
-    const response = await request(app)
-      .post('/documents')
-      .send({ template: String(templateId), client: String(clientId) })
-      .expect(201);
+    const response = await createFixtureDoc(app, { client: String(clientId) });
     return response.body.document as { id: string };
   }
 
@@ -472,15 +453,6 @@ describe('PATCH /documents/:id', () => {
       .patch(`/documents/${created.id}`)
       .send({ html: '<p>Page <span data-variable="page.total"></span></p>' })
       .expect(400);
-    await request(createApp())
-      .post('/document-templates')
-      .send({ name: 'Bad', type: 'Other', html: '<p>{{page.total}}</p>' })
-      .expect(400);
-    const ok = await request(createApp())
-      .post('/document-templates')
-      .send({ name: 'Ok', type: 'Other', html: '<p>x</p>', footerHtml: '<p>{{page.number}} / {{page.total}} {{client.email}}</p>' })
-      .expect(201);
-    expect(ok.body.template).toMatchObject({ footerHtml: '<p>{{page.number}} / {{page.total}} {{client.email}}</p>', variables: ['client.email'] });
   });
 
   it('assigns and unassigns the client and project', async () => {

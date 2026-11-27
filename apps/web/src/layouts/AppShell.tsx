@@ -8,6 +8,7 @@ import {
   type SidebarItem,
   type Workspace
 } from '@kraven/config';
+import { GoogleReconnectBanner } from '../features/google/GoogleReconnectBanner';
 import { LogOut } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
@@ -134,6 +135,7 @@ export function AppShell() {
         </div>
       </aside>
       <div className="md:pl-64">
+        <GoogleReconnectBanner />
         <header className="space-y-3 border-b border-border bg-black px-4 py-4 md:hidden">
           <div className="flex items-center justify-between">
             <div className="text-lg font-semibold">{APP_NAME}</div>

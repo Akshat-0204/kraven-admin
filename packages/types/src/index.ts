@@ -308,14 +308,26 @@ export interface DocumentTemplateRecord {
   id: string;
   name: string;
   type: DocumentTemplateType;
-  html: string;
-  headerHtml: string;
-  footerHtml: string;
-  /** Variable keys referenced by the template body, header and footer. */
-  variables: string[];
-  version: number;
+  googleDocUrl: string;
+  googleFileId: string;
+  active: boolean;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface GoogleStatus {
+  connected: boolean;
+  needsReconnect: boolean;
+  configured: boolean;
+  email: string | null;
+  connectedAt: string | null;
+  lastError: string | null;
+}
+
+export interface AdminUserRecord {
+  id: string;
+  name: string;
+  email: string;
 }
 
 export interface DocumentRecord {

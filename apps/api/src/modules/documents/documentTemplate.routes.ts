@@ -5,7 +5,7 @@ import {
   getDocumentTemplateController,
   listDocumentTemplatesController,
   listDocumentVariablesController,
-  previewDocumentTemplateController,
+  deleteDocumentTemplateController,
   updateDocumentTemplateController
 } from './documentTemplate.controller.js';
 
@@ -16,4 +16,4 @@ documentTemplateRoutes.get('/', asyncHandler(listDocumentTemplatesController));
 documentTemplateRoutes.post('/', asyncHandler(createDocumentTemplateController));
 documentTemplateRoutes.get('/:id', asyncHandler(getDocumentTemplateController));
 documentTemplateRoutes.patch('/:id', asyncHandler(updateDocumentTemplateController));
-documentTemplateRoutes.post('/:id/preview', asyncHandler(previewDocumentTemplateController));
+documentTemplateRoutes.delete('/:id', asyncHandler(deleteDocumentTemplateController));

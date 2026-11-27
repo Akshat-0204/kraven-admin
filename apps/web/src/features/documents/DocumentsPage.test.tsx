@@ -46,11 +46,9 @@ describe('DocumentsPage', () => {
           id: 'tpl-1',
           name: 'Master Services Agreement',
           type: 'Agreement',
-          html: '<p>Between us and {{client.company}}</p>',
-          headerHtml: '',
-          footerHtml: '',
-          variables: [],
-          version: 2,
+          googleDocUrl: 'https://docs.google.com/document/d/abc/edit',
+          googleFileId: 'abc',
+          active: true,
           createdAt: base.createdAt,
           updatedAt: base.updatedAt
         }
@@ -90,9 +88,11 @@ describe('DocumentsPage', () => {
     const user = userEvent.setup();
     renderPage('/documents?tab=templates');
 
-    const card = await screen.findByRole('link', { name: /Master Services Agreement/ });
-    expect(card).toHaveAttribute('href', '/templates/tpl-1');
-    expect(screen.getByRole('link', { name: /New template/ })).toHaveAttribute('href', '/templates/new');
+    expect(await screen.findByText('Master Services Agreement')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /Open in Google Docs/ })).toHaveAttribute('href', 'https://docs.google.com/document/d/abc/edit');
+    await user.click(screen.getByRole('button', { name: /New template/ }));
+    expect(screen.getByRole('dialog', { name: 'New template' })).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Cancel' }));
 
     await user.click(screen.getByRole('tab', { name: 'Documents' }));
     expect(screen.getByTestId('probe')).toHaveTextContent(/^\/documents$/);

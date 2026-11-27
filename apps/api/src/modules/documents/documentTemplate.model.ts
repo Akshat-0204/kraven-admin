@@ -4,15 +4,11 @@ import { Schema, model } from 'mongoose';
 export interface DocumentTemplateDocument {
   name: string;
   type: (typeof DOCUMENT_TEMPLATE_TYPES)[number];
-  /** Sanitized HTML with `{{variable}}` placeholders. */
-  html: string;
-  /** Per-page header/footer bands; may also use `{{page.number}}` / `{{page.total}}`. */
-  headerHtml: string;
-  footerHtml: string;
-  /** Variable keys referenced by `html`, `headerHtml` and `footerHtml`, recomputed on every save. */
-  variables: string[];
-  /** Starts at 1 and increments on every edit; documents record the version they were rendered from. */
-  version: number;
+  /** Link to the template Google Doc, edited by hand in Google. */
+  googleDocUrl: string;
+  /** Drive file id parsed from `googleDocUrl`. */
+  googleFileId: string;
+  active: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -21,11 +17,9 @@ const documentTemplateSchema = new Schema<DocumentTemplateDocument>(
   {
     name: { type: String, required: true, trim: true },
     type: { type: String, enum: DOCUMENT_TEMPLATE_TYPES, required: true },
-    html: { type: String, default: '' },
-    headerHtml: { type: String, default: '' },
-    footerHtml: { type: String, default: '' },
-    variables: { type: [String], default: [] },
-    version: { type: Number, required: true, default: 1, min: 1 }
+    googleDocUrl: { type: String, required: true, trim: true },
+    googleFileId: { type: String, required: true },
+    active: { type: Boolean, default: true }
   },
   { timestamps: true }
 );

@@ -62,6 +62,15 @@ export const env = {
     address: process.env.AGENCY_ADDRESS ?? '',
     website: process.env.AGENCY_WEBSITE ?? ''
   },
+  /** Google Drive/Docs OAuth (agency account). Tokens live in Mongo, never in env. */
+  google: {
+    clientId: process.env.GOOGLE_CLIENT_ID ?? '',
+    clientSecret: process.env.GOOGLE_CLIENT_SECRET ?? '',
+    redirectUri: process.env.GOOGLE_REDIRECT_URI ?? 'http://localhost:4000/google/oauth/callback',
+    /** 32-byte key (64 hex chars or base64) for AES-256-GCM encryption of the refresh token. */
+    tokenKey: process.env.GOOGLE_TOKEN_KEY ?? '',
+    rootFolderName: process.env.GOOGLE_DRIVE_ROOT_FOLDER_NAME ?? 'Kraven Documents'
+  },
   adminUsers: [
     {
       email: process.env.ADMIN_EMAIL_1,

@@ -3,9 +3,9 @@ import { DOCUMENT_VARIABLES } from './document.variables.js';
 import { serializeDocumentTemplate } from './document.serializer.js';
 import {
   createDocumentTemplate,
+  deleteDocumentTemplate,
   getDocumentTemplate,
   listDocumentTemplates,
-  previewDocumentTemplate,
   updateDocumentTemplate
 } from './documentTemplate.service.js';
 
@@ -30,6 +30,7 @@ export async function updateDocumentTemplateController(req: Request, res: Respon
   res.json({ template: serializeDocumentTemplate(await updateDocumentTemplate(req.params.id, req.body)) });
 }
 
-export async function previewDocumentTemplateController(req: Request, res: Response) {
-  res.json({ html: await previewDocumentTemplate(req.params.id, req.body) });
+export async function deleteDocumentTemplateController(req: Request, res: Response) {
+  await deleteDocumentTemplate(req.params.id);
+  res.status(204).end();
 }

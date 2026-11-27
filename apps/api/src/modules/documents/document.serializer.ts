@@ -9,11 +9,9 @@ export function serializeDocumentTemplate(template: DocumentTemplateDocument & {
     id: String(template._id),
     name: template.name,
     type: template.type,
-    html: template.html,
-    headerHtml: template.headerHtml ?? '',
-    footerHtml: template.footerHtml ?? '',
-    variables: template.variables,
-    version: template.version,
+    googleDocUrl: template.googleDocUrl,
+    googleFileId: template.googleFileId,
+    active: template.active,
     createdAt: template.createdAt.toISOString(),
     updatedAt: template.updatedAt.toISOString()
   };

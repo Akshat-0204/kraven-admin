@@ -13,6 +13,7 @@ import {
   XAxis,
   YAxis
 } from 'recharts';
+import { GoogleConnectCard } from '../google/GoogleConnectCard';
 import { ProgressBar } from '../../components/ui/progressBar';
 import { formatCurrency } from '../finance/financeFormat';
 import {
@@ -40,6 +41,8 @@ export function CrmDashboardPage() {
         return (
           <section className="space-y-5">
             <DashboardHeader eyebrow="CRM workspace" title="CRM dashboard" />
+
+            <GoogleConnectCard />
 
             <div className="grid gap-3 md:grid-cols-3 xl:grid-cols-6">
               <Metric label="Active projects" value={dashboard.projects.totalActive} colorClass="text-blue-400" />

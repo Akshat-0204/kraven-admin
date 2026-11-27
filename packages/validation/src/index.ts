@@ -279,11 +279,9 @@ const documentBandHtml = z.string().max(200_000, 'Header/footer is too large');
 const nullableObjectId = z.preprocess((value) => (value === '' ? null : value), objectId.nullable().optional());
 
 export const documentTemplateSchema = z.object({
-  name: z.string().trim().min(1, 'Name is required'),
+  name: z.string().trim().default(''),
   type: z.enum(DOCUMENT_TEMPLATE_TYPES),
-  html: documentHtml('Template is too large'),
-  headerHtml: documentBandHtml.optional(),
-  footerHtml: documentBandHtml.optional()
+  googleDocUrl: z.string().trim().min(1, 'Google Doc link is required').max(2000)
 });
 
 export type DocumentTemplateInput = z.infer<typeof documentTemplateSchema>;
