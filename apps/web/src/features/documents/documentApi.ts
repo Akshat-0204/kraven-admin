@@ -1,18 +1,61 @@
 import type {
   DocumentDetailRecord,
+  DocumentListResponse,
   DocumentPdfLink,
   DocumentRecord,
   DocumentTemplateRecord,
-  DocumentVariable
+  DocumentVariable,
+  ResolvedDocumentVariable
 } from '@kraven/types';
-import type {
-  CreateDocumentInput,
-  DocumentContextInput,
-  DocumentTemplateInput,
-  UpdateDocumentInput,
-  UpdateDocumentTemplateInput
-} from '@kraven/validation';
+import type { DocumentContextInput, DocumentTemplateInput } from '@kraven/validation';
 import { apiUrl, requestJson } from '../../lib/api';
+
+/*
+ * Editor-facing shapes from docs/plans/document-editor-contract.md. Declared locally (structurally compatible
+ * with the shared @kraven/types records) so the editor does not depend on when the shared packages catch up.
+ */
+export interface CreateDocumentInput {
+  template?: string;
+  client?: string;
+  project?: string;
+  title?: string;
+}
+
+export interface UpdateDocumentInput {
+  title?: string;
+  html?: string;
+  headerHtml?: string;
+  footerHtml?: string;
+  client?: string | null;
+  project?: string | null;
+}
+
+export type UpdateDocumentTemplateInput = Partial<DocumentTemplateInput> & {
+  headerHtml?: string;
+  footerHtml?: string;
+};
+
+/** A ref the API may return either as an id or populated. */
+export type EditorRef = string | { _id?: string; id?: string; companyName?: string; projectName?: string; name?: string };
+
+export type EditorDocument = Omit<DocumentDetailRecord, 'client' | 'project' | 'template' | 'templateVersion'> & {
+  client?: EditorRef | null;
+  project?: EditorRef | null;
+  template?: EditorRef | null;
+  templateVersion?: number;
+  headerHtml?: string;
+  footerHtml?: string;
+  mergedAt?: string | null;
+};
+
+export type EditorTemplate = DocumentTemplateRecord & { headerHtml?: string; footerHtml?: string };
+
+export type { ResolvedDocumentVariable };
+
+export function refId(ref: EditorRef | null | undefined): string | undefined {
+  if (!ref) return undefined;
+  return typeof ref === 'string' ? ref : (ref._id ?? ref.id);
+}
 
 export interface DocumentScope {
   client: string;
@@ -24,15 +67,28 @@ export const documentQueryKeys = {
   template: (id: string) => ['document-templates', 'detail', id] as const,
   variables: ['document-templates', 'variables'] as const,
   documents: ['documents'] as const,
-  list: (scope: DocumentScope) => ['documents', 'list', scope] as const
+  detail: (id: string) => ['documents', 'detail', id] as const,
+  documentVariables: (id: string) => ['documents', 'variables', id] as const,
+  list: (scope: DocumentScope) => ['documents', 'list', scope] as const,
+  search: (filters: DocumentListFilters) => ['documents', 'search', filters] as const
 };
+
+/** `GET /documents` filters for the Documents page (all clients when `client` is unset). */
+export interface DocumentListFilters {
+  q?: string;
+  status?: string;
+  client?: string;
+  project?: string;
+  page?: number;
+  limit?: number;
+}
 
 export async function listDocumentTemplates() {
   return requestJson<{ templates: DocumentTemplateRecord[] }>('/document-templates');
 }
 
 export async function getDocumentTemplate(id: string) {
-  return requestJson<{ template: DocumentTemplateRecord }>(`/document-templates/${id}`);
+  return requestJson<{ template: EditorTemplate }>(`/document-templates/${id}`);
 }
 
 export async function listDocumentVariables() {
@@ -47,7 +103,7 @@ export async function createDocumentTemplate(input: DocumentTemplateInput) {
 }
 
 export async function updateDocumentTemplate(id: string, input: UpdateDocumentTemplateInput) {
-  return requestJson<{ template: DocumentTemplateRecord }>(`/document-templates/${id}`, {
+  return requestJson<{ template: EditorTemplate }>(`/document-templates/${id}`, {
     method: 'PATCH',
     body: JSON.stringify(input)
   });
@@ -63,11 +119,20 @@ export async function previewDocumentTemplate(id: string, context: DocumentConte
 /** Project scope lists that project's documents; client scope lists every document for the client. */
 export async function listDocuments(scope: DocumentScope) {
   const params = new URLSearchParams(scope.project ? { project: scope.project } : { client: scope.client });
-  return requestJson<{ documents: DocumentRecord[] }>(`/documents?${params.toString()}`);
+  return requestJson<DocumentListResponse>(`/documents?${params.toString()}`);
+}
+
+export async function searchDocuments(filters: DocumentListFilters) {
+  const params = new URLSearchParams();
+  for (const [key, value] of Object.entries(filters)) {
+    if (value !== undefined && value !== '') params.set(key, String(value));
+  }
+  const query = params.toString();
+  return requestJson<DocumentListResponse>(`/documents${query ? `?${query}` : ''}`);
 }
 
 export async function createDocument(input: CreateDocumentInput) {
-  return requestJson<{ document: DocumentDetailRecord }>('/documents', {
+  return requestJson<{ document: EditorDocument }>('/documents', {
     method: 'POST',
     body: JSON.stringify(input)
   });
@@ -88,12 +153,17 @@ export function documentPdfDownloadUrl(id: string) {
 }
 
 export async function getDocument(id: string) {
-  return requestJson<{ document: DocumentDetailRecord }>(`/documents/${id}`);
+  return requestJson<{ document: EditorDocument }>(`/documents/${id}`);
+}
+
+/** Variables resolved against the document's assigned client/project (`value` null when missing). */
+export async function getDocumentVariables(id: string) {
+  return requestJson<{ variables: ResolvedDocumentVariable[] }>(`/documents/${id}/variables`);
 }
 
 /** Drafts only. `html` is the document body, not the full print shell. */
 export async function updateDocument(id: string, input: UpdateDocumentInput) {
-  return requestJson<{ document: DocumentDetailRecord }>(`/documents/${id}`, {
+  return requestJson<{ document: EditorDocument }>(`/documents/${id}`, {
     method: 'PATCH',
     body: JSON.stringify(input)
   });

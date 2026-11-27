@@ -1,25 +1,49 @@
+import { DOCUMENT_CONTENT_CSS } from '@kraven/config';
 import Handlebars from 'handlebars';
 import { HttpError } from '../../shared/errors/httpError.js';
-import { buildMergeContext, DOCUMENT_VARIABLE_KEYS, type MergeSource } from './document.variables.js';
+import {
+  buildMergeContext,
+  DOCUMENT_VARIABLE_KEYS,
+  PAGE_TOKEN_KEYS,
+  type MergeContextOptions,
+  type MergeSource
+} from './document.variables.js';
 import { sanitizeTemplateHtml } from './template.sanitize.js';
 
 /** Isolated instance: no helpers or partials registered by anything else can leak into templates. */
 const handlebars = Handlebars.create();
 
+/**
+ * Editor variable chips (`<span data-variable="client.company">{{client.company}}</span>`) become plain
+ * `{{client.company}}` placeholders; the chip's inner text is ignored, the attribute is authoritative.
+ */
+export function unwrapVariableSpans(html: string): string {
+  return html.replace(
+    /<span\b[^>]*?\bdata-variable\s*=\s*(?:"([\w.]+)"|'([\w.]+)')[^>]*>[\s\S]*?<\/span>/gi,
+    (_match, double: string | undefined, single: string | undefined) => `{{${double ?? single}}}`
+  );
+}
+
 /** Cleans up any HTML formatting tags or excess whitespace that accidentally got inserted inside {{...}} placeholders by rich-text editors. */
 export function normalizeTemplatePlaceholders(html: string): string {
-  return html.replace(/\{\{([^{}]*)\}\}/g, (_match, inner) => {
+  return unwrapVariableSpans(html).replace(/\{\{([^{}]*)\}\}/g, (_match, inner) => {
     const cleanInner = inner.replace(/<[^>]+>/g, '').trim();
     return `{{${cleanInner}}}`;
   });
 }
 
+export interface TemplateSyntaxOptions {
+  /** Header/footer only: allow `{{page.number}}` / `{{page.total}}` (they are not reported as variables). */
+  allowPageTokens?: boolean;
+}
+
 /**
  * Parses template HTML and returns the variable keys it uses. Only plain, HTML-escaped
  * `{{path.to.var}}` placeholders from the registry are allowed: triple-stache, blocks,
- * helpers, partials and unknown variables are rejected with a 400.
+ * helpers, partials and unknown variables are rejected with a 400. Page tokens are rejected
+ * unless `allowPageTokens` (header/footer).
  */
-export function extractTemplateVariables(html: string): string[] {
+export function extractTemplateVariables(html: string, options: TemplateSyntaxOptions = {}): string[] {
   const normalized = normalizeTemplatePlaceholders(html);
 
   if (/\{\{\s*\}\}/.test(normalized)) {
@@ -54,7 +78,11 @@ export function extractTemplateVariables(html: string): string[] {
       throw new HttpError(400, 'Only {{variable}} placeholders are supported in templates');
     }
 
-    if (DOCUMENT_VARIABLE_KEYS.has(path.original)) {
+    if (PAGE_TOKEN_KEYS.has(path.original)) {
+      if (!options.allowPageTokens) {
+        throw new HttpError(400, `{{${path.original}}} can only be used in the header or footer`);
+      }
+    } else if (DOCUMENT_VARIABLE_KEYS.has(path.original)) {
       used.add(path.original);
     } else {
       unknown.add(path.original);
@@ -68,46 +96,61 @@ export function extractTemplateVariables(html: string): string[] {
   return [...used];
 }
 
-/** Sanitizes template HTML for storage and validates its placeholders. */
-export function prepareTemplateHtml(html: string) {
-  const normalized = normalizeTemplatePlaceholders(html);
-  const sanitized = sanitizeTemplateHtml(normalized);
-  return { html: sanitized, variables: extractTemplateVariables(sanitized) };
+/**
+ * Sanitizes template HTML for storage and validates its placeholders. Variable chip spans are kept
+ * as-is (the editor round-trips them); only their keys are validated.
+ */
+export function prepareTemplateHtml(html: string, options: TemplateSyntaxOptions = {}) {
+  const sanitized = sanitizeTemplateHtml(cleanPlaceholderMarkup(html));
+  return { html: sanitized, variables: extractTemplateVariables(sanitized, options) };
 }
+
+/** Strips rich-text tags inside `{{...}}` without unwrapping variable chips. */
+function cleanPlaceholderMarkup(html: string) {
+  return html.replace(/\{\{([^{}]*)\}\}/g, (_match, inner: string) => `{{${inner.replace(/<[^>]+>/g, '').trim()}}}`);
+}
+
+export type MergeOptions = TemplateSyntaxOptions & Pick<MergeContextOptions, 'missing'>;
 
 /**
  * Merges data into template HTML. Values are HTML-escaped by Handlebars; the merged output is
  * sanitized again so a value cannot smuggle a javascript: URL into an attribute like `href`.
+ * With `allowPageTokens`, `{{page.number}}` / `{{page.total}}` are left in place for the PDF stage.
  */
-export function mergeTemplate(html: string, source: MergeSource) {
+export function mergeTemplate(html: string, source: MergeSource, options: MergeOptions = {}) {
   const normalized = normalizeTemplatePlaceholders(html);
-  extractTemplateVariables(normalized);
+  extractTemplateVariables(normalized, options);
   const render = handlebars.compile(normalized, { knownHelpersOnly: true, strict: false });
-  return sanitizeTemplateHtml(render(buildMergeContext(source)));
+  return sanitizeTemplateHtml(
+    render(buildMergeContext(source, { missing: options.missing, keepPageTokens: options.allowPageTokens }))
+  );
+}
+
+/** Body of a legacy full print shell, or the HTML unchanged when it is already body-only. */
+export function extractBody(html: string) {
+  const match = /<body[^>]*>([\s\S]*)<\/body>/i.exec(html);
+  if (!match) return html.trim();
+  const body = match[1].trim();
+  const wrapped = /^<div class="document-content">([\s\S]*)<\/div>$/.exec(body);
+  return (wrapped ? wrapped[1] : body).trim();
+}
+
+/** True when `html` is a full print shell (documents created before body-only storage). */
+export function isPrintShell(html: string) {
+  return /^\s*<!doctype html>/i.test(html) || /<body[^>]*>/i.test(html);
 }
 
 function escapeText(value: string) {
   return handlebars.Utils.escapeExpression(value);
 }
 
+/** Shell-only rules; body typography comes from the shared DOCUMENT_CONTENT_CSS. Margins come from page.pdf(). */
 const PRINT_CSS = `
   @page { size: A4; }
-  * { box-sizing: border-box; }
-  body { font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 11pt; line-height: 1.5; color: #111; margin: 0; }
-  h1 { font-size: 22pt; margin: 0 0 12pt; }
-  h2 { font-size: 15pt; margin: 18pt 0 8pt; }
-  h3 { font-size: 12pt; margin: 14pt 0 6pt; }
-  p { margin: 0 0 8pt; }
-  table { width: 100%; border-collapse: collapse; margin: 8pt 0 12pt; page-break-inside: avoid; }
-  th, td { border: 1px solid #bbb; padding: 6pt 8pt; text-align: left; vertical-align: top; }
-  th { background: #f2f2f2; }
-  td p, th p { margin: 0; }
-  blockquote { margin: 8pt 0; padding-left: 10pt; border-left: 3px solid #ccc; color: #444; }
-  hr { border: none; border-top: 1px solid #ccc; margin: 14pt 0; }
-  img { max-width: 100%; }
-`;
+  html, body { margin: 0; padding: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+${DOCUMENT_CONTENT_CSS}`;
 
-/** Wraps merged body HTML in the fixed print shell. The result is what is snapshotted and sent to Gotenberg. */
+/** Wraps merged body HTML in the fixed print shell. The result is what is snapshotted and rendered to PDF. */
 export function wrapPrintDocument(bodyHtml: string, title: string) {
   return `<!doctype html>
 <html lang="en">
@@ -117,7 +160,9 @@ export function wrapPrintDocument(bodyHtml: string, title: string) {
 <style>${PRINT_CSS}</style>
 </head>
 <body>
+<div class="document-content">
 ${bodyHtml}
+</div>
 </body>
 </html>`;
 }

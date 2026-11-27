@@ -1,4 +1,5 @@
-import { createBrowserRouter } from 'react-router-dom';
+import { WORKSPACE_DASHBOARD_PATHS } from '@kraven/config';
+import { createBrowserRouter, Navigate } from 'react-router-dom';
 import { LoginPage } from '../features/auth/LoginPage';
 import { ProtectedRoute } from '../features/auth/ProtectedRoute';
 import { ClientDetailPage } from '../features/clients/ClientDetailPage';
@@ -6,8 +7,9 @@ import { ClientListPage } from '../features/clients/ClientListPage';
 import { ExpensesPage } from '../features/finance/ExpensesPage';
 import { FinanceOverviewPage } from '../features/finance/FinanceOverviewPage';
 import { InvoicesPaymentsPage } from '../features/finance/InvoicesPaymentsPage';
-import { TemplateListPage } from '../features/documents/TemplateListPage';
-import { DashboardPage } from '../features/dashboard/DashboardPage';
+import { DocumentsPage } from '../features/documents/DocumentsPage';
+import { CrmDashboardPage } from '../features/dashboard/CrmDashboardPage';
+import { LeadsDashboardPage } from '../features/dashboard/LeadsDashboardPage';
 import { LeadDetailPage } from '../features/leads/LeadDetailPage';
 import { LeadListPage } from '../features/leads/LeadListPage';
 import { PortalPage } from '../features/portal/PortalPage';
@@ -17,6 +19,12 @@ import { ProjectDetailPage } from '../features/projects/ProjectDetailPage';
 import { ProjectListPage } from '../features/projects/ProjectListPage';
 import { SettingsPage } from '../features/settings/SettingsPage';
 import { AppShell } from '../layouts/AppShell';
+import { readStoredWorkspace } from '../layouts/workspace';
+
+/** `/` and `/dashboard` land on the last-used workspace's dashboard (Leads by default). */
+function WorkspaceRedirect() {
+  return <Navigate to={WORKSPACE_DASHBOARD_PATHS[readStoredWorkspace()]} replace />;
+}
 
 export const router = createBrowserRouter([
   {
@@ -44,12 +52,37 @@ export const router = createBrowserRouter([
     path: '/',
     element: <ProtectedRoute />,
     children: [
+      // Full-screen editors (outside AppShell). Lazy so the Tiptap bundle loads only here.
+      {
+        path: 'documents/:id',
+        lazy: async () => ({
+          Component: (await import('../features/documents/editor/DocumentEditorPage')).DocumentEditorPage
+        })
+      },
+      {
+        path: 'templates/:id',
+        lazy: async () => ({
+          Component: (await import('../features/documents/editor/TemplateEditorPage')).TemplateEditorPage
+        })
+      },
       {
         element: <AppShell />,
         children: [
           {
             index: true,
-            element: <DashboardPage />
+            element: <WorkspaceRedirect />
+          },
+          {
+            path: 'dashboard',
+            element: <WorkspaceRedirect />
+          },
+          {
+            path: 'dashboard/leads',
+            element: <LeadsDashboardPage />
+          },
+          {
+            path: 'dashboard/crm',
+            element: <CrmDashboardPage />
           },
           {
             path: 'leads',
@@ -76,15 +109,12 @@ export const router = createBrowserRouter([
             element: <ClientDetailPage />
           },
           {
-            path: 'templates',
-            element: <TemplateListPage />
+            path: 'documents',
+            element: <DocumentsPage />
           },
           {
-            path: 'templates/:id',
-            // Lazy so the Tiptap editor bundle loads only on this page.
-            lazy: async () => ({
-              Component: (await import('../features/documents/TemplateEditorPage')).TemplateEditorPage
-            })
+            path: 'templates',
+            element: <Navigate to="/documents?tab=templates" replace />
           },
           {
             path: 'finance',

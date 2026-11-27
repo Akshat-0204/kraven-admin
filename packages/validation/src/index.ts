@@ -273,10 +273,17 @@ export const fileUploadMetadataSchema = z.object({
 
 export type FileUploadMetadataInput = z.infer<typeof fileUploadMetadataSchema>;
 
+const documentHtml = (message: string) => z.string().max(500_000, message);
+/** Header/footer bands are small; logos are inline `data:` images, hence the generous cap. */
+const documentBandHtml = z.string().max(200_000, 'Header/footer is too large');
+const nullableObjectId = z.preprocess((value) => (value === '' ? null : value), objectId.nullable().optional());
+
 export const documentTemplateSchema = z.object({
   name: z.string().trim().min(1, 'Name is required'),
   type: z.enum(DOCUMENT_TEMPLATE_TYPES),
-  html: z.string().max(500_000, 'Template is too large')
+  html: documentHtml('Template is too large'),
+  headerHtml: documentBandHtml.optional(),
+  footerHtml: documentBandHtml.optional()
 });
 
 export type DocumentTemplateInput = z.infer<typeof documentTemplateSchema>;
@@ -292,29 +299,43 @@ export const documentContextSchema = z.object({
 
 export type DocumentContextInput = z.infer<typeof documentContextSchema>;
 
-export const createDocumentSchema = documentContextSchema.extend({
-  template: objectId,
+/** Template and client are optional: a blank document can be started and assigned later (client is required to share). */
+export const createDocumentSchema = z.object({
+  template: optionalObjectId,
+  client: optionalObjectId,
+  project: optionalObjectId,
   title: z.preprocess((value) => (value === '' ? undefined : value), z.string().trim().min(1).optional())
 });
 
 export type CreateDocumentInput = z.infer<typeof createDocumentSchema>;
 
+/** `client`/`project` accept `null` to unassign. */
 export const updateDocumentSchema = z
   .object({
     title: z.string().trim().min(1, 'Title is required').optional(),
-    html: z.string().max(500_000, 'Document is too large').optional()
+    html: documentHtml('Document is too large').optional(),
+    headerHtml: documentBandHtml.optional(),
+    footerHtml: documentBandHtml.optional(),
+    client: nullableObjectId,
+    project: nullableObjectId
   })
-  .refine((value) => value.title !== undefined || value.html !== undefined, 'Nothing to update');
+  .refine((value) => Object.values(value).some((field) => field !== undefined), 'Nothing to update');
 
 export type UpdateDocumentInput = z.infer<typeof updateDocumentSchema>;
+
+export const DOCUMENT_LIST_MAX_LIMIT = 100;
 
 export const documentFilterSchema = z.object({
   client: optionalObjectId,
   project: optionalObjectId,
-  status: z.enum(DOCUMENT_STATUSES).optional()
+  status: z.enum(DOCUMENT_STATUSES).optional(),
+  /** Case-insensitive title match. */
+  q: z.preprocess((value) => (value === '' ? undefined : value), z.string().trim().max(200).optional()),
+  page: z.coerce.number().int().min(1).default(1),
+  limit: z.coerce.number().int().min(1).max(DOCUMENT_LIST_MAX_LIMIT).default(50)
 });
 
-export type DocumentFilterInput = z.infer<typeof documentFilterSchema>;
+export type DocumentFilterInput = z.input<typeof documentFilterSchema>;
 
 export const globalSearchSchema = z.object({
   q: z.string().trim().min(1)

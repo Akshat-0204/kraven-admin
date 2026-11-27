@@ -36,6 +36,7 @@
     "pdf-lib": "^1.17.1",
     "pino": "^9.3.2",
     "pino-http": "^10.2.0",
+    "puppeteer": "^24.43.1",
     "resend": "^6.39.0",
     "sanitize-html": "^2.18.2"
   },

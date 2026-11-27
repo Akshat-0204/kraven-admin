@@ -15,7 +15,7 @@ Modules: auth, leads, clients, projects, finance (invoices, payments, expenses),
 ### Storage
 
 - Data: MongoDB via Mongoose.
-- Files: **MinIO (S3 API)** via `@aws-sdk/client-s3` (`apps/api/src/modules/files/storage.service.ts`). GridFS is no longer used.
+- Files: **hosted S3-compatible storage** via `@aws-sdk/client-s3` (`apps/api/src/modules/files/storage.service.ts`). GridFS is no longer used.
   - Objects live under `files/<metadataId>` in `S3_BUCKET`; the bucket is created on API startup if missing.
   - Metadata stays in Mongo (`FileMetadata`: `bucketKey`, `filename`, `contentType`, `length`, `clientVisible` default `false`, entity association, uploader).
   - `bucketKey` has a unique index that is partial (`bucketKey: { $exists: true }`), so legacy GridFS-era docs without it do not break the index build.
@@ -23,7 +23,7 @@ Modules: auth, leads, clients, projects, finance (invoices, payments, expenses),
   - `POST /files` (multipart) and `GET /files/:id` (streamed download) keep their original contract.
   - `GET /files/:id/url` returns a 60-second presigned download URL (authenticated).
   - Presigned URLs are signed against `S3_PUBLIC_ENDPOINT` (defaults to `S3_ENDPOINT`), so the API can reach storage by an internal hostname while browsers get a reachable URL. Their `response-content-disposition` uses the same RFC 6266 value as streamed downloads.
-- Local infra: `docker-compose.yml` runs MinIO (API `:9000`, console `:9001`) and Gotenberg (`:3000`, pinned `8.40.0`).
+- No Docker. MongoDB and S3 are hosted services configured via `.env`; PDFs render in-process with puppeteer.
 
 ### Security
 
@@ -31,7 +31,7 @@ Modules: auth, leads, clients, projects, finance (invoices, payments, expenses),
 - CSRF: the production session cookie is `SameSite=None`, so state-changing requests (anything but GET/HEAD/OPTIONS) are rejected with 403 when their `Origin` (or `Referer` fallback) is not allowlisted. Requests with neither header (non-browser clients) pass.
 - `helmet` security headers (Cross-Origin-Resource-Policy relaxed to `cross-origin` because the web app is served from a different origin).
 - Login rate limit: 10 failed attempts per IP per 15 minutes (`express-rate-limit`).
-- Gotenberg SSRF: template HTML can reference remote URLs that Chromium fetches. `docker-compose.yml` starts Gotenberg with `--chromium-deny-list` covering loopback, `*.localhost`, RFC 1918, link-local/metadata (`169.254.x`), IPv6 literals and internal compose hosts (`minio`, `mongo`, `api`, ...), keeping Gotenberg's default `file:` rule. A hostname that *resolves* to a private address is not caught by a URL regex, so production should also run Gotenberg on a network with no route to internal services.
+- PDF SSRF: `apps/api/src/modules/pdf/pdf.renderer.ts` blocks every network request from template HTML (only `data:` resources load) and disables JavaScript. Images in templates must be inline `data:` URIs.
 
 ### Dashboard
 
@@ -43,7 +43,7 @@ Modules: auth, leads, clients, projects, finance (invoices, payments, expenses),
 
 - `DocumentTemplate` (sanitized Tiptap HTML with escaped `{{var}}` placeholders, `version` bumps on edit) and `Document` (immutable rendered-HTML snapshot, `templateVersion`, status Draft/Sent/Viewed/Signed, `pdfKey`).
 - Variables: `client.*`, `project.*`, `agency.*` (from `AGENCY_*` env), `today`; `GET /document-templates/variables`.
-- PDFs rendered by Gotenberg from the snapshot, stored at `documents/<id>.pdf`, reused while the snapshot hash is unchanged.
+- PDFs rendered by headless Chromium (puppeteer) from the snapshot, stored at `documents/<id>.pdf`, reused while the snapshot hash is unchanged.
 - `npm run seed:templates -w @kraven/api` inserts one generic "Project Proposal" template (insert-only).
 
 ### Client portal (Stage 3)
@@ -60,8 +60,8 @@ Modules: auth, leads, clients, projects, finance (invoices, payments, expenses),
 
 | Stage | Scope |
 | --- | --- |
-| 1 | Foundations + storage (this stage): MinIO, CORS/CSRF/helmet/rate limit, read-only dashboard |
-| 2 | Document templates (Tiptap, Handlebars-style variables) rendered to PDF via Gotenberg, stored in MinIO (done) |
+| 1 | Foundations + storage (this stage): S3, CORS/CSRF/helmet/rate limit, read-only dashboard |
+| 2 | Document templates (Tiptap, Handlebars-style variables) rendered to PDF via puppeteer, stored in S3 (done) |
 | 3 | Client portal: `/c/<slug>` + admin-set access code (bcrypt), signed cookie, lockout; project updates, documents, payments (UPI deep-link/QR), downloads of `clientVisible` files (done) |
 | 4 | Packs (grouped sends) + in-house e-sign (audit capture, `pdf-lib` seal, SHA-256) |
 | 5 | Email via Resend (no-op without a key; `EmailLog`; Svix-verified `POST /webhooks/resend`, exempt from origin check), daily reminder cron (`REMINDERS_ENABLED`, 3-day throttle via `lastRemindedAt`), "Waiting on client" dashboard widget, invoice line items/tax/PDF (`GET /invoices/:id/pdf`); invoice GETs no longer write (done) |

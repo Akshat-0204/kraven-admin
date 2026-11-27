@@ -11,7 +11,7 @@ describe('seedDocumentTemplates', () => {
   it('seeds the four agency templates, insert-only so edits are never overwritten', async () => {
     const updateOne = vi.spyOn(DocumentTemplateModel, 'updateOne').mockResolvedValue({ upsertedCount: 1 } as never);
 
-    expect(await seedDocumentTemplates()).toBe(4);
+    expect((await seedDocumentTemplates()).inserted).toBe(4);
     expect(DEFAULT_TEMPLATES.map((template) => template.type)).toEqual([
       'Proposal',
       'Statement of Work',
@@ -34,7 +34,7 @@ describe('seedDocumentTemplates', () => {
 
   it('reports nothing inserted when the templates already exist', async () => {
     vi.spyOn(DocumentTemplateModel, 'updateOne').mockResolvedValue({ upsertedCount: 0 } as never);
-    expect(await seedDocumentTemplates()).toBe(0);
+    expect((await seedDocumentTemplates()).inserted).toBe(0);
   });
 
   describe.each(DEFAULT_TEMPLATES.map((template) => [template.name, template] as const))('%s', (_name, template) => {

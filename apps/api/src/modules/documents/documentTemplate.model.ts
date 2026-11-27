@@ -6,7 +6,10 @@ export interface DocumentTemplateDocument {
   type: (typeof DOCUMENT_TEMPLATE_TYPES)[number];
   /** Sanitized HTML with `{{variable}}` placeholders. */
   html: string;
-  /** Variable keys referenced by `html`, recomputed on every save. */
+  /** Per-page header/footer bands; may also use `{{page.number}}` / `{{page.total}}`. */
+  headerHtml: string;
+  footerHtml: string;
+  /** Variable keys referenced by `html`, `headerHtml` and `footerHtml`, recomputed on every save. */
   variables: string[];
   /** Starts at 1 and increments on every edit; documents record the version they were rendered from. */
   version: number;
@@ -19,6 +22,8 @@ const documentTemplateSchema = new Schema<DocumentTemplateDocument>(
     name: { type: String, required: true, trim: true },
     type: { type: String, enum: DOCUMENT_TEMPLATE_TYPES, required: true },
     html: { type: String, default: '' },
+    headerHtml: { type: String, default: '' },
+    footerHtml: { type: String, default: '' },
     variables: { type: [String], default: [] },
     version: { type: Number, required: true, default: 1, min: 1 }
   },

@@ -4,8 +4,8 @@ Turn kraven-admin (npm workspaces + turbo; apps/api Express+Mongoose, apps/web R
 
 ## Global Constraints (locked decisions)
 - DB stays **MongoDB** (Mongoose). Old data unimportant.
-- Files: **MinIO (S3 API)** replaces GridFS. Use `@aws-sdk/client-s3` + `@aws-sdk/s3-request-presigner`. File metadata stays in Mongo (`FileMetadata`). Downloads via short-TTL (~60s) presigned URLs only after auth/cookie check.
-- Docs: **HTML templates -> PDF via Gotenberg** (Docker, Chromium). Editing in **Tiptap**. Variables via Handlebars-style `{{client.company}}`, `{{project.value}}`, escape-safe.
+- Files: **Hosted S3** replaces GridFS (MinIO/Docker removed 2026-11-27). Use `@aws-sdk/client-s3` + `@aws-sdk/s3-request-presigner`. File metadata stays in Mongo (`FileMetadata`). Downloads via short-TTL (~60s) presigned URLs only after auth/cookie check.
+- Docs: **HTML templates -> PDF via puppeteer** (in-process headless Chromium; Docker/Gotenberg removed 2026-11-27). Editing in **Tiptap**. Variables via Handlebars-style `{{client.company}}`, `{{project.value}}`, escape-safe.
 - E-sign: **in-house**. Typed/drawn signature, capture timestamp + IP + UA, SHA-256 of final PDF, `pdf-lib` appends audit page, sealed PDF to MinIO.
 - Email: **Resend**. Track sent/opened via webhooks, reminders.
 - Payments: **no gateway**. Payment items manual status `Pending -> Sent -> Paid`, admin sets by hand. Pay UI = UPI deep-link + QR page (`upi://pay?pa=&pn=&cu=INR&am=&tn=`). Payee profile is a setting.

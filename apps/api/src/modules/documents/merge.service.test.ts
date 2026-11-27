@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { HttpError } from '../../shared/errors/httpError.js';
 import { buildMergeContext, DOCUMENT_VARIABLES, type MergeSource } from './document.variables.js';
-import { extractTemplateVariables, mergeTemplate, prepareTemplateHtml, renderDocumentHtml } from './merge.service.js';
+import { extractBody, extractTemplateVariables, mergeTemplate, prepareTemplateHtml, renderDocumentHtml, wrapPrintDocument } from './merge.service.js';
 import { sanitizeTemplateHtml } from './template.sanitize.js';
 
 const source: MergeSource = {
@@ -101,6 +101,39 @@ describe('merge service', () => {
       const value = key.split('.').reduce<unknown>((node, part) => (node as Record<string, unknown>)[part], context);
       expect(typeof value, key).toBe('string');
     }
+  });
+});
+
+describe('document editor merge rules', () => {
+  it('merges data-variable chip spans and plain placeholders alike', () => {
+    const html = mergeTemplate(
+      '<p><span data-variable="client.company">{{client.company}}</span> / {{client.email}}</p>',
+      source
+    );
+    expect(html).toBe('<p>Acme &amp; Co / riya@acme.test</p>');
+    expect(extractTemplateVariables('<span data-variable="project.name">x</span>')).toEqual(['project.name']);
+  });
+
+  it('shows [Label] for missing values in label mode and blanks otherwise', () => {
+    expect(mergeTemplate('<p>{{client.phone}}</p>', source, { missing: 'label' })).toBe('<p>[Client phone]</p>');
+    expect(mergeTemplate('<p>{{client.phone}}</p>', source)).toBe('<p></p>');
+    expect(mergeTemplate('<p>{{client.company}}</p>', { now: source.now }, { missing: 'label' })).toBe('<p>[Client company]</p>');
+  });
+
+  it('allows page tokens only in header/footer and keeps them literal', () => {
+    expect(statusOf(() => extractTemplateVariables('<p>{{page.number}}</p>'))).toBe(400);
+    expect(statusOf(() => mergeTemplate('<p>{{ page.total }}</p>', source))).toBe(400);
+    expect(extractTemplateVariables('<p>{{page.number}}</p>', { allowPageTokens: true })).toEqual([]);
+    expect(mergeTemplate('<p>{{page.number}} of {{page.total}}</p>', source, { allowPageTokens: true })).toBe(
+      '<p>{{page.number}} of {{page.total}}</p>'
+    );
+  });
+
+  it('wraps the body in .document-content and extracts it back', () => {
+    const shell = wrapPrintDocument('<p>Body</p>', 'T');
+    expect(shell).toContain('<div class="document-content">');
+    expect(shell).toContain('.document-content');
+    expect(extractBody(shell)).toBe('<p>Body</p>');
   });
 });
 

@@ -9,7 +9,7 @@ function parseList(value: string | undefined, fallback: string[]) {
     .filter(Boolean);
 }
 
-const s3Endpoint = process.env.S3_ENDPOINT ?? 'http://127.0.0.1:9000';
+const s3Endpoint = process.env.S3_ENDPOINT ?? '';
 
 const DEV_SESSION_SECRET = 'kraven-development-session-secret';
 const DEV_PORTAL_SECRET = 'kraven-development-portal-secret';
@@ -47,13 +47,13 @@ export const env = {
     endpoint: s3Endpoint,
     /** Endpoint browsers use for presigned URLs; defaults to `S3_ENDPOINT`. */
     publicEndpoint: process.env.S3_PUBLIC_ENDPOINT || s3Endpoint,
-    accessKey: process.env.S3_ACCESS_KEY ?? 'minioadmin',
-    secretKey: process.env.S3_SECRET_KEY ?? 'minioadmin',
+    accessKey: process.env.S3_ACCESS_KEY ?? '',
+    secretKey: process.env.S3_SECRET_KEY ?? '',
     bucket: process.env.S3_BUCKET ?? 'kraven',
     region: process.env.S3_REGION ?? 'us-east-1'
   },
-  gotenbergUrl: process.env.GOTENBERG_URL ?? 'http://127.0.0.1:3000',
-  gotenbergTimeoutMs: Number(process.env.GOTENBERG_TIMEOUT_MS ?? 30_000),
+  /** Headless Chromium (puppeteer) render timeout for HTML -> PDF. */
+  pdfTimeoutMs: Number(process.env.PDF_TIMEOUT_MS ?? 30_000),
   /** Agency details exposed to document templates as {{agency.*}}. */
   agency: {
     name: process.env.AGENCY_NAME ?? 'Kraven',

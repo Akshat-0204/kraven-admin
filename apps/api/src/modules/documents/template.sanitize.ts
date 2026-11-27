@@ -7,7 +7,8 @@ const BORDER = /^[\w\s#.,%()-]+$/;
 
 /**
  * Allowlist for template HTML: Tiptap output (StarterKit + tables) plus the inline styles
- * documents need. Scripts, event handlers, iframes, forms and javascript: URLs are stripped.
+ * documents need, variable chips (`span[data-variable]`), page breaks (`div[data-page-break]`) and
+ * inline `data:` images (header logos). Scripts, event handlers, iframes, forms and javascript: URLs are stripped.
  */
 const OPTIONS: sanitizeHtml.IOptions = {
   allowedTags: [
@@ -17,6 +18,9 @@ const OPTIONS: sanitizeHtml.IOptions = {
   allowedAttributes: {
     '*': ['style', 'class'],
     a: ['href', 'name', 'target', 'rel'],
+    // Editor variable chips and manual page breaks (see docs/plans/document-editor-contract.md).
+    span: ['data-variable'],
+    div: ['data-page-break'],
     img: ['src', 'alt', 'title', 'width', 'height'],
     td: ['colspan', 'rowspan', 'colwidth'],
     th: ['colspan', 'rowspan', 'colwidth'],

@@ -2,7 +2,7 @@ import { env } from '../../config/env.js';
 import { HttpError } from '../../shared/errors/httpError.js';
 import { ClientModel } from '../clients/client.model.js';
 import { putObject } from '../files/storage.service.js';
-import { htmlToPdf } from '../pdf/gotenberg.client.js';
+import { htmlToPdf } from '../pdf/pdf.renderer.js';
 import { getInvoiceById } from './invoice.service.js';
 import type { InvoiceHydratedDocument } from './invoice.model.js';
 
@@ -93,7 +93,7 @@ ${invoice.notes ? `<div class="label">Notes</div><p>${esc(invoice.notes)}</p>` :
 </body></html>`;
 }
 
-/** Renders the invoice PDF via Gotenberg, stores it in object storage and returns the bytes. */
+/** Renders the invoice PDF via headless Chromium, stores it in object storage and returns the bytes. */
 export async function generateInvoicePdf(invoiceId: string) {
   const invoice = await getInvoiceById(invoiceId);
   const client = await ClientModel.findById(invoice.client).select('companyName contactPerson email phone').lean();

@@ -8,10 +8,11 @@ type VariableDefinition = DocumentVariable & {
 };
 
 export interface MergeSource {
-  client: Pick<
+  /** Null/undefined for a Draft with no client assigned yet (client values then resolve as missing). */
+  client?: Pick<
     ClientDocument,
     'companyName' | 'contactPerson' | 'email' | 'phone' | 'address' | 'website' | 'taxInfo' | 'industry'
-  >;
+  > | null;
   project?: Pick<
     ProjectDocument,
     'projectName' | 'description' | 'projectValue' | 'startDate' | 'expectedCompletionDate' | 'deliverables'
@@ -28,14 +29,14 @@ function formatDate(value?: Date) {
 
 /** Every `{{key}}` a template may use. Templates referencing anything else are rejected on save. */
 const DEFINITIONS: VariableDefinition[] = [
-  { key: 'client.company', label: 'Client company', group: 'client', resolve: (s) => s.client.companyName },
-  { key: 'client.contactName', label: 'Client contact', group: 'client', resolve: (s) => s.client.contactPerson },
-  { key: 'client.email', label: 'Client email', group: 'client', resolve: (s) => s.client.email },
-  { key: 'client.phone', label: 'Client phone', group: 'client', resolve: (s) => s.client.phone },
-  { key: 'client.address', label: 'Client address', group: 'client', resolve: (s) => s.client.address },
-  { key: 'client.website', label: 'Client website', group: 'client', resolve: (s) => s.client.website },
-  { key: 'client.industry', label: 'Client industry', group: 'client', resolve: (s) => s.client.industry },
-  { key: 'client.taxInfo', label: 'Client tax info', group: 'client', resolve: (s) => s.client.taxInfo },
+  { key: 'client.company', label: 'Client company', group: 'client', resolve: (s) => s.client?.companyName },
+  { key: 'client.contactName', label: 'Client contact', group: 'client', resolve: (s) => s.client?.contactPerson },
+  { key: 'client.email', label: 'Client email', group: 'client', resolve: (s) => s.client?.email },
+  { key: 'client.phone', label: 'Client phone', group: 'client', resolve: (s) => s.client?.phone },
+  { key: 'client.address', label: 'Client address', group: 'client', resolve: (s) => s.client?.address },
+  { key: 'client.website', label: 'Client website', group: 'client', resolve: (s) => s.client?.website },
+  { key: 'client.industry', label: 'Client industry', group: 'client', resolve: (s) => s.client?.industry },
+  { key: 'client.taxInfo', label: 'Client tax info', group: 'client', resolve: (s) => s.client?.taxInfo },
   { key: 'project.name', label: 'Project name', group: 'project', resolve: (s) => s.project?.projectName },
   {
     key: 'project.description',
@@ -79,11 +80,40 @@ export const DOCUMENT_VARIABLES: DocumentVariable[] = DEFINITIONS.map(({ key, la
 
 export const DOCUMENT_VARIABLE_KEYS = new Set(DEFINITIONS.map((definition) => definition.key));
 
+/** Header/footer-only tokens; the PDF renderer maps them to Chromium page counters. */
+export const PAGE_TOKEN_KEYS = new Set(['page.number', 'page.total']);
+
+export interface MergeContextOptions {
+  /** `'label'` renders a missing value as `[Label]` (draft previews); default is an empty string. */
+  missing?: 'empty' | 'label';
+  /** Keep `{{page.number}}` / `{{page.total}}` in the output for the PDF stage. */
+  keepPageTokens?: boolean;
+}
+
+function resolveValue(definition: VariableDefinition, source: MergeSource) {
+  const value = definition.resolve(source);
+  return value === undefined || value === null || value === '' ? undefined : String(value);
+}
+
+/** Every registry variable with its value for this client/project (`null` when unassigned or missing). */
+export function resolveDocumentVariables(source: MergeSource) {
+  return DEFINITIONS.map((definition) => ({
+    key: definition.key,
+    label: definition.label,
+    group: definition.group,
+    value: resolveValue(definition, source) ?? null
+  }));
+}
+
 /** Builds the nested Handlebars context (`{ client: { company }, today, ... }`) of plain strings. */
-export function buildMergeContext(source: MergeSource) {
+export function buildMergeContext(source: MergeSource, options: MergeContextOptions = {}) {
   const context: Record<string, unknown> = {};
+  if (options.keepPageTokens) {
+    // Handlebars does not escape braces, so these come out verbatim.
+    context.page = { number: '{{page.number}}', total: '{{page.total}}' };
+  }
   for (const definition of DEFINITIONS) {
-    const value = definition.resolve(source) ?? '';
+    const value = resolveValue(definition, source) ?? (options.missing === 'label' ? `[${definition.label}]` : '');
     const segments = definition.key.split('.');
     let target = context;
     for (const segment of segments.slice(0, -1)) {

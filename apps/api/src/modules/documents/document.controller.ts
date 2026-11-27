@@ -1,11 +1,12 @@
 import type { Request, Response } from 'express';
 import { pipeStreamToResponse } from '../files/files.controller.js';
 import { attachmentContentDisposition } from '../files/storage.service.js';
-import { serializeDocument, serializeDocumentDetail } from './document.serializer.js';
+import { serializeDocumentDetail, serializeDocumentListItem } from './document.serializer.js';
 import {
   createDocument,
   getDocument,
   getDocumentPdfUrl,
+  getDocumentVariables,
   listDocuments,
   openDocumentPdf,
   shareDocument,
@@ -13,8 +14,12 @@ import {
 } from './document.service.js';
 
 export async function listDocumentsController(req: Request, res: Response) {
-  const documents = await listDocuments(req.query as Record<string, string | undefined>);
-  res.json({ documents: documents.map(serializeDocument) });
+  const result = await listDocuments(req.query as Record<string, string | undefined>);
+  res.json({ ...result, documents: result.documents.map(serializeDocumentListItem) });
+}
+
+export async function getDocumentVariablesController(req: Request, res: Response) {
+  res.json({ variables: await getDocumentVariables(req.params.id) });
 }
 
 export async function getDocumentController(req: Request, res: Response) {

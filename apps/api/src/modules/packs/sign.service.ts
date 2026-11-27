@@ -45,8 +45,9 @@ export async function signPortalDocument(clientId: string, documentId: string, b
     }
   }
 
-  await ensureDocumentPdf(documentId);
-  const original = await toBuffer(await streamObject(document.pdfKey as string));
+  // Use the freshly ensured record: pdfKey is unset on `document` if the PDF was never generated.
+  const { document: withPdf } = await ensureDocumentPdf(documentId);
+  const original = await toBuffer(await streamObject(withPdf.pdfKey as string));
   const signedAt = new Date();
   const { sealed, originalSha256, sealedSha256 } = await sealPdf({
     pdf: original,

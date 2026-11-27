@@ -24,7 +24,7 @@ test('lead to dashboard lifecycle', async ({ page }) => {
   await dashboardResponse;
   await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible({ timeout: 30000 });
 
-  await page.getByRole('link', { name: 'Leads' }).click();
+  await page.getByRole('navigation', { name: 'Primary navigation' }).getByRole('link', { name: 'Leads' }).click();
   await page.getByRole('button', { name: 'New lead' }).click();
   await page.getByLabel('Contact name').fill(contactName);
   await page.getByLabel('Company').fill(companyName);

@@ -11,7 +11,9 @@
     "build": "turbo build",
     "test": "turbo test",
     "lint": "turbo lint",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "seed:templates": "npm run seed:templates -w @kraven/api",
+    "seed:templates:update": "npm run seed:templates -w @kraven/api -- --update"
   },
   "dependencies": {
     "turbo": "^2.0.11",

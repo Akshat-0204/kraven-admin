@@ -4,6 +4,7 @@ import { isValidObjectId } from 'mongoose';
 import { logActivity } from '../../shared/activity/activity.service.js';
 import { HttpError } from '../../shared/errors/httpError.js';
 import { DocumentModel } from '../documents/document.model.js';
+import { markDocumentShared } from '../documents/document.service.js';
 import { FileMetadataModel } from '../files/file.model.js';
 import { PayeeProfileModel } from '../payees/payeeProfile.model.js';
 import { createPayeeResolver } from '../payees/payeeProfile.service.js';
@@ -150,16 +151,8 @@ export async function sendPack(id: string) {
   const clientId = String(pack.client);
   for (const item of pack.items.filter((entry) => entry.document)) {
     const document = await DocumentModel.findOne({ _id: item.document, client: clientId });
-    if (document?.status === 'Draft') {
-      document.status = 'Sent';
-      await document.save();
-      await logActivity({
-        entityType: 'Client',
-        entityId: clientId,
-        action: 'document-shared',
-        description: `Document shared on the portal - ${document.title}`
-      });
-    }
+    // Merges variables, sets mergedAt and logs, exactly like sharing a single document.
+    if (document?.status === 'Draft') await markDocumentShared(document);
   }
 
   if (pack.status === 'Draft') {

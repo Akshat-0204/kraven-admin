@@ -18,9 +18,23 @@ export async function getDocumentTemplate(templateId: string) {
   return template;
 }
 
+/** Sanitizes body/header/footer and records the variables used across all three. */
+function prepareTemplateParts(html: string, headerHtml: string, footerHtml: string) {
+  const body = prepareTemplateHtml(html);
+  const header = prepareTemplateHtml(headerHtml, { allowPageTokens: true });
+  const footer = prepareTemplateHtml(footerHtml, { allowPageTokens: true });
+  return {
+    html: body.html,
+    headerHtml: header.html,
+    footerHtml: footer.html,
+    variables: [...new Set([...body.variables, ...header.variables, ...footer.variables])]
+  };
+}
+
 export async function createDocumentTemplate(input: DocumentTemplateInput) {
   const payload = documentTemplateSchema.parse(input);
-  return DocumentTemplateModel.create({ ...payload, ...prepareTemplateHtml(payload.html), version: 1 });
+  const prepared = prepareTemplateParts(payload.html, payload.headerHtml ?? '', payload.footerHtml ?? '');
+  return DocumentTemplateModel.create({ name: payload.name, type: payload.type, ...prepared, version: 1 });
 }
 
 /** Applies an edit and bumps `version` when anything changed. Existing documents keep their snapshots. */
@@ -30,10 +44,17 @@ export async function updateDocumentTemplate(templateId: string, input: UpdateDo
 
   if (payload.name !== undefined) template.name = payload.name;
   if (payload.type !== undefined) template.type = payload.type;
-  if (payload.html !== undefined) {
-    const prepared = prepareTemplateHtml(payload.html);
-    template.html = prepared.html;
-    template.variables = prepared.variables;
+  if (payload.html !== undefined || payload.headerHtml !== undefined || payload.footerHtml !== undefined) {
+    const prepared = prepareTemplateParts(
+      payload.html ?? template.html,
+      payload.headerHtml ?? template.headerHtml ?? '',
+      payload.footerHtml ?? template.footerHtml ?? ''
+    );
+    // Assign only real changes so a no-op save does not bump the version.
+    if (prepared.html !== template.html) template.html = prepared.html;
+    if (prepared.headerHtml !== (template.headerHtml ?? '')) template.headerHtml = prepared.headerHtml;
+    if (prepared.footerHtml !== (template.footerHtml ?? '')) template.footerHtml = prepared.footerHtml;
+    if (prepared.variables.join() !== template.variables.join()) template.variables = prepared.variables;
   }
 
   if (template.isModified()) {

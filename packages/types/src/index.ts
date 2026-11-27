@@ -309,7 +309,9 @@ export interface DocumentTemplateRecord {
   name: string;
   type: DocumentTemplateType;
   html: string;
-  /** Variable keys referenced by the template HTML. */
+  headerHtml: string;
+  footerHtml: string;
+  /** Variable keys referenced by the template body, header and footer. */
   variables: string[];
   version: number;
   createdAt: string;
@@ -319,19 +321,43 @@ export interface DocumentTemplateRecord {
 export interface DocumentRecord {
   id: string;
   title: string;
-  client: string;
+  /** Unset until assigned; required to share. */
+  client?: string;
   project?: string;
-  template: string;
-  templateVersion: number;
+  /** Unset for blank documents. */
+  template?: string;
+  templateVersion?: number;
   status: DocumentStatus;
   hasPdf: boolean;
+  /** Set when variables were merged (at share). */
+  mergedAt?: string;
   createdAt: string;
   updatedAt: string;
 }
 
 export interface DocumentDetailRecord extends DocumentRecord {
-  /** Rendered HTML snapshot; never changes when the template is edited later. */
+  /** Body HTML: unmerged (with placeholders) while Draft, merged once shared. */
   html: string;
+  headerHtml: string;
+  footerHtml: string;
+}
+
+/** `GET /documents` item: client and template are populated. */
+export interface DocumentListItem extends Omit<DocumentRecord, 'client' | 'template'> {
+  client: { _id: string; companyName: string } | null;
+  template: { _id: string; name: string } | null;
+}
+
+export interface DocumentListResponse {
+  documents: DocumentListItem[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
+/** `GET /documents/:id/variables` item: `value` is null when unassigned or missing. */
+export interface ResolvedDocumentVariable extends DocumentVariable {
+  value: string | null;
 }
 
 export interface DocumentPdfLink {
