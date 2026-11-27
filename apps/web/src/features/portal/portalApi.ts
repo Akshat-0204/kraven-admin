@@ -1,4 +1,5 @@
 import type {
+  DocumentCategory,
   FileMetadataRecord,
   PayeeProfileRecord,
   PortalCodeResult,
@@ -137,10 +138,10 @@ export function listEntityFiles(entityType: 'Client' | 'Project', entityId: stri
   return requestJson<{ files: FileMetadataRecord[] }>(`/files?${params.toString()}`);
 }
 
-export function setFileClientVisible(id: string, clientVisible: boolean) {
+export function updateFile(id: string, input: { clientVisible?: boolean; filename?: string; category?: DocumentCategory }) {
   return requestJson<{ file: FileMetadataRecord }>(`/files/${id}`, {
     method: 'PATCH',
-    body: JSON.stringify({ clientVisible })
+    body: JSON.stringify(input)
   });
 }
 

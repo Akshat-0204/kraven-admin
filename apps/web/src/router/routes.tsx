@@ -52,13 +52,6 @@ export const router = createBrowserRouter([
     path: '/',
     element: <ProtectedRoute />,
     children: [
-      // Full-screen editors (outside AppShell). Lazy so the Tiptap bundle loads only here.
-      {
-        path: 'documents/:id',
-        lazy: async () => ({
-          Component: (await import('../features/documents/editor/DocumentEditorPage')).DocumentEditorPage
-        })
-      },
       {
         element: <AppShell />,
         children: [

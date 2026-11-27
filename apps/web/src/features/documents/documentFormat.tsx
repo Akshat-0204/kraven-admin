@@ -40,10 +40,3 @@ export function relativeTime(value: string, now = Date.now()) {
   }
   return 'just now';
 }
-
-/** Plain-text snippet of template HTML for previews (placeholders kept as `{{key}}`). */
-export function htmlSnippet(html: string, length = 140) {
-  const text = new DOMParser().parseFromString(html, 'text/html').body.textContent ?? '';
-  const collapsed = text.replace(/\s+/g, ' ').trim();
-  return collapsed.length > length ? `${collapsed.slice(0, length).trimEnd()}…` : collapsed;
-}

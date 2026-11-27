@@ -1,12 +1,13 @@
-import type { DocumentTemplateRecord } from '@kraven/types';
+import type { DocumentAccessEntry, DocumentTemplateRecord } from '@kraven/types';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { FilePlus2, FileText, X } from 'lucide-react';
 import { type ReactNode, useEffect, useState } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { Button } from '../../components/ui/button';
 import { Select } from '../../components/ui/select';
 import { clientQueryKeys, listClients } from '../clients/clientApi';
+import { googleQueryKeys, listAdmins, useGoogleStatus } from '../google/googleApi';
+import { AccessPicker } from './AccessPicker';
 import { createDocument, documentQueryKeys, listDocumentTemplates } from './documentApi';
 
 export interface NewDocumentDialogProps {
@@ -18,16 +19,28 @@ export interface NewDocumentDialogProps {
   defaultProjectId?: string;
 }
 
-/** Template picker: creates a Draft (from a template or blank) and opens it in the editor. */
+/** Template picker: creates a Google Doc (copy of a template, or blank), shares it, and opens it in Google Docs. */
 export function NewDocumentDialog({ open, onClose, defaultClientId, defaultProjectId }: NewDocumentDialogProps) {
-  const navigate = useNavigate();
-  const location = useLocation();
   const queryClient = useQueryClient();
   const [clientId, setClientId] = useState(defaultClientId ?? '');
+  const [access, setAccess] = useState<DocumentAccessEntry[]>([]);
+  const google = useGoogleStatus();
 
   useEffect(() => {
     if (open) setClientId(defaultClientId ?? '');
   }, [open, defaultClientId]);
+
+  const adminsQuery = useQuery({ queryKey: googleQueryKeys.admins, queryFn: listAdmins, enabled: open });
+  const admins = adminsQuery.data?.admins ?? [];
+  // Admins start checked, once, each time the dialog opens.
+  const [seeded, setSeeded] = useState(false);
+  useEffect(() => {
+    if (!open) return setSeeded(false);
+    if (!seeded && adminsQuery.data) {
+      setAccess(adminsQuery.data.admins.map((admin) => ({ email: admin.email.toLowerCase(), role: 'writer' as const })));
+      setSeeded(true);
+    }
+  }, [open, seeded, adminsQuery.data]);
 
   useEffect(() => {
     if (!open) return;
@@ -46,12 +59,13 @@ export function NewDocumentDialog({ open, onClose, defaultClientId, defaultProje
       createDocument({
         ...(templateId ? { template: templateId } : {}),
         ...(clientId ? { client: clientId } : {}),
-        ...(clientId && clientId === defaultClientId && defaultProjectId ? { project: defaultProjectId } : {})
+        ...(clientId && clientId === defaultClientId && defaultProjectId ? { project: defaultProjectId } : {}),
+        ...(access.length > 0 ? { access } : {})
       }),
     onSuccess: ({ document }) => {
       void queryClient.invalidateQueries({ queryKey: documentQueryKeys.documents });
       onClose();
-      navigate(`/documents/${document.id}`, { state: { from: `${location.pathname}${location.search}` } });
+      window.open(document.webViewLink, '_blank', 'noopener');
     },
     onError: (error) => toast.error(error.message)
   });
@@ -76,7 +90,7 @@ export function NewDocumentDialog({ open, onClose, defaultClientId, defaultProje
             <h2 id="new-document-title" className="text-base font-semibold">
               New document
             </h2>
-            <p className="mt-0.5 text-xs text-muted">Start from a template or a blank page. Variables fill in when you send.</p>
+            <p className="mt-0.5 text-xs text-muted">Creates a Google Doc from a template or blank, and opens it in Docs.</p>
           </div>
           <Button className="h-8 w-8 bg-transparent p-0 text-white hover:bg-white/10" aria-label="Close" onClick={onClose}>
             <X className="h-4 w-4" aria-hidden="true" />
@@ -105,13 +119,19 @@ export function NewDocumentDialog({ open, onClose, defaultClientId, defaultProje
           </label>
         </div>
 
+        <div className="border-b border-border px-5 py-3">
+          <p className="mb-2 text-sm text-muted">Access</p>
+          <AccessPicker value={access} onChange={setAccess} admins={admins} />
+        </div>
+
         <div className="overflow-y-auto p-5">
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             <PickerCard
               title="Blank document"
               subtitle="Start from scratch"
               icon={<FilePlus2 className="h-5 w-5" aria-hidden="true" />}
-              disabled={createMutation.isPending}
+              disabled={createMutation.isPending || !google.ready}
+              title_={google.reason}
               pending={pendingId === 'blank'}
               onPick={() => createMutation.mutate(null)}
             />
@@ -119,7 +139,8 @@ export function NewDocumentDialog({ open, onClose, defaultClientId, defaultProje
               <TemplateCard
                 key={template.id}
                 template={template}
-                disabled={createMutation.isPending}
+                disabled={createMutation.isPending || !google.ready}
+                title={google.reason}
                 pending={pendingId === template.id}
                 onPick={() => createMutation.mutate(template.id)}
               />
@@ -135,11 +156,13 @@ export function NewDocumentDialog({ open, onClose, defaultClientId, defaultProje
 
 function TemplateCard({
   template,
+  title,
   disabled,
   pending,
   onPick
 }: {
   template: DocumentTemplateRecord;
+  title?: string;
   disabled: boolean;
   pending: boolean;
   onPick: () => void;
@@ -148,6 +171,7 @@ function TemplateCard({
     <PickerCard
       title={template.name}
       subtitle={template.type}
+      title_={title}
       icon={<FileText className="h-5 w-5" aria-hidden="true" />}
       disabled={disabled}
       pending={pending}
@@ -158,6 +182,7 @@ function TemplateCard({
 
 function PickerCard({
   title,
+  title_,
   subtitle,
   snippet,
   icon,
@@ -166,6 +191,7 @@ function PickerCard({
   onPick
 }: {
   title: string;
+  title_?: string;
   subtitle: string;
   snippet?: string;
   icon: ReactNode;
@@ -177,6 +203,7 @@ function PickerCard({
     <button
       type="button"
       aria-label={`Use ${title}`}
+      title={title_}
       disabled={disabled}
       onClick={onPick}
       className="group flex h-full flex-col rounded border border-border bg-black text-left transition hover:border-white/60 focus:outline-none focus:ring-2 focus:ring-white/40 disabled:cursor-wait disabled:opacity-60"

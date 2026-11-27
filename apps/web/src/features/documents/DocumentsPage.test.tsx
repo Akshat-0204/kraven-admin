@@ -16,7 +16,16 @@ vi.mock('../clients/clientApi', async (importOriginal) => {
   return { ...actual, listClients: vi.fn() };
 });
 
-const base = { hasPdf: false, createdAt: '2026-01-01T00:00:00.000Z', updatedAt: new Date().toISOString() };
+vi.mock('../google/googleApi', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../google/googleApi')>();
+  return {
+    ...actual,
+    useGoogleStatus: () => ({ ready: true, reason: undefined, status: undefined }),
+    listAdmins: vi.fn().mockResolvedValue({ admins: [] })
+  };
+});
+
+const base = { pdfStale: false, googleFileId: 'g1', webViewLink: 'https://docs.google.com/document/d/g1/edit', access: [], hasPdf: false, createdAt: '2026-01-01T00:00:00.000Z', updatedAt: new Date().toISOString() };
 
 function Probe() {
   const location = useLocation();
@@ -30,7 +39,6 @@ function renderPage(path = '/documents') {
       <MemoryRouter initialEntries={[path]}>
         <Routes>
           <Route path="/documents" element={<><DocumentsPage /><Probe /></>} />
-          <Route path="/documents/:id" element={<Probe />} />
         </Routes>
       </MemoryRouter>
     </QueryClientProvider>
@@ -80,8 +88,7 @@ describe('DocumentsPage', () => {
     await user.click(screen.getByRole('button', { name: 'Next page' }));
     await waitFor(() => expect(api.searchDocuments).toHaveBeenLastCalledWith(expect.objectContaining({ page: 2 })));
 
-    await user.click(screen.getByText('Scratch').closest('tr') as HTMLElement);
-    expect(screen.getByTestId('probe')).toHaveTextContent('/documents/d2');
+    expect(screen.getByRole('link', { name: 'Scratch' })).toHaveAttribute('href', base.webViewLink);
   });
 
   it('shows templates on ?tab=templates and switches tabs via the URL', async () => {

@@ -1,44 +1,94 @@
+import { DOCUMENT_CATEGORIES } from '@kraven/config';
+import type { DocumentCategory, FileMetadataRecord } from '@kraven/types';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useState } from 'react';
 import { toast } from 'sonner';
-import { listEntityFiles, portalAdminQueryKeys, setFileClientVisible } from './portalApi';
+import { Input } from '../../components/ui/input';
+import { Select } from '../../components/ui/select';
+import { listEntityFiles, portalAdminQueryKeys, updateFile } from './portalApi';
 
-/** Lists an entity's files with a toggle that shares each one in the client portal's Downloads. */
+type FilePatch = { clientVisible?: boolean; filename?: string; category?: DocumentCategory };
+
+function FileRow({ file, disabled, onPatch }: { file: FileMetadataRecord; disabled: boolean; onPatch: (patch: FilePatch) => void }) {
+  const [name, setName] = useState(file.filename);
+  const commitName = () => {
+    const next = name.trim();
+    if (!next) setName(file.filename);
+    else if (next !== file.filename) onPatch({ filename: next });
+  };
+  return (
+    <li className="flex flex-wrap items-center gap-2 text-sm">
+      <Input
+        aria-label={`Filename ${file.filename}`}
+        className="h-8 min-w-0 flex-1"
+        value={name}
+        onChange={(event) => setName(event.target.value)}
+        onBlur={commitName}
+      />
+      <Select
+        aria-label={`Category for ${file.filename}`}
+        className="h-8 w-28"
+        value={file.category ?? 'Other'}
+        disabled={disabled}
+        onChange={(event) => onPatch({ category: event.target.value as DocumentCategory })}
+      >
+        {DOCUMENT_CATEGORIES.map((value) => (
+          <option key={value}>{value}</option>
+        ))}
+      </Select>
+      <label className="flex items-center gap-1 text-xs text-muted">
+        <input
+          type="checkbox"
+          aria-label={`Share ${file.filename}`}
+          checked={file.clientVisible}
+          disabled={disabled}
+          onChange={(event) => onPatch({ clientVisible: event.target.checked })}
+        />
+        Client
+      </label>
+    </li>
+  );
+}
+
+/** Lists an entity's files grouped by category, with rename, category and portal-visibility controls. */
 export function SharedFilesPanel({ entityType, entityId }: { entityType: 'Client' | 'Project'; entityId: string }) {
   const queryClient = useQueryClient();
   const queryKey = portalAdminQueryKeys.files(entityType, entityId);
   const query = useQuery({ queryKey, queryFn: () => listEntityFiles(entityType, entityId) });
 
-  const toggle = useMutation({
-    mutationFn: ({ id, clientVisible }: { id: string; clientVisible: boolean }) => setFileClientVisible(id, clientVisible),
+  const patch = useMutation({
+    mutationFn: ({ id, ...input }: FilePatch & { id: string }) => updateFile(id, input),
     onSuccess: () => queryClient.invalidateQueries({ queryKey }),
     onError: (error) => toast.error(error.message)
   });
 
   const files = query.data?.files ?? [];
+  const groups = new Map<string, FileMetadataRecord[]>();
+  for (const file of files) {
+    const key = file.category ?? 'Other';
+    groups.set(key, [...(groups.get(key) ?? []), file]);
+  }
 
   return (
     <section className="rounded border border-border bg-panel p-4">
-      <h2 className="text-sm font-semibold">Shared in portal</h2>
+      <h2 className="text-sm font-semibold">Files</h2>
       <p className="mb-3 mt-1 text-xs text-muted">Ticked files appear in the client portal&apos;s Downloads.</p>
       {query.isLoading ? <p className="text-sm text-muted">Loading files...</p> : null}
       {!query.isLoading && files.length === 0 ? (
         <div className="rounded border border-dashed border-border p-3 text-sm text-muted">No files</div>
       ) : null}
-      <ul className="space-y-2">
-        {files.map((file) => (
-          <li key={file.id}>
-            <label className="flex items-center gap-2 text-sm">
-              <input
-                type="checkbox"
-                checked={file.clientVisible}
-                disabled={toggle.isPending}
-                onChange={(event) => toggle.mutate({ id: file.id, clientVisible: event.target.checked })}
-              />
-              <span className="min-w-0 truncate">{file.filename}</span>
-            </label>
-          </li>
+      <div className="space-y-4">
+        {[...groups.entries()].map(([category, group]) => (
+          <div key={category}>
+            <h3 className="mb-2 text-xs font-medium uppercase text-muted">{category}</h3>
+            <ul className="space-y-2">
+              {group.map((file) => (
+                <FileRow key={`${file.id}-${file.filename}`} file={file} disabled={patch.isPending} onPatch={(p) => patch.mutate({ id: file.id, ...p })} />
+              ))}
+            </ul>
+          </div>
         ))}
-      </ul>
+      </div>
     </section>
   );
 }

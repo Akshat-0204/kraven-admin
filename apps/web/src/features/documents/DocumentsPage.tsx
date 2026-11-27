@@ -3,13 +3,14 @@ import type { DocumentStatus, DocumentTemplateRecord } from '@kraven/types';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { ChevronLeft, ChevronRight, FilePlus2, Plus, Search } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Select } from '../../components/ui/select';
 import { cn } from '../../lib/utils';
 import { clientQueryKeys, listClients } from '../clients/clientApi';
 import { documentQueryKeys, searchDocuments } from './documentApi';
+import { DocumentActions, StalePdfBadge } from './DocumentActions';
 import { DocumentStatusBadge, relativeTime } from './documentFormat';
 import { NewDocumentDialog } from './NewDocumentDialog';
 import { TemplateDialog, TemplatesTab } from './TemplatesTab';
@@ -83,8 +84,6 @@ export function DocumentsPage() {
 }
 
 function DocumentsTab({ onNew }: { onNew: () => void }) {
-  const navigate = useNavigate();
-  const location = useLocation();
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState<DocumentStatus | ''>('');
   const [clientId, setClientId] = useState('');
@@ -106,7 +105,6 @@ function DocumentsTab({ onNew }: { onNew: () => void }) {
   const limit = documentsQuery.data?.limit ?? PAGE_SIZE;
   const pageCount = Math.max(1, Math.ceil(total / limit));
   const hasFilters = Boolean(q || status || clientId);
-  const from = `${location.pathname}${location.search}`;
 
   return (
     <div className="space-y-4">
@@ -163,7 +161,7 @@ function DocumentsTab({ onNew }: { onNew: () => void }) {
         )
       ) : (
         <div className="overflow-x-auto rounded border border-border bg-panel">
-          <table className="w-full min-w-[640px] text-left text-sm">
+          <table className="w-full min-w-[820px] text-left text-sm">
             <thead className="border-b border-border text-xs uppercase tracking-wider text-muted">
               <tr>
                 <th className="p-3 font-medium">Title</th>
@@ -171,24 +169,19 @@ function DocumentsTab({ onNew }: { onNew: () => void }) {
                 <th className="p-3 font-medium">Template</th>
                 <th className="p-3 font-medium">Status</th>
                 <th className="p-3 font-medium">Updated</th>
+                <th className="p-3 font-medium">
+                  <span className="sr-only">Actions</span>
+                </th>
               </tr>
             </thead>
             <tbody>
               {documents.map((document) => (
-                <tr
-                  key={document.id}
-                  className="cursor-pointer border-b border-border last:border-0 hover:bg-white/5"
-                  onClick={() => navigate(`/documents/${document.id}`, { state: { from } })}
-                >
+                <tr key={document.id} className="border-b border-border last:border-0 hover:bg-white/5">
                   <td className="p-3">
-                    <Link
-                      className="font-medium hover:text-muted"
-                      to={`/documents/${document.id}`}
-                      state={{ from }}
-                      onClick={(event) => event.stopPropagation()}
-                    >
+                    <a className="font-medium hover:text-muted" href={document.webViewLink} target="_blank" rel="noreferrer">
                       {document.title}
-                    </Link>
+                    </a>
+                    <StalePdfBadge document={document} />
                   </td>
                   <td className="p-3">
                     {document.client ? document.client.companyName : <span className="text-muted">Unassigned</span>}
@@ -199,6 +192,9 @@ function DocumentsTab({ onNew }: { onNew: () => void }) {
                   </td>
                   <td className="p-3 text-muted" title={new Date(document.updatedAt).toLocaleString()}>
                     {relativeTime(document.updatedAt)}
+                  </td>
+                  <td className="p-3">
+                    <DocumentActions document={document} />
                   </td>
                 </tr>
               ))}

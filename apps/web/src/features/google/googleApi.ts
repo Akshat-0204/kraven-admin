@@ -1,3 +1,4 @@
+import { useQuery } from '@tanstack/react-query';
 import type { AdminUserRecord, GoogleStatus } from '@kraven/types';
 import { apiUrl, requestJson } from '../../lib/api';
 
@@ -21,4 +22,16 @@ export function listAdmins() {
 /** Full-page redirect: the API sends the browser to Google's consent screen. */
 export function startGoogleConnect() {
   window.location.assign(apiUrl('/google/oauth/start'));
+}
+
+/** Google connection state for gating Drive/Docs actions; `ready` is false until connected and healthy. */
+export function useGoogleStatus() {
+  const query = useQuery({ queryKey: googleQueryKeys.status, queryFn: getGoogleStatus });
+  const ready = Boolean(query.data?.connected && !query.data.needsReconnect);
+  return {
+    ready,
+    /** Tooltip for disabled Google actions. */
+    reason: ready ? undefined : 'Connect Google in Settings first',
+    status: query.data
+  };
 }
