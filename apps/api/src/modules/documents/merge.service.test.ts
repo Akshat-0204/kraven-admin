@@ -71,6 +71,13 @@ describe('merge service', () => {
     expect(statusOf(() => extractTemplateVariables('{{@root.client}}'))).toBe(400);
     expect(statusOf(() => extractTemplateVariables('{{client.compnay}}'))).toBe(400);
     expect(statusOf(() => extractTemplateVariables('<p>{{client.company</p>'))).toBe(400);
+    expect(statusOf(() => extractTemplateVariables('<p>{{}}</p>'))).toBe(400);
+  });
+
+  it('tolerates rich-text tags and whitespace inside placeholders', () => {
+    expect(extractTemplateVariables('<p>{{<strong>client.company</strong>}}</p>')).toEqual(['client.company']);
+    expect(extractTemplateVariables('<p><strong>{{</strong>client.company}}</p>')).toEqual(['client.company']);
+    expect(extractTemplateVariables('<p>{{  client.company   }}</p>')).toEqual(['client.company']);
   });
 
   it('reports the variables a template uses', () => {

@@ -6,17 +6,33 @@ import { sanitizeTemplateHtml } from './template.sanitize.js';
 /** Isolated instance: no helpers or partials registered by anything else can leak into templates. */
 const handlebars = Handlebars.create();
 
+/** Cleans up any HTML formatting tags or excess whitespace that accidentally got inserted inside {{...}} placeholders by rich-text editors. */
+export function normalizeTemplatePlaceholders(html: string): string {
+  return html.replace(/\{\{([^{}]*)\}\}/g, (_match, inner) => {
+    const cleanInner = inner.replace(/<[^>]+>/g, '').trim();
+    return `{{${cleanInner}}}`;
+  });
+}
+
 /**
  * Parses template HTML and returns the variable keys it uses. Only plain, HTML-escaped
  * `{{path.to.var}}` placeholders from the registry are allowed: triple-stache, blocks,
  * helpers, partials and unknown variables are rejected with a 400.
  */
 export function extractTemplateVariables(html: string): string[] {
+  const normalized = normalizeTemplatePlaceholders(html);
+
+  if (/\{\{\s*\}\}/.test(normalized)) {
+    throw new HttpError(400, 'Template syntax error: Empty {{}} placeholder is not allowed');
+  }
+
   let program: hbs.AST.Program;
   try {
-    program = handlebars.parse(html);
+    program = handlebars.parse(normalized);
   } catch (error) {
-    throw new HttpError(400, `Template syntax error: ${(error as Error).message.split('\n')[0]}`);
+    const rawMessage = (error as Error).message || '';
+    const cleanMessage = rawMessage.replace(/\s+/g, ' ').trim();
+    throw new HttpError(400, `Template syntax error: ${cleanMessage}`);
   }
 
   const used = new Set<string>();
@@ -54,7 +70,8 @@ export function extractTemplateVariables(html: string): string[] {
 
 /** Sanitizes template HTML for storage and validates its placeholders. */
 export function prepareTemplateHtml(html: string) {
-  const sanitized = sanitizeTemplateHtml(html);
+  const normalized = normalizeTemplatePlaceholders(html);
+  const sanitized = sanitizeTemplateHtml(normalized);
   return { html: sanitized, variables: extractTemplateVariables(sanitized) };
 }
 
@@ -63,8 +80,9 @@ export function prepareTemplateHtml(html: string) {
  * sanitized again so a value cannot smuggle a javascript: URL into an attribute like `href`.
  */
 export function mergeTemplate(html: string, source: MergeSource) {
-  extractTemplateVariables(html);
-  const render = handlebars.compile(html, { knownHelpersOnly: true, strict: false });
+  const normalized = normalizeTemplatePlaceholders(html);
+  extractTemplateVariables(normalized);
+  const render = handlebars.compile(normalized, { knownHelpersOnly: true, strict: false });
   return sanitizeTemplateHtml(render(buildMergeContext(source)));
 }
 
