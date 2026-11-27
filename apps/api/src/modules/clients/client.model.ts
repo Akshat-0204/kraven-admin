@@ -19,6 +19,8 @@ export interface ClientDocument {
   documents: unknown[];
   sourceLead?: Types.ObjectId;
   portalAccess?: PortalAccess;
+  /** Drive folder holding this client's documents (created lazily). */
+  driveFolderId?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -40,7 +42,8 @@ const clientSchema = new Schema<ClientDocument>(
     links: { type: [linkSchema], default: [] },
     documents: { type: [fileReferenceSchema], default: [] },
     sourceLead: { type: Schema.Types.ObjectId, ref: 'Lead' },
-    portalAccess: { type: portalAccessSchema, default: undefined }
+    portalAccess: { type: portalAccessSchema, default: undefined },
+    driveFolderId: String
   },
   { timestamps: true }
 );

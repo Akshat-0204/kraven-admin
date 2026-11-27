@@ -2,6 +2,8 @@
 
 Turn kraven-admin (npm workspaces + turbo; apps/api Express+Mongoose, apps/web React/Vite/Tailwind/react-query; packages config/types/validation) into an agency client CRM. Replaces sending ~5 PDFs per client by hand: edit docs online, send one link with documents + payment items + e-sign, plus per-client portal with progress updates and downloads. UI will be fully revamped later -> build functionality/API first, keep UI minimal and swappable.
 
+Status (2026-11-27): documents now live in Google Docs/Drive (see docs/plans/google-docs-plan.md, stages 0-6 done); the Tiptap editor and HTML merge pipeline are removed. Share = snapshot PDF + lock.
+
 ## Global Constraints (locked decisions)
 - DB stays **MongoDB** (Mongoose). Old data unimportant.
 - Files: **Hosted S3** replaces GridFS (MinIO/Docker removed 2026-11-27). Use `@aws-sdk/client-s3` + `@aws-sdk/s3-request-presigner`. File metadata stays in Mongo (`FileMetadata`). Downloads via short-TTL (~60s) presigned URLs only after auth/cookie check.

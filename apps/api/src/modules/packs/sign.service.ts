@@ -5,7 +5,8 @@ import { isValidObjectId } from 'mongoose';
 import { logActivity } from '../../shared/activity/activity.service.js';
 import { HttpError } from '../../shared/errors/httpError.js';
 import { DocumentModel } from '../documents/document.model.js';
-import { documentPdfFilename, ensureDocumentPdf } from '../documents/document.service.js';
+import { documentPdfFilename } from '../documents/document.service.js';
+import { FileMetadataModel } from '../files/file.model.js';
 import { putObject, streamObject } from '../files/storage.service.js';
 import { documentInLivePack } from './pack.service.js';
 import { SignatureModel } from './signature.model.js';
@@ -45,9 +46,10 @@ export async function signPortalDocument(clientId: string, documentId: string, b
     }
   }
 
-  // Use the freshly ensured record: pdfKey is unset on `document` if the PDF was never generated.
-  const { document: withPdf } = await ensureDocumentPdf(documentId);
-  const original = await toBuffer(await streamObject(withPdf.pdfKey as string));
+  // Sign the snapshot taken at share time.
+  const snapshot = document.pdfFile ? await FileMetadataModel.findById(document.pdfFile) : null;
+  if (!snapshot) throw new HttpError(409, 'This document has no PDF snapshot; revise and share it again');
+  const original = await toBuffer(await streamObject(snapshot.bucketKey));
   const signedAt = new Date();
   const { sealed, originalSha256, sealedSha256 } = await sealPdf({
     pdf: original,

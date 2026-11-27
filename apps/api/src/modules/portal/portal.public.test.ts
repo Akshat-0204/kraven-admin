@@ -60,18 +60,24 @@ function seedWorld() {
     bVisible: update(projectB, 'Beta kickoff', true)
   };
 
-  const html = '<p>doc</p>';
-  const doc = (client: Record<string, any>, title: string, status: string) =>
-    store.insert('Document', {
+  const doc = (client: Record<string, any>, title: string, status: string) => {
+    const file = store.insert('FileMetadata', {
+      bucketKey: `documents/${title}.pdf`,
+      filename: `${title}.pdf`,
+      contentType: 'application/pdf',
+      length: 10,
+      associatedEntityType: 'Client',
+      associatedEntityId: client._id
+    });
+    return store.insert('Document', {
       title,
       client: client._id,
-      template: new Types.ObjectId(),
-      templateVersion: 1,
-      html,
+      googleFileId: `g-${title}`,
+      webViewLink: 'https://docs.google.com/document/d/x/edit',
       status,
-      pdfKey: `documents/${title}.pdf`,
-      pdfSourceHash: sha256(html)
+      pdfFile: file._id
     });
+  };
   const docs = {
     aDraft: doc(a, 'Acme Draft', 'Draft'),
     aSent: doc(a, 'Acme Proposal', 'Sent'),

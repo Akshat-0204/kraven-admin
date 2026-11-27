@@ -1,4 +1,4 @@
-import { ACTIVITY_ENTITY_TYPES } from '@kraven/config';
+import { ACTIVITY_ENTITY_TYPES, DOCUMENT_CATEGORIES } from '@kraven/config';
 import { Schema, model } from 'mongoose';
 
 export interface FileMetadataDocument {
@@ -7,6 +7,9 @@ export interface FileMetadataDocument {
   contentType?: string;
   length: number;
   clientVisible: boolean;
+  category?: (typeof DOCUMENT_CATEGORIES)[number];
+  sourceDocument?: Schema.Types.ObjectId;
+  sourceRevisionId?: string;
   associatedEntityType?: (typeof ACTIVITY_ENTITY_TYPES)[number];
   associatedEntityId?: Schema.Types.ObjectId;
   uploadedBy?: Schema.Types.ObjectId;
@@ -21,6 +24,9 @@ const fileMetadataSchema = new Schema<FileMetadataDocument>(
     contentType: { type: String, trim: true },
     length: { type: Number, required: true, min: 0 },
     clientVisible: { type: Boolean, default: false },
+    category: { type: String, enum: DOCUMENT_CATEGORIES },
+    sourceDocument: { type: Schema.Types.ObjectId, ref: 'Document' },
+    sourceRevisionId: String,
     associatedEntityType: { type: String, enum: ACTIVITY_ENTITY_TYPES },
     associatedEntityId: { type: Schema.Types.ObjectId },
     uploadedBy: { type: Schema.Types.ObjectId, ref: 'User' }

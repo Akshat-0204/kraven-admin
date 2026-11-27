@@ -27,7 +27,7 @@ function formatDate(value?: Date) {
   return value ? dateFormat.format(value) : undefined;
 }
 
-/** Every `{{key}}` a template may use. Templates referencing anything else are rejected on save. */
+/** Every `{{key}}` the app fills into a Google Doc. */
 const DEFINITIONS: VariableDefinition[] = [
   { key: 'client.company', label: 'Client company', group: 'client', resolve: (s) => s.client?.companyName },
   { key: 'client.contactName', label: 'Client contact', group: 'client', resolve: (s) => s.client?.contactPerson },
@@ -78,18 +78,6 @@ const DEFINITIONS: VariableDefinition[] = [
 
 export const DOCUMENT_VARIABLES: DocumentVariable[] = DEFINITIONS.map(({ key, label, group }) => ({ key, label, group }));
 
-export const DOCUMENT_VARIABLE_KEYS = new Set(DEFINITIONS.map((definition) => definition.key));
-
-/** Header/footer-only tokens; the PDF renderer maps them to Chromium page counters. */
-export const PAGE_TOKEN_KEYS = new Set(['page.number', 'page.total']);
-
-export interface MergeContextOptions {
-  /** `'label'` renders a missing value as `[Label]` (draft previews); default is an empty string. */
-  missing?: 'empty' | 'label';
-  /** Keep `{{page.number}}` / `{{page.total}}` in the output for the PDF stage. */
-  keepPageTokens?: boolean;
-}
-
 function resolveValue(definition: VariableDefinition, source: MergeSource) {
   const value = definition.resolve(source);
   return value === undefined || value === null || value === '' ? undefined : String(value);
@@ -105,21 +93,15 @@ export function resolveDocumentVariables(source: MergeSource) {
   }));
 }
 
-/** Builds the nested Handlebars context (`{ client: { company }, today, ... }`) of plain strings. */
-export function buildMergeContext(source: MergeSource, options: MergeContextOptions = {}) {
-  const context: Record<string, unknown> = {};
-  if (options.keepPageTokens) {
-    // Handlebars does not escape braces, so these come out verbatim.
-    context.page = { number: '{{page.number}}', total: '{{page.total}}' };
-  }
+/**
+ * Flat `{ 'client.company': 'Acme' }` map for Docs `replaceAllText`. Variables with no value are
+ * left out so their `{{placeholder}}` stays visible in the document.
+ */
+export function buildPlaceholderMap(source: MergeSource) {
+  const map: Record<string, string> = {};
   for (const definition of DEFINITIONS) {
-    const value = resolveValue(definition, source) ?? (options.missing === 'label' ? `[${definition.label}]` : '');
-    const segments = definition.key.split('.');
-    let target = context;
-    for (const segment of segments.slice(0, -1)) {
-      target = (target[segment] ??= {}) as Record<string, unknown>;
-    }
-    target[segments[segments.length - 1]] = value;
+    const value = resolveValue(definition, source);
+    if (value !== undefined) map[definition.key] = value;
   }
-  return context;
+  return map;
 }

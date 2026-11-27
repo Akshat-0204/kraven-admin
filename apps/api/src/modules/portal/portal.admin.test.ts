@@ -12,6 +12,21 @@ vi.mock('../../middleware/authenticate.js', async () => {
   return { authenticate: authenticateAsTestUser };
 });
 
+vi.mock('../google/google.client.js', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../google/google.client.js')>()),
+  requireGoogle: vi.fn(async () => ({ status: 'connected', email: 'agency@example.com', rootFolderId: 'root' }))
+}));
+vi.mock('../google/drive.service.js', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../google/drive.service.js')>()),
+  getFile: vi.fn(async () => ({ id: 'g', name: 'Doc', headRevisionId: 'rev1' })),
+  exportPdf: vi.fn(async () => Buffer.from('%PDF-1.7 fake')),
+  setLocked: vi.fn(async () => undefined)
+}));
+vi.mock('../files/storage.service.js', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../files/storage.service.js')>()),
+  putObject: vi.fn(async () => undefined)
+}));
+
 let store: MemoryStore;
 
 function seedClient(name = 'Acme', portalAccess?: Record<string, unknown>) {
@@ -237,7 +252,7 @@ describe('file sharing and document sharing', () => {
 
   it('shares a draft document (Draft -> Sent) and leaves later statuses alone', async () => {
     const client = seedClient();
-    const base = { client: client._id, template: new Types.ObjectId(), templateVersion: 1, html: '<p/>' };
+    const base = { client: client._id, googleFileId: 'g1', webViewLink: 'https://docs.google.com/document/d/x/edit' };
     const draft = store.insert('Document', { ...base, title: 'Draft', status: 'Draft' });
     const signed = store.insert('Document', { ...base, title: 'Signed', status: 'Signed' });
     const app = createApp();

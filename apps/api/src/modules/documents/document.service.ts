@@ -1,42 +1,86 @@
-import { createHash } from 'node:crypto';
-import type { CreateDocumentInput, DocumentFilterInput, UpdateDocumentInput } from '@kraven/validation';
-import { createDocumentSchema, documentFilterSchema, updateDocumentSchema } from '@kraven/validation';
+import { randomUUID } from 'node:crypto';
+import type { CreateDocumentInput, DocumentFilterInput, SaveDocumentPdfInput, UpdateDocumentInput } from '@kraven/validation';
+import { createDocumentSchema, documentAccessSchema, documentFilterSchema, saveDocumentPdfSchema, updateDocumentSchema } from '@kraven/validation';
 import { isValidObjectId, type HydratedDocument } from 'mongoose';
 import { logActivity } from '../../shared/activity/activity.service.js';
 import { HttpError } from '../../shared/errors/httpError.js';
-import { PRESIGNED_URL_TTL_SECONDS, presignObject, putObject, streamObject } from '../files/storage.service.js';
-import { htmlToPdf } from '../pdf/pdf.renderer.js';
+import { ClientModel } from '../clients/client.model.js';
+import { FileMetadataModel } from '../files/file.model.js';
+import { putObject, streamObject } from '../files/storage.service.js';
+import { replacePlaceholders } from '../google/docs.service.js';
+import {
+  copyFile,
+  createBlankDoc,
+  ensureFolder,
+  exportPdf,
+  getFile,
+  moveToFolder,
+  renameFile,
+  setAccess,
+  setLocked,
+  trashFile,
+  type DriveFile
+} from '../google/drive.service.js';
+import { requireGoogle } from '../google/google.client.js';
+import { PackModel } from '../packs/pack.model.js';
 import { loadOptionalMergeSource } from './document.context.js';
 import { DocumentModel, type DocumentDocument } from './document.model.js';
-import { resolveDocumentVariables, type MergeSource } from './document.variables.js';
-import { extractBody, isPrintShell, mergeTemplate, wrapPrintDocument, type MergeOptions } from './merge.service.js';
-import { sanitizeTemplateHtml } from './template.sanitize.js';
+import { buildPlaceholderMap, resolveDocumentVariables, type MergeSource } from './document.variables.js';
+import { getDocumentTemplate } from './documentTemplate.service.js';
 
 type DocumentRecordDoc = HydratedDocument<DocumentDocument>;
+type DocumentCategory = 'Proposal' | 'SOW' | 'MSA' | 'Handover' | 'Invoice' | 'Other';
 
-/** `{{page.number}}` / `{{page.total}}`, plain or as an editor chip (`data-variable="page.number"`). */
-const PAGE_TOKEN = /\{\{\s*page\.(number|total)\s*\}\}|\bdata-variable\s*=\s*["']page\.(number|total)["']/;
+const TYPE_TO_CATEGORY: Record<string, DocumentCategory> = {
+  Proposal: 'Proposal',
+  'Statement of Work': 'SOW',
+  Contract: 'MSA',
+  Agreement: 'MSA',
+  Handover: 'Handover',
+  Other: 'Other'
+};
 
-function sha256(value: string) {
-  return createHash('sha256').update(value).digest('hex');
+const EM_DASH = '—';
+
+function isoDay(date = new Date()) {
+  return date.toISOString().slice(0, 10);
 }
 
-export function documentPdfKey(documentId: string) {
-  return `documents/${documentId}.pdf`;
+function slugify(value: string) {
+  return value.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'document';
 }
 
 export function documentPdfFilename(title: string) {
   return `${title.replace(/[\\/:*?"<>|]+/g, '-').trim() || 'document'}.pdf`;
 }
 
+export function suggestedPdfFilename(clientName: string, category: string) {
+  return `${slugify(clientName)}_${slugify(category)}_${isoDay()}.pdf`;
+}
+
+/** Drive revision marker: headRevisionId when Drive provides one (not for native Docs), else modifiedTime. */
+function revisionOf(file: DriveFile) {
+  return file.headRevisionId ?? file.modifiedTime;
+}
+
 function escapeRegex(value: string) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+/** Whether a Draft's saved PDF no longer matches the Google Doc. Best effort: Google errors count as not stale. */
+export async function isPdfStale(document: DocumentDocument) {
+  if (!document.pdfFile || !document.pdfRevisionId || document.status !== 'Draft') return false;
+  try {
+    return revisionOf(await getFile(document.googleFileId)) !== document.pdfRevisionId;
+  } catch {
+    return false;
+  }
 }
 
 /** All documents (or one client's/project's), newest first, paginated; client and template are populated. */
 export async function listDocuments(filters: DocumentFilterInput) {
   const parsed = documentFilterSchema.parse(filters);
-  const empty = { documents: [], total: 0, page: parsed.page, limit: parsed.limit };
+  const empty = { documents: [], total: 0, page: parsed.page, limit: parsed.limit, stale: new Set<string>() };
   const query: Record<string, unknown> = {};
   for (const key of ['client', 'project'] as const) {
     const id = parsed[key];
@@ -49,7 +93,6 @@ export async function listDocuments(filters: DocumentFilterInput) {
 
   const [documents, total] = await Promise.all([
     DocumentModel.find(query)
-      .select('-html -headerHtml -footerHtml')
       .populate('client', 'companyName')
       .populate('template', 'name')
       .sort({ createdAt: -1 })
@@ -57,7 +100,9 @@ export async function listDocuments(filters: DocumentFilterInput) {
       .limit(parsed.limit),
     DocumentModel.countDocuments(query)
   ]);
-  return { documents, total, page: parsed.page, limit: parsed.limit };
+  const staleFlags = await Promise.all(documents.map((document) => isPdfStale(document)));
+  const stale = new Set(documents.filter((_, index) => staleFlags[index]).map((document) => String(document._id)));
+  return { documents, total, page: parsed.page, limit: parsed.limit, stale };
 }
 
 export async function getDocument(documentId: string) {
@@ -68,30 +113,59 @@ export async function getDocument(documentId: string) {
   return document;
 }
 
+async function documentMergeSource(document: DocumentDocument): Promise<MergeSource> {
+  return loadOptionalMergeSource(
+    document.client ? String(document.client) : null,
+    document.project ? String(document.project) : null
+  );
+}
+
+/** The client's Drive folder (created lazily under the root folder), or the root folder when unassigned. */
+async function folderFor(client: { _id: unknown; companyName: string; driveFolderId?: string } | null | undefined, rootFolderId?: string) {
+  if (!client) return rootFolderId;
+  if (client.driveFolderId) return client.driveFolderId;
+  const folderId = await ensureFolder(client.companyName, rootFolderId);
+  await ClientModel.updateOne({ _id: client._id }, { $set: { driveFolderId: folderId } });
+  return folderId;
+}
+
 /**
- * Creates a Draft holding the template's body/header/footer *unmerged* (placeholders are resolved at
- * share). Without a template the document starts blank. Client and project are optional.
+ * Drive copy of the template (or a blank Google Doc), renamed, filed under the client's folder,
+ * filled with client/project values and shared per `access`. The app keeps only the link.
  */
 export async function createDocument(input: CreateDocumentInput, userId?: string) {
   const payload = createDocumentSchema.parse(input);
-  if (payload.template) {
-    // Stage 3 replaces this with a Drive copy of the template Google Doc.
-    throw new HttpError(501, 'Creating a document from a template is not available yet');
-  }
-  const template = null as { _id: unknown; name: string; version: number; html: string; headerHtml: string; footerHtml: string } | null;
+  const connection = await requireGoogle();
+  const template = payload.template ? await getDocumentTemplate(payload.template) : null;
   const source = await loadOptionalMergeSource(payload.client, payload.project);
-  const title = payload.title ?? template?.name ?? 'Untitled document';
+  const title =
+    payload.title ??
+    (template || source.client
+      ? [source.client?.companyName, template?.name ?? 'Document', isoDay()].filter(Boolean).join(` ${EM_DASH} `)
+      : 'Untitled document');
+
+  const folderId = await folderFor(source.client as never, connection.rootFolderId);
+  let file: DriveFile;
+  if (template) {
+    file = await copyFile(template.googleFileId, title);
+    if (folderId) await moveToFolder(file.id, folderId);
+  } else {
+    file = await createBlankDoc(title, folderId);
+  }
+
+  if (source.client) await replacePlaceholders(file.id, buildPlaceholderMap(source));
+  const access = payload.access.length > 0 ? await setAccess(file.id, payload.access) : [];
 
   const document = await DocumentModel.create({
     title,
+    type: template?.type,
     client: source.client?._id,
     project: source.project?._id,
     template: template?._id,
-    templateVersion: template?.version,
-    html: template?.html ?? '',
-    headerHtml: template?.headerHtml ?? '',
-    footerHtml: template?.footerHtml ?? '',
+    googleFileId: file.id,
+    webViewLink: file.webViewLink ?? `https://docs.google.com/document/d/${file.id}/edit`,
     status: 'Draft',
+    access: access.map(({ email, role, permissionId }) => ({ email, role, permissionId })),
     createdBy: userId
   });
 
@@ -105,29 +179,16 @@ export async function createDocument(input: CreateDocumentInput, userId?: string
   return document;
 }
 
-/**
- * Edits a Draft (autosave target). HTML is sanitized and stored body-only; placeholders are not
- * validated here (that happens at share / draft PDF) so a half-typed `{{` never blocks an autosave.
- * Page tokens are rejected in the body. Changing the client drops a project that no longer belongs.
- */
+function assertDraft(document: DocumentDocument, message: string) {
+  if (document.status !== 'Draft') throw new HttpError(409, message);
+}
+
+/** Renames (also in Drive) and/or reassigns a Draft. Reassigning the client moves the Drive file. */
 export async function updateDocument(documentId: string, input: UpdateDocumentInput) {
   const payload = updateDocumentSchema.parse(input);
   const document = await getDocument(documentId);
-  if (document.status !== 'Draft') {
-    throw new HttpError(409, 'Only Draft documents can be edited');
-  }
-
-  if (payload.title !== undefined) document.title = payload.title;
-  if (payload.html !== undefined) {
-    if (PAGE_TOKEN.test(payload.html)) {
-      throw new HttpError(400, 'Page numbers can only be used in the header or footer');
-    }
-    document.html = sanitizeTemplateHtml(payload.html);
-  } else if (isPrintShell(document.html)) {
-    document.html = extractBody(document.html);
-  }
-  if (payload.headerHtml !== undefined) document.headerHtml = sanitizeTemplateHtml(payload.headerHtml);
-  if (payload.footerHtml !== undefined) document.footerHtml = sanitizeTemplateHtml(payload.footerHtml);
+  assertDraft(document, 'Only Draft documents can be edited');
+  const connection = await requireGoogle();
 
   if (payload.client !== undefined || payload.project !== undefined) {
     const clientId = payload.client !== undefined ? payload.client : document.client ? String(document.client) : null;
@@ -138,19 +199,43 @@ export async function updateDocument(documentId: string, input: UpdateDocumentIn
       if (!clientId || String(current.project?.client) !== String(clientId)) projectId = null;
     }
     const source = await loadOptionalMergeSource(clientId, projectId);
+    const clientChanged = String(source.client?._id ?? '') !== String(document.client ?? '');
     document.client = source.client?._id ?? undefined;
     document.project = source.project?._id ?? undefined;
+    if (clientChanged) {
+      const folderId = await folderFor(source.client as never, connection.rootFolderId);
+      if (folderId) await moveToFolder(document.googleFileId, folderId);
+    }
+  }
+
+  if (payload.title !== undefined && payload.title !== document.title) {
+    await renameFile(document.googleFileId, payload.title);
+    document.title = payload.title;
   }
 
   await document.save();
   return document;
 }
 
-async function documentMergeSource(document: DocumentDocument): Promise<MergeSource> {
-  return loadOptionalMergeSource(
-    document.client ? String(document.client) : null,
-    document.project ? String(document.project) : null
-  );
+/** Re-runs the placeholder fill against the current client/project (Draft only). */
+export async function refillDocument(documentId: string) {
+  const document = await getDocument(documentId);
+  assertDraft(document, 'Only Draft documents can be refilled');
+  if (!document.client) throw new HttpError(422, 'Assign a client before filling variables');
+  await requireGoogle();
+  await replacePlaceholders(document.googleFileId, buildPlaceholderMap(await documentMergeSource(document)));
+  return document;
+}
+
+/** Replaces the document's sharing list (diffed against Drive permissions). */
+export async function setDocumentAccess(documentId: string, body: unknown) {
+  const entries = documentAccessSchema.parse(body);
+  const document = await getDocument(documentId);
+  await requireGoogle();
+  const result = await setAccess(document.googleFileId, entries);
+  document.access = result.map(({ email, role, permissionId }) => ({ email, role, permissionId })) as never;
+  await document.save();
+  return document;
 }
 
 /** Registry variables resolved against the document's client/project (`value` null when missing). */
@@ -159,95 +244,71 @@ export async function getDocumentVariables(documentId: string) {
   return resolveDocumentVariables(await documentMergeSource(document));
 }
 
-function mergeParts(document: DocumentDocument, source: MergeSource, options: Pick<MergeOptions, 'missing'> = {}) {
-  return {
-    html: mergeTemplate(extractBody(document.html), source, options),
-    headerHtml: mergeTemplate(document.headerHtml ?? '', source, { ...options, allowPageTokens: true }),
-    footerHtml: mergeTemplate(document.footerHtml ?? '', source, { ...options, allowPageTokens: true })
-  };
-}
-
-/**
- * What the PDF is rendered from. Drafts merge live (missing values shown as `[Label]`); shared
- * documents use the stored merged HTML. Legacy full-shell documents render exactly as stored.
- * `hash` covers body, header and footer, and equals sha256(html) for legacy/no-band documents.
- */
-async function pdfSource(document: DocumentDocument) {
-  if (isPrintShell(document.html)) {
-    return { fullHtml: document.html, headerHtml: '', footerHtml: '', hash: sha256(document.html) };
-  }
-  const parts =
-    document.status === 'Draft'
-      ? mergeParts(document, await documentMergeSource(document), { missing: 'label' })
-      : { html: document.html, headerHtml: document.headerHtml ?? '', footerHtml: document.footerHtml ?? '' };
-  const hash =
-    parts.headerHtml || parts.footerHtml
-      ? sha256(JSON.stringify([parts.html, parts.headerHtml, parts.footerHtml]))
-      : sha256(parts.html);
-  return {
-    fullHtml: wrapPrintDocument(parts.html, document.title),
-    headerHtml: parts.headerHtml,
-    footerHtml: parts.footerHtml,
-    hash
-  };
-}
-
-/** Generates the PDF, reusing the stored one while its source (body + header + footer) is unchanged. */
-export async function ensureDocumentPdf(documentId: string) {
-  const document = await getDocument(documentId);
-  const source = await pdfSource(document);
-  if (document.pdfKey && document.pdfSourceHash === source.hash) {
-    return { document, generated: false };
-  }
-
-  const pdf = await htmlToPdf(source.fullHtml, {
-    document: { headerHtml: source.headerHtml, footerHtml: source.footerHtml }
+/** Exports the Google Doc to a PDF in object storage and records it as a client file. */
+async function exportToClientFile(
+  document: DocumentRecordDoc,
+  options: { category: DocumentCategory; filename: string; clientVisible: boolean; uploadedBy?: string }
+) {
+  if (!document.client) throw new HttpError(422, 'Assign a client before saving a PDF');
+  await requireGoogle();
+  const [revision, pdf] = await Promise.all([getFile(document.googleFileId), exportPdf(document.googleFileId)]);
+  const clientId = String(document.client);
+  const bucketKey = `clients/${clientId}/documents/${randomUUID()}.pdf`;
+  await putObject(bucketKey, pdf, 'application/pdf');
+  const filename = /\.pdf$/i.test(options.filename) ? options.filename : `${options.filename}.pdf`;
+  const file = await FileMetadataModel.create({
+    bucketKey,
+    filename,
+    contentType: 'application/pdf',
+    length: pdf.length,
+    clientVisible: options.clientVisible,
+    category: options.category,
+    sourceDocument: document._id,
+    sourceRevisionId: revision ? revisionOf(revision) : undefined,
+    associatedEntityType: 'Client',
+    associatedEntityId: document.client,
+    uploadedBy: options.uploadedBy
   });
-  const key = documentPdfKey(String(document._id));
-  await putObject(key, pdf, 'application/pdf');
-  document.pdfKey = key;
-  document.pdfSourceHash = source.hash;
+  document.pdfFile = file._id as never;
+  document.pdfRevisionId = file.sourceRevisionId;
   await document.save();
-  return { document, generated: true };
+  return file;
 }
 
-export async function getDocumentPdfUrl(documentId: string) {
-  const { document, generated } = await ensureDocumentPdf(documentId);
-  return {
-    url: await presignObject(document.pdfKey as string, { filename: documentPdfFilename(document.title) }),
-    expiresIn: PRESIGNED_URL_TTL_SECONDS,
-    generated
-  };
+/** "Save as PDF": export to a categorized client file (optionally visible in the portal). */
+export async function saveDocumentPdf(documentId: string, input: SaveDocumentPdfInput, userId?: string) {
+  const payload = saveDocumentPdfSchema.parse(input);
+  const document = await getDocument(documentId);
+  const file = await exportToClientFile(document, { ...payload, uploadedBy: userId });
+  return { file, document };
 }
 
-/** Streams the stored PDF. Read-only: it never generates, so a missing or stale PDF is a 404. */
+/** Streams the snapshot / latest PDF through the API. */
 export async function openDocumentPdf(documentId: string) {
   const document = await getDocument(documentId);
-  if (!document.pdfKey || document.pdfSourceHash !== (await pdfSource(document)).hash) {
-    throw new HttpError(404, 'PDF not generated yet');
-  }
-  return {
-    filename: documentPdfFilename(document.title),
-    stream: await streamObject(document.pdfKey)
-  };
+  const file = document.pdfFile ? await FileMetadataModel.findById(document.pdfFile) : null;
+  if (!file) throw new HttpError(404, 'PDF not generated yet');
+  return { filename: file.filename, stream: await streamObject(file.bucketKey) };
 }
 
 /**
- * Draft -> Sent for one loaded document: merges body/header/footer against its client/project,
- * stores the merged HTML (body-only), sets `mergedAt` and logs. Requires a client (422).
- * Documents already shared are left as they are. Used by share and by sending a pack.
+ * Draft -> Sent for one loaded document: snapshots a PDF, locks the Google Doc read-only and logs.
+ * Requires a client (422). Documents already shared are left as they are. Used by share and by sending a pack.
  */
 export async function markDocumentShared(document: DocumentRecordDoc) {
   if (document.status !== 'Draft') return document;
   if (!document.client) {
     throw new HttpError(422, 'Assign a client before sharing this document');
   }
-  const source = await documentMergeSource(document);
-  const merged = mergeParts(document, source);
-  document.html = merged.html;
-  document.headerHtml = merged.headerHtml;
-  document.footerHtml = merged.footerHtml;
-  document.mergedAt = new Date();
+  const client = await ClientModel.findById(document.client);
+  const category = TYPE_TO_CATEGORY[document.type ?? 'Other'] ?? 'Other';
+  await exportToClientFile(document, {
+    category,
+    filename: suggestedPdfFilename(client?.companyName ?? 'client', category),
+    clientVisible: false
+  });
+  await setLocked(document.googleFileId, true);
+  document.lockedAt = new Date();
   document.status = 'Sent';
   await document.save();
   await logActivity({
@@ -262,4 +323,36 @@ export async function markDocumentShared(document: DocumentRecordDoc) {
 /** Shares a draft with the client portal (Draft -> Sent). */
 export async function shareDocument(documentId: string) {
   return markDocumentShared(await getDocument(documentId));
+}
+
+async function removeFromPacks(documentId: string) {
+  await PackModel.updateMany({ 'items.document': documentId }, { $pull: { items: { document: documentId } } });
+}
+
+/** Unlocks a shared document and returns it to Draft. Signed documents cannot be revised. */
+export async function reviseDocument(documentId: string) {
+  const document = await getDocument(documentId);
+  if (document.status === 'Signed') throw new HttpError(409, 'A signed document cannot be revised');
+  if (document.status === 'Draft') return document;
+  await requireGoogle();
+  await setLocked(document.googleFileId, false);
+  await removeFromPacks(documentId);
+  document.status = 'Draft';
+  document.lockedAt = undefined;
+  await document.save();
+  return document;
+}
+
+/** Trashes the Google Doc and removes the row (Draft only). Saved PDFs stay as client files. */
+export async function deleteDocument(documentId: string) {
+  const document = await getDocument(documentId);
+  assertDraft(document, 'Only Draft documents can be deleted');
+  await requireGoogle();
+  try {
+    await trashFile(document.googleFileId);
+  } catch (error) {
+    if (!(error instanceof HttpError && error.statusCode === 404)) throw error;
+  }
+  await removeFromPacks(documentId);
+  await document.deleteOne();
 }

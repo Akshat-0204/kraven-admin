@@ -1,6 +1,8 @@
 import {
   ACTIVITY_ENTITY_TYPES,
   DOCUMENT_STATUSES,
+  DOCUMENT_ACCESS_ROLES,
+  DOCUMENT_CATEGORIES,
   DOCUMENT_TEMPLATE_TYPES,
   EXPENSE_CATEGORIES,
   INVOICE_PAYMENT_STATUSES,
@@ -273,9 +275,6 @@ export const fileUploadMetadataSchema = z.object({
 
 export type FileUploadMetadataInput = z.infer<typeof fileUploadMetadataSchema>;
 
-const documentHtml = (message: string) => z.string().max(500_000, message);
-/** Header/footer bands are small; logos are inline `data:` images, hence the generous cap. */
-const documentBandHtml = z.string().max(200_000, 'Header/footer is too large');
 const nullableObjectId = z.preprocess((value) => (value === '' ? null : value), objectId.nullable().optional());
 
 export const documentTemplateSchema = z.object({
@@ -297,29 +296,52 @@ export const documentContextSchema = z.object({
 
 export type DocumentContextInput = z.infer<typeof documentContextSchema>;
 
+export const documentAccessEntrySchema = z.object({
+  email: z.string().trim().toLowerCase().email('Enter a valid email'),
+  role: z.enum(DOCUMENT_ACCESS_ROLES).default('writer')
+});
+
+export type DocumentAccessEntryInput = z.infer<typeof documentAccessEntrySchema>;
+
+export const documentAccessSchema = z
+  .array(documentAccessEntrySchema)
+  .max(50)
+  .transform((entries) => [...new Map(entries.map((entry) => [entry.email, entry])).values()]);
+
 /** Template and client are optional: a blank document can be started and assigned later (client is required to share). */
 export const createDocumentSchema = z.object({
   template: optionalObjectId,
   client: optionalObjectId,
   project: optionalObjectId,
-  title: z.preprocess((value) => (value === '' ? undefined : value), z.string().trim().min(1).optional())
+  title: z.preprocess((value) => (value === '' ? undefined : value), z.string().trim().min(1).optional()),
+  access: documentAccessSchema.default([])
 });
 
-export type CreateDocumentInput = z.infer<typeof createDocumentSchema>;
+export type CreateDocumentInput = z.input<typeof createDocumentSchema>;
 
 /** `client`/`project` accept `null` to unassign. */
 export const updateDocumentSchema = z
   .object({
     title: z.string().trim().min(1, 'Title is required').optional(),
-    html: documentHtml('Document is too large').optional(),
-    headerHtml: documentBandHtml.optional(),
-    footerHtml: documentBandHtml.optional(),
     client: nullableObjectId,
     project: nullableObjectId
   })
   .refine((value) => Object.values(value).some((field) => field !== undefined), 'Nothing to update');
 
 export type UpdateDocumentInput = z.infer<typeof updateDocumentSchema>;
+
+export const saveDocumentPdfSchema = z.object({
+  category: z.enum(DOCUMENT_CATEGORIES),
+  filename: z
+    .string()
+    .trim()
+    .min(1, 'Filename is required')
+    .max(200)
+    .refine((value) => !/[\\/]/.test(value), 'Filename cannot contain slashes'),
+  clientVisible: z.boolean().default(false)
+});
+
+export type SaveDocumentPdfInput = z.input<typeof saveDocumentPdfSchema>;
 
 export const DOCUMENT_LIST_MAX_LIMIT = 100;
 
@@ -341,9 +363,19 @@ export const globalSearchSchema = z.object({
 
 export type GlobalSearchInput = z.infer<typeof globalSearchSchema>;
 
-export const fileVisibilitySchema = z.object({
-  clientVisible: z.boolean()
-});
+export const fileVisibilitySchema = z
+  .object({
+    clientVisible: z.boolean().optional(),
+    filename: z
+      .string()
+      .trim()
+      .min(1, 'Filename is required')
+      .max(200)
+      .refine((value) => !/[\\/]/.test(value), 'Filename cannot contain slashes')
+      .optional(),
+    category: z.enum(DOCUMENT_CATEGORIES).optional()
+  })
+  .refine((value) => Object.values(value).some((field) => field !== undefined), 'Nothing to update');
 
 export type FileVisibilityInput = z.infer<typeof fileVisibilitySchema>;
 

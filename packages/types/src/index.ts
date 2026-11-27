@@ -133,6 +133,8 @@ export interface FileMetadataRecord {
   contentType?: string;
   length: number;
   clientVisible: boolean;
+  category?: DocumentCategory;
+  sourceDocument?: string;
   associatedEntityType?: string;
   associatedEntityId?: string;
   createdAt: string;
@@ -330,32 +332,44 @@ export interface AdminUserRecord {
   email: string;
 }
 
+export type DocumentCategory = 'Proposal' | 'SOW' | 'MSA' | 'Handover' | 'Invoice' | 'Other';
+
+export type DocumentAccessRole = 'writer' | 'commenter' | 'reader';
+
+export interface DocumentAccessEntry {
+  email: string;
+  role: DocumentAccessRole;
+}
+
 export interface DocumentRecord {
   id: string;
   title: string;
+  type?: DocumentTemplateType;
   /** Unset until assigned; required to share. */
   client?: string;
   project?: string;
   /** Unset for blank documents. */
   template?: string;
-  templateVersion?: number;
+  googleFileId: string;
+  webViewLink: string;
   status: DocumentStatus;
+  access: DocumentAccessEntry[];
+  /** Latest exported / snapshot PDF (FileMetadata id). */
+  pdfFile?: string;
   hasPdf: boolean;
-  /** Set when variables were merged (at share). */
-  mergedAt?: string;
+  lockedAt?: string;
   createdAt: string;
   updatedAt: string;
 }
 
+/** Detail: also says whether the saved PDF is out of date versus the Google Doc. */
 export interface DocumentDetailRecord extends DocumentRecord {
-  /** Body HTML: unmerged (with placeholders) while Draft, merged once shared. */
-  html: string;
-  headerHtml: string;
-  footerHtml: string;
+  pdfStale: boolean;
 }
 
 /** `GET /documents` item: client and template are populated. */
 export interface DocumentListItem extends Omit<DocumentRecord, 'client' | 'template'> {
+  pdfStale: boolean;
   client: { _id: string; companyName: string } | null;
   template: { _id: string; name: string } | null;
 }

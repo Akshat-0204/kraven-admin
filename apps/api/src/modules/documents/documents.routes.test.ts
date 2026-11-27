@@ -10,21 +10,39 @@ import { ClientModel } from '../clients/client.model.js';
 import { ProjectModel } from '../projects/project.model.js';
 import { DocumentModel } from './document.model.js';
 import { GoogleConnectionModel } from '../google/google.connection.model.js';
-import { getFile } from '../google/drive.service.js';
+import { copyFile, createBlankDoc, ensureFolder, exportPdf, getFile, moveToFolder, renameFile, setAccess, setLocked, trashFile } from '../google/drive.service.js';
+import { replacePlaceholders } from '../google/docs.service.js';
+import { FileMetadataModel } from '../files/file.model.js';
+import { PackModel } from '../packs/pack.model.js';
 import { DocumentTemplateModel } from './documentTemplate.model.js';
 import { HttpError } from '../../shared/errors/httpError.js';
-import { htmlToPdf } from '../pdf/pdf.renderer.js';
 import { logActivity } from '../../shared/activity/activity.service.js';
 
 vi.mock('../../middleware/authenticate.js', async () => {
   const { authenticateAsTestUser } = await import('../../test/mockAuthenticate.js');
   return { authenticate: authenticateAsTestUser };
 });
-vi.mock('../google/drive.service.js', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('../google/drive.service.js')>()),
-  getFile: vi.fn()
+vi.mock('../google/drive.service.js', async (importOriginal) => {
+  const original = await importOriginal<typeof import('../google/drive.service.js')>();
+  return {
+    ...original,
+    getFile: vi.fn(),
+    copyFile: vi.fn(),
+    createBlankDoc: vi.fn(),
+    ensureFolder: vi.fn(),
+    moveToFolder: vi.fn(),
+    renameFile: vi.fn(),
+    setAccess: vi.fn(),
+    setLocked: vi.fn(),
+    exportPdf: vi.fn(),
+    trashFile: vi.fn()
+  };
+});
+vi.mock('../google/docs.service.js', () => ({ replacePlaceholders: vi.fn(async () => undefined) }));
+vi.mock('../google/google.client.js', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../google/google.client.js')>()),
+  requireGoogle: vi.fn(async () => ({ status: 'connected', email: 'agency@example.com', rootFolderId: 'root' }))
 }));
-vi.mock('../pdf/pdf.renderer.js', () => ({ htmlToPdf: vi.fn() }));
 vi.mock('../../shared/activity/activity.service.js', () => ({
   logActivity: vi.fn(async () => undefined),
   getEntityActivity: vi.fn(async () => [])
@@ -57,6 +75,7 @@ const project = ProjectModel.hydrate({
 
 let templates: Map<string, ReturnType<typeof DocumentTemplateModel.hydrate>>;
 let documents: Map<string, ReturnType<typeof DocumentModel.hydrate>>;
+let files: Map<string, ReturnType<typeof FileMetadataModel.hydrate>>;
 
 function stubStore() {
   templates = new Map([
@@ -74,6 +93,16 @@ function stubStore() {
     ]
   ]);
   documents = new Map();
+  files = new Map();
+  vi.spyOn(FileMetadataModel, 'create').mockImplementation((async (doc: Record<string, unknown>) => {
+    const created = FileMetadataModel.hydrate({ _id: new Types.ObjectId(), ...doc, ...timestamps });
+    files.set(String(created._id), created);
+    return created;
+  }) as never);
+  vi.spyOn(FileMetadataModel, 'findById').mockImplementation(((id: unknown) =>
+    Promise.resolve(files.get(String(id)) ?? null)) as never);
+  vi.spyOn(ClientModel, 'updateOne').mockResolvedValue({} as never);
+  vi.spyOn(PackModel, 'updateMany').mockResolvedValue({} as never);
 
   vi.spyOn(ClientModel, 'findById').mockImplementation(((id: unknown) =>
     Promise.resolve(String(id) === String(clientId) ? client : null)) as never);
@@ -99,19 +128,6 @@ function stubStore() {
 }
 
 const pdfBytes = Buffer.from('%PDF-1.7 fake');
-
-const fixtureHtml = {
-  html: '<p>Hello {{client.company}} - {{project.name}}</p>',
-  headerHtml: '<p>{{client.company}}</p>',
-  footerHtml: '<p>Page {{page.number}} of {{page.total}}</p>'
-};
-
-/** Creates a blank Draft through the API, then seeds the old template-derived body (templates no longer carry HTML). */
-async function createFixtureDoc(app: ReturnType<typeof createApp>, body: Record<string, unknown>) {
-  const response = await request(app).post('/documents').send({ title: 'Proposal', ...body }).expect(201);
-  Object.assign(documents.get(response.body.document.id)!, fixtureHtml);
-  return { ...response, body: { document: { ...response.body.document, ...fixtureHtml } } };
-}
 
 describe('document template routes', () => {
   const docUrl = 'https://docs.google.com/document/d/1AbCdEfGhIjKlMnOpQrStUvWxYz0123456789/edit';
@@ -174,195 +190,128 @@ describe('document template routes', () => {
     await request(createApp()).get('/document-templates/not-an-id').expect(404);
   });
 
-  it('answers 501 when creating a document from a template (until Stage 3)', async () => {
-    await request(createApp()).post('/documents').send({ template: String(templateId) }).expect(501);
-  });
 });
+
+
+function mockList() {
+  const find = vi.spyOn(DocumentModel, 'find').mockReturnValue({
+    populate() { return this; },
+    sort() { return this; },
+    skip() { return this; },
+    limit() { return Promise.resolve([...documents.values()].map((d) => Object.assign(d, { client, template: templates.get(String(templateId)) }))); }
+  } as never);
+  vi.spyOn(DocumentModel, 'countDocuments').mockResolvedValue(1 as never);
+  return find;
+}
+
+function mockDrive() {
+  vi.mocked(copyFile).mockReset().mockResolvedValue({ id: 'copy1', name: 'x', webViewLink: 'https://docs.google.com/document/d/copy1/edit' });
+  vi.mocked(createBlankDoc).mockReset().mockResolvedValue({ id: 'blank1', name: 'x', webViewLink: 'https://docs.google.com/document/d/blank1/edit' });
+  vi.mocked(ensureFolder).mockReset().mockResolvedValue('folder1');
+  vi.mocked(moveToFolder).mockReset().mockResolvedValue(undefined);
+  vi.mocked(renameFile).mockReset().mockResolvedValue({ id: 'copy1', name: 'x' });
+  vi.mocked(setAccess).mockReset().mockImplementation(async (_id, entries) =>
+    entries.map((entry) => ({ ...entry, permissionId: `p-${entry.email}` })));
+  vi.mocked(setLocked).mockReset().mockResolvedValue(undefined);
+  vi.mocked(exportPdf).mockReset().mockResolvedValue(Buffer.from('%PDF-1.7 fake'));
+  vi.mocked(trashFile).mockReset().mockResolvedValue(undefined);
+  vi.mocked(getFile).mockReset().mockResolvedValue({ id: 'copy1', name: 'x', headRevisionId: 'rev1' });
+  vi.mocked(replacePlaceholders).mockClear();
+}
 
 describe('document routes', () => {
   beforeEach(() => {
     s3.reset();
     stubStore();
+    mockDrive();
   });
-  afterEach(() => {
-    vi.restoreAllMocks();
-    vi.unstubAllGlobals();
-  });
+  afterEach(() => vi.restoreAllMocks());
 
-  async function createDoc(app = createApp()) {
-    const response = await createFixtureDoc(app, { client: String(clientId), project: String(projectId) });
+  async function createDoc(app = createApp(), body: Record<string, unknown> = {}) {
+    const response = await request(app)
+      .post('/documents')
+      .send({ template: String(templateId), client: String(clientId), project: String(projectId), ...body })
+      .expect(201);
     return response.body.document;
   }
 
-  it('creates a blank, unassigned document without logging client activity', async () => {
+  it('creates from a template: copies, files under the client folder, fills placeholders and shares', async () => {
+    vi.mocked(logActivity).mockClear();
+    const doc = await createDoc(createApp(), { access: [{ email: 'Bob@Example.com', role: 'writer' }] });
+    expect(copyFile).toHaveBeenCalledWith('1AbCdEfGhIjKlMnOpQrStUvWxYz0123456789', expect.stringContaining('Acme <Corp>'));
+    expect(ensureFolder).toHaveBeenCalledWith('Acme <Corp>', 'root');
+    expect(moveToFolder).toHaveBeenCalledWith('copy1', 'folder1');
+    expect(replacePlaceholders).toHaveBeenCalledWith('copy1', expect.objectContaining({ 'client.company': 'Acme <Corp>', 'project.name': 'Website' }));
+    expect(setAccess).toHaveBeenCalledWith('copy1', [{ email: 'bob@example.com', role: 'writer' }]);
+    expect(doc).toMatchObject({ status: 'Draft', googleFileId: 'copy1', webViewLink: expect.stringContaining('copy1'), hasPdf: false, pdfStale: false });
+    expect(doc.access).toEqual([{ email: 'bob@example.com', role: 'writer' }]);
+    expect(logActivity).toHaveBeenCalledWith(expect.objectContaining({ entityType: 'Client', action: 'document-created' }));
+  });
+
+  it('creates a blank, unassigned document in the root folder', async () => {
     vi.mocked(logActivity).mockClear();
     const response = await request(createApp()).post('/documents').send({}).expect(201);
-    expect(response.body.document).toMatchObject({ title: 'Untitled document', status: 'Draft', html: '', headerHtml: '', footerHtml: '' });
-    expect(response.body.document.client).toBeUndefined();
-    expect(response.body.document.template).toBeUndefined();
+    expect(response.body.document).toMatchObject({ title: 'Untitled document', status: 'Draft', googleFileId: 'blank1' });
+    expect(createBlankDoc).toHaveBeenCalledWith('Untitled document', 'root');
+    expect(replacePlaceholders).not.toHaveBeenCalled();
     expect(logActivity).not.toHaveBeenCalled();
   });
 
-  it('returns legacy full-shell documents body-only', async () => {
-    const legacy = DocumentModel.hydrate({
-      _id: new Types.ObjectId(),
-      title: 'Old',
-      client: clientId,
-      template: templateId,
-      templateVersion: 1,
-      html: '<!doctype html><html><head><style>p{}</style></head><body>\n<p>Merged Acme</p>\n</body></html>',
-      status: 'Sent',
-      ...timestamps
-    });
-    documents.set(String(legacy._id), legacy);
-    const response = await request(createApp()).get(`/documents/${String(legacy._id)}`).expect(200);
-    expect(response.body.document.html).toBe('<p>Merged Acme</p>');
+  it('rejects a project that belongs to another client', async () => {
+    vi.spyOn(ProjectModel, 'findById').mockResolvedValue(ProjectModel.hydrate({ _id: projectId, projectName: 'Other', client: otherClientId, status: 'Not Started', ...timestamps }) as never);
+    await request(createApp()).post('/documents').send({ client: String(clientId), project: String(projectId) }).expect(400);
   });
 
   it('resolves the variable registry against the assigned client/project', async () => {
-    const app = createApp();
-    const created = await createDoc(app);
-    const response = await request(app).get(`/documents/${created.id}/variables`).expect(200);
-    const byKey = Object.fromEntries(
-      response.body.variables.map((variable: { key: string; value: string | null }) => [variable.key, variable])
-    );
-    expect(byKey['client.company']).toMatchObject({ label: 'Client company', group: 'client', value: 'Acme <Corp>' });
-    expect(byKey['project.name'].value).toBe('Website');
-    expect(byKey['client.phone'].value).toBeNull();
-
-    const blank = await request(app).post('/documents').send({}).expect(201);
-    const unassigned = await request(app).get(`/documents/${blank.body.document.id}/variables`).expect(200);
-    const blankByKey = Object.fromEntries(
-      unassigned.body.variables.map((variable: { key: string; value: string | null }) => [variable.key, variable.value])
-    );
-    expect(blankByKey['client.company']).toBeNull();
-    expect(blankByKey['agency.name']).toEqual(expect.any(String));
+    const doc = await createDoc();
+    const response = await request(createApp()).get(`/documents/${doc.id}/variables`).expect(200);
+    const byKey = Object.fromEntries(response.body.variables.map((v: { key: string; value: string | null }) => [v.key, v.value]));
+    expect(byKey['client.company']).toBe('Acme <Corp>');
+    expect(byKey['project.name']).toBe('Website');
   });
 
-  it('refuses to share a document without a client (422)', async () => {
+  it('renames in Drive, reassigns, refills and replaces access on a Draft', async () => {
     const app = createApp();
-    const blank = await request(app).post('/documents').send({}).expect(201);
-    await request(app).post(`/documents/${blank.body.document.id}/share`).expect(422);
-    expect(documents.get(blank.body.document.id)?.status).toBe('Draft');
+    const doc = await createDoc(app, { client: undefined, project: undefined });
+    const renamed = await request(app).patch(`/documents/${doc.id}`).send({ title: 'Renamed' }).expect(200);
+    expect(renameFile).toHaveBeenCalledWith('copy1', 'Renamed');
+    expect(renamed.body.document.title).toBe('Renamed');
+    await request(app).post(`/documents/${doc.id}/refill`).expect(422);
+    const assigned = await request(app).patch(`/documents/${doc.id}`).send({ client: String(clientId) }).expect(200);
+    expect(assigned.body.document.client).toBe(String(clientId));
+    expect(moveToFolder).toHaveBeenCalledWith('copy1', 'folder1');
+    await request(app).post(`/documents/${doc.id}/refill`).expect(200);
+    expect(replacePlaceholders).toHaveBeenCalledTimes(1);
+    const access = await request(app).put(`/documents/${doc.id}/access`).send({ access: [{ email: 'a@x.com', role: 'reader' }] }).expect(200);
+    expect(access.body.document.access).toEqual([{ email: 'a@x.com', role: 'reader' }]);
+    await request(app).patch(`/documents/${doc.id}`).send({}).expect(400);
+    await request(app).patch(`/documents/${new Types.ObjectId()}`).send({ title: 'x' }).expect(404);
   });
 
-  it('merges chip spans, plain placeholders and header/footer at share, keeping page tokens', async () => {
+  it('saves a categorized PDF to the client files, then flags it stale when the doc changes', async () => {
     const app = createApp();
-    const created = await createDoc(app);
-    await request(app)
-      .patch(`/documents/${created.id}`)
-      .send({ html: '<p>Dear <span data-variable="client.company">{{client.company}}</span>, re {{project.name}}</p>' })
-      .expect(200);
-
-    const shared = await request(app).post(`/documents/${created.id}/share`).expect(200);
-    expect(shared.body.document).toMatchObject({
-      status: 'Sent',
-      html: '<p>Dear Acme &lt;Corp&gt;, re Website</p>',
-      headerHtml: '<p>Acme &lt;Corp&gt;</p>',
-      footerHtml: '<p>Page {{page.number}} of {{page.total}}</p>'
-    });
-    expect(shared.body.document.mergedAt).toEqual(expect.any(String));
-    expect(logActivity).toHaveBeenCalledWith(expect.objectContaining({ action: 'document-shared', entityId: String(clientId) }));
-  });
-
-  it('keeps span-wrapped page tokens in header/footer through share and the PDF band templates', async () => {
-    vi.mocked(htmlToPdf).mockClear().mockResolvedValue(pdfBytes);
+    const doc = await createDoc(app);
     s3.on(PutObjectCommand).resolves({});
-    const { buildBandTemplate } = await vi.importActual<typeof import('../pdf/pdf.renderer.js')>('../pdf/pdf.renderer.js');
-    const app = createApp();
-    const created = await createDoc(app);
-    const chip = (key: string) => `<span data-variable="${key}">{{${key}}}</span>`;
-    await request(app)
-      .patch(`/documents/${created.id}`)
-      .send({
-        headerHtml: `<p>${chip('client.company')} · ${chip('page.number')}</p>`,
-        footerHtml: `<p>Page ${chip('page.number')} of ${chip('page.total')}</p>`
-      })
-      .expect(200);
-    expect(documents.get(created.id)?.footerHtml).toBe(`<p>Page ${chip('page.number')} of ${chip('page.total')}</p>`);
-
-    const shared = await request(app).post(`/documents/${created.id}/share`).expect(200);
-    expect(shared.body.document).toMatchObject({
-      headerHtml: '<p>Acme &lt;Corp&gt; · {{page.number}}</p>',
-      footerHtml: '<p>Page {{page.number}} of {{page.total}}</p>'
-    });
-
-    await request(app).post(`/documents/${created.id}/pdf`).expect(200);
-    const options = vi.mocked(htmlToPdf).mock.calls[0][1];
-    const header = buildBandTemplate(options?.document?.headerHtml ?? '', 'header');
-    const footer = buildBandTemplate(options?.document?.footerHtml ?? '', 'footer');
-    expect(header).toContain('Acme &lt;Corp&gt; · <span class="pageNumber"></span>');
-    expect(footer).toContain('Page <span class="pageNumber"></span> of <span class="totalPages"></span>');
-    expect(footer).not.toContain('{{');
-  });
-
-  it('renders a Draft PDF with live values, [Label] for missing ones and the header/footer bands', async () => {
-    vi.mocked(htmlToPdf).mockClear().mockResolvedValue(pdfBytes);
-    s3.on(PutObjectCommand).resolves({});
-    const app = createApp();
-    const created = await createFixtureDoc(app, { client: String(clientId) });
-
-    await request(app).post(`/documents/${created.body.document.id}/pdf`).expect(200);
-    const [html, options] = vi.mocked(htmlToPdf).mock.calls[0];
-    expect(html).toContain('<div class="document-content">');
-    expect(html).toContain('Hello Acme &lt;Corp&gt; - [Project name]');
-    expect(options?.document).toEqual({
-      headerHtml: '<p>Acme &lt;Corp&gt;</p>',
-      footerHtml: '<p>Page {{page.number}} of {{page.total}}</p>'
-    });
-  });
-
-  it('rejects a project that belongs to another client', async () => {
-    vi.mocked(ProjectModel.findById).mockResolvedValue(
-      ProjectModel.hydrate({ _id: projectId, projectName: 'Other', client: otherClientId, status: 'Not Started', ...timestamps }) as never
-    );
-    const response = await request(createApp())
-      .post('/documents')
-      .send({ client: String(clientId), project: String(projectId) })
-      .expect(400);
-    expect(response.body.message ?? response.body.error).toMatch(/does not belong/);
-  });
-
-  it('generates the PDF once and reuses it while the snapshot is unchanged', async () => {
-    const fetchMock = vi.mocked(htmlToPdf).mockClear().mockResolvedValue(pdfBytes);
-    s3.on(PutObjectCommand).resolves({});
-    const app = createApp();
-    const created = await createDoc(app);
-
-    const first = await request(app).post(`/documents/${created.id}/pdf`).expect(200);
-    expect(first.body).toMatchObject({ expiresIn: 60, generated: true });
-    expect(first.body.url).toContain(`documents/${created.id}.pdf`);
-    const put = s3.commandCalls(PutObjectCommand)[0].args[0].input;
-    expect(put).toMatchObject({ Key: `documents/${created.id}.pdf`, ContentType: 'application/pdf' });
-
-    const second = await request(app).post(`/documents/${created.id}/pdf`).expect(200);
-    expect(second.body.generated).toBe(false);
-    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const saved = await request(app)
+      .post(`/documents/${doc.id}/pdf`)
+      .send({ category: 'Proposal', filename: 'acme_proposal', clientVisible: true })
+      .expect(201);
+    expect(saved.body.file).toMatchObject({ filename: 'acme_proposal.pdf', category: 'Proposal', clientVisible: true, sourceDocument: doc.id });
+    expect(saved.body.document).toMatchObject({ hasPdf: true, pdfStale: false });
     expect(s3.commandCalls(PutObjectCommand)).toHaveLength(1);
-  });
 
-  it('maps a PDF render failure to 502 without storing anything', async () => {
-    vi.mocked(htmlToPdf).mockRejectedValue(new HttpError(502, 'PDF generation failed'));
-    const app = createApp();
-    const created = await createDoc(app);
+    const same = await request(app).get(`/documents/${doc.id}`).expect(200);
+    expect(same.body.document.pdfStale).toBe(false);
+    vi.mocked(getFile).mockResolvedValue({ id: 'copy1', name: 'x', headRevisionId: 'rev2' });
+    const changed = await request(app).get(`/documents/${doc.id}`).expect(200);
+    expect(changed.body.document.pdfStale).toBe(true);
+    mockList();
+    const list = await request(app).get('/documents').expect(200);
+    expect(list.body.documents[0].pdfStale).toBe(true);
 
-    await request(app).post(`/documents/${created.id}/pdf`).expect(502);
-    expect(s3.commandCalls(PutObjectCommand)).toHaveLength(0);
-    expect(documents.get(created.id)?.pdfKey).toBeUndefined();
-  });
-
-  it('streams the PDF only after it has been generated', async () => {
-    vi.mocked(htmlToPdf).mockResolvedValue(pdfBytes);
-    s3.on(PutObjectCommand).resolves({});
-    s3.on(GetObjectCommand).resolves({ Body: Readable.from([pdfBytes]) as never });
-    const app = createApp();
-    const created = await createDoc(app);
-
-    await request(app).get(`/documents/${created.id}/pdf`).expect(404);
-    await request(app).post(`/documents/${created.id}/pdf`).expect(200);
-
-    const response = await request(app)
-      .get(`/documents/${created.id}/pdf`)
+    s3.on(GetObjectCommand).resolves({ Body: Readable.from([pdfBytes]) } as never);
+    const download = await request(app)
+      .get(`/documents/${doc.id}/pdf`)
       .buffer(true)
       .parse((res, done) => {
         const chunks: Buffer[] = [];
@@ -370,120 +319,64 @@ describe('document routes', () => {
         res.on('end', () => done(null, Buffer.concat(chunks)));
       })
       .expect(200);
-    expect(response.headers['content-type']).toBe('application/pdf');
-    expect(response.headers['content-disposition']).toContain('attachment;');
-    expect(Buffer.from(response.body).equals(pdfBytes)).toBe(true);
+    expect(download.headers['content-type']).toBe('application/pdf');
+    expect(Buffer.from(download.body).equals(pdfBytes)).toBe(true);
   });
 
-  it('lists documents with filters, title search and pagination, populating client and template', async () => {
-    const populated = DocumentModel.hydrate({
-      _id: new Types.ObjectId(),
-      title: 'Proposal',
-      status: 'Draft',
-      ...timestamps
-    });
-    populated.set('client', { _id: clientId, companyName: 'Acme <Corp>' }, { strict: false });
-    const chain = {
-      select: vi.fn(() => chain),
-      populate: vi.fn(() => chain),
-      sort: vi.fn(() => chain),
-      skip: vi.fn(() => chain),
-      limit: vi.fn(async () => [populated])
-    };
-    const find = vi.spyOn(DocumentModel, 'find').mockReturnValue(chain as never);
-    vi.spyOn(DocumentModel, 'countDocuments').mockResolvedValue(51 as never);
-
-    const response = await request(createApp()).get(`/documents?client=${String(clientId)}&q=prop.&page=2&limit=25`).expect(200);
-    expect(find).toHaveBeenCalledWith({ client: String(clientId), title: { $regex: 'prop\\.', $options: 'i' } });
-    expect(chain.select).toHaveBeenCalledWith('-html -headerHtml -footerHtml');
-    expect(chain.populate).toHaveBeenCalledWith('client', 'companyName');
-    expect(chain.populate).toHaveBeenCalledWith('template', 'name');
-    expect(chain.skip).toHaveBeenCalledWith(25);
-    expect(chain.limit).toHaveBeenCalledWith(25);
-    expect(response.body).toMatchObject({ total: 51, page: 2, limit: 25 });
-    expect(response.body.documents[0]).toMatchObject({ title: 'Proposal', template: null });
-    expect(response.body.documents[0].html).toBeUndefined();
-
-    await request(createApp()).get('/documents').expect(200);
-    expect(find).toHaveBeenLastCalledWith({});
-    await request(createApp()).get('/documents?client=bogus').expect(200, { documents: [], total: 0, page: 1, limit: 50 });
-  });
-});
-
-describe('PATCH /documents/:id', () => {
-  beforeEach(() => {
-    s3.reset();
-    stubStore();
-  });
-  afterEach(() => vi.restoreAllMocks());
-
-  async function createDoc(app: ReturnType<typeof createApp>) {
-    const response = await createFixtureDoc(app, { client: String(clientId) });
-    return response.body.document as { id: string };
-  }
-
-  it('edits a Draft and stores sanitized body-only HTML, header and footer', async () => {
+  it('answers 422 saving a PDF without a client and 404 downloading before one exists', async () => {
     const app = createApp();
-    const created = await createDoc(app);
-
-    const response = await request(app)
-      .patch(`/documents/${created.id}`)
-      .send({
-        html: '<p onclick="x()">Edited {{not.a.var}}</p><script>alert(1)</script><div data-page-break="true"></div>',
-        headerHtml: '<p><img src="data:image/png;base64,AAAA" onerror="x()"> Logo</p>',
-        footerHtml: '<p>{{page.number}}</p>',
-        title: 'Renamed'
-      })
-      .expect(200);
-
-    expect(response.body.document).toMatchObject({
-      title: 'Renamed',
-      html: '<p>Edited {{not.a.var}}</p><div data-page-break="true"></div>',
-      headerHtml: '<p><img src="data:image/png;base64,AAAA" /> Logo</p>',
-      footerHtml: '<p>{{page.number}}</p>'
-    });
-    expect(documents.get(created.id)?.html).not.toContain('<!doctype html>');
+    const doc = await createDoc(app, { client: undefined, project: undefined });
+    await request(app).post(`/documents/${doc.id}/pdf`).send({ category: 'Other', filename: 'x' }).expect(422);
+    await request(app).get(`/documents/${doc.id}/pdf`).expect(404);
   });
 
-  it('rejects page tokens in the body', async () => {
+  it('shares: snapshot PDF + lock + Sent; revise unlocks back to Draft; shared docs are not editable or deletable', async () => {
     const app = createApp();
-    const created = await createDoc(app);
-    await request(app).patch(`/documents/${created.id}`).send({ html: '<p>Page {{ page.number }}</p>' }).expect(400);
-    await request(app)
-      .patch(`/documents/${created.id}`)
-      .send({ html: '<p>Page <span data-variable="page.total"></span></p>' })
-      .expect(400);
+    const doc = await createDoc(app);
+    const shared = await request(app).post(`/documents/${doc.id}/share`).expect(200);
+    expect(shared.body.document).toMatchObject({ status: 'Sent', hasPdf: true });
+    expect(setLocked).toHaveBeenCalledWith('copy1', true);
+    expect([...files.values()][0]).toMatchObject({ category: 'Proposal', clientVisible: false });
+    await request(app).patch(`/documents/${doc.id}`).send({ title: 'x' }).expect(409);
+    await request(app).delete(`/documents/${doc.id}`).expect(409);
+
+    const revised = await request(app).post(`/documents/${doc.id}/revise`).expect(200);
+    expect(revised.body.document.status).toBe('Draft');
+    expect(setLocked).toHaveBeenLastCalledWith('copy1', false);
   });
 
-  it('assigns and unassigns the client and project', async () => {
+  it('refuses to share a document without a client (422) and to revise a signed one (409)', async () => {
     const app = createApp();
-    const blank = (await request(app).post('/documents').send({}).expect(201)).body.document as { id: string };
-
-    const assigned = await request(app)
-      .patch(`/documents/${blank.id}`)
-      .send({ client: String(clientId), project: String(projectId) })
-      .expect(200);
-    expect(assigned.body.document).toMatchObject({ client: String(clientId), project: String(projectId) });
-
-    await request(app).patch(`/documents/${blank.id}`).send({ client: String(otherClientId) }).expect(404);
-
-    const cleared = await request(app).patch(`/documents/${blank.id}`).send({ client: null }).expect(200);
-    expect(cleared.body.document.client).toBeUndefined();
-    expect(cleared.body.document.project).toBeUndefined();
+    const blank = await createDoc(app, { client: undefined, project: undefined });
+    await request(app).post(`/documents/${blank.id}/share`).expect(422);
+    const signed = await createDoc(app);
+    documents.get(signed.id)!.status = 'Signed';
+    await request(app).post(`/documents/${signed.id}/revise`).expect(409);
   });
 
-  it('rejects edits to a document that is no longer a Draft', async () => {
+  it('deletes a Draft: trashes in Drive and removes the row', async () => {
     const app = createApp();
-    const created = await createDoc(app);
-    documents.get(created.id)!.status = 'Sent';
-
-    await request(app).patch(`/documents/${created.id}`).send({ html: '<p>x</p>' }).expect(409);
+    const doc = await createDoc(app);
+    const row = documents.get(doc.id)!;
+    vi.spyOn(row, 'deleteOne').mockResolvedValue({} as never);
+    await request(app).delete(`/documents/${doc.id}`).expect(204);
+    expect(trashFile).toHaveBeenCalledWith('copy1');
+    expect(row.deleteOne).toHaveBeenCalled();
   });
 
-  it('rejects an empty update and unknown documents', async () => {
+  it('lists with filters and populates client and template', async () => {
     const app = createApp();
-    const created = await createDoc(app);
-    await request(app).patch(`/documents/${created.id}`).send({}).expect(400);
-    await request(app).patch(`/documents/${String(new Types.ObjectId())}`).send({ html: '<p>x</p>' }).expect(404);
+    await createDoc(app);
+    const find = mockList();
+    const response = await request(app).get('/documents?status=Draft&q=acme').expect(200);
+    expect(find).toHaveBeenCalledWith(expect.objectContaining({ status: 'Draft', title: expect.anything() }));
+    expect(response.body.documents[0]).toMatchObject({ client: { companyName: 'Acme <Corp>' }, template: { name: 'Proposal' } });
+    await request(app).get('/documents?client=not-an-id').expect(200);
+  });
+
+  it('409s Google actions when no account is connected', async () => {
+    const { requireGoogle } = await import('../google/google.client.js');
+    vi.mocked(requireGoogle).mockRejectedValueOnce(new HttpError(409, 'Google not connected'));
+    await request(createApp()).post('/documents').send({}).expect(409);
   });
 });

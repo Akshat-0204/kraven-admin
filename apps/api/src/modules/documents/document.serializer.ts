@@ -2,7 +2,6 @@ import type { DocumentDetailRecord, DocumentListItem, DocumentRecord, DocumentTe
 import { Types } from 'mongoose';
 import type { DocumentDocument } from './document.model.js';
 import type { DocumentTemplateDocument } from './documentTemplate.model.js';
-import { extractBody } from './merge.service.js';
 
 export function serializeDocumentTemplate(template: DocumentTemplateDocument & { _id: unknown }): DocumentTemplateRecord {
   return {
@@ -29,11 +28,15 @@ function baseFields(document: DocumentDocument & { _id: unknown }) {
   return {
     id: String(document._id),
     title: document.title,
+    type: document.type,
     project: refId(document.project),
-    templateVersion: document.templateVersion,
+    googleFileId: document.googleFileId,
+    webViewLink: document.webViewLink,
     status: document.status,
-    hasPdf: Boolean(document.pdfKey),
-    mergedAt: document.mergedAt ? document.mergedAt.toISOString() : undefined,
+    access: (document.access ?? []).map(({ email, role }) => ({ email, role })),
+    pdfFile: refId(document.pdfFile),
+    hasPdf: Boolean(document.pdfFile),
+    lockedAt: document.lockedAt ? document.lockedAt.toISOString() : undefined,
     createdAt: document.createdAt.toISOString(),
     updatedAt: document.updatedAt.toISOString()
   };
@@ -44,11 +47,15 @@ export function serializeDocument(document: DocumentDocument & { _id: unknown })
 }
 
 /** List item: `client` / `template` populated by `listDocuments` (null when unset or deleted). */
-export function serializeDocumentListItem(document: DocumentDocument & { _id: unknown }): DocumentListItem {
+export function serializeDocumentListItem(
+  document: DocumentDocument & { _id: unknown },
+  pdfStale = false
+): DocumentListItem {
   const client = document.client as unknown as { _id: unknown; companyName?: string } | undefined | null;
   const template = document.template as unknown as { _id: unknown; name?: string } | undefined | null;
   return {
     ...baseFields(document),
+    pdfStale,
     client: client && typeof client === 'object' && 'companyName' in client
       ? { _id: String(client._id), companyName: client.companyName ?? '' }
       : null,
@@ -58,12 +65,6 @@ export function serializeDocumentListItem(document: DocumentDocument & { _id: un
   };
 }
 
-/** Detail: `html` is always body-only (legacy full print shells are unwrapped). */
-export function serializeDocumentDetail(document: DocumentDocument & { _id: unknown }): DocumentDetailRecord {
-  return {
-    ...serializeDocument(document),
-    html: extractBody(document.html ?? ''),
-    headerHtml: document.headerHtml ?? '',
-    footerHtml: document.footerHtml ?? ''
-  };
+export function serializeDocumentDetail(document: DocumentDocument & { _id: unknown }, pdfStale = false): DocumentDetailRecord {
+  return { ...serializeDocument(document), pdfStale };
 }

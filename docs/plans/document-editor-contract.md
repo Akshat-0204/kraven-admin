@@ -1,6 +1,6 @@
 # Document editor — shared contract (backend ⇄ web)
 
-Status: agreed 2026-11-27. Both the backend agent and the editor agent build against this. Deviations must be reported.
+Status: SUPERSEDED by docs/plans/google-docs-plan.md (documents are now Google Drive copies; Tiptap editor removed). Originally agreed 2026-11-27. Both the backend agent and the editor agent build against this. Deviations must be reported.
 
 ## Decisions (locked by owner)
 - Documents get their own CRM nav item `/documents` (list + "New document"); Templates become a tab there.

@@ -11,7 +11,7 @@ import { logActivity } from '../../shared/activity/activity.service.js';
 import { HttpError } from '../../shared/errors/httpError.js';
 import { ClientModel } from '../clients/client.model.js';
 import { DocumentModel } from '../documents/document.model.js';
-import { ensureDocumentPdf, openDocumentPdf } from '../documents/document.service.js';
+import { openDocumentPdf } from '../documents/document.service.js';
 import { derivePaymentStatus } from '../finance/finance.calculations.js';
 import { InvoiceModel } from '../finance/invoice.model.js';
 import { FileMetadataModel, type FileMetadataDocument } from '../files/file.model.js';
@@ -134,7 +134,7 @@ export async function listPortalDocuments(clientId: string): Promise<PortalDocum
 }
 
 /**
- * Opens a client's (non-draft) document PDF, generating it if needed. The first open of a Sent
+ * Opens a client's (non-draft) document snapshot PDF. The first open of a Sent
  * document marks it Viewed (atomic, so it is logged once) and records an activity event.
  */
 export async function openPortalDocumentPdf(clientId: string, documentId: string) {
@@ -143,8 +143,6 @@ export async function openPortalDocumentPdf(clientId: string, documentId: string
     .select('title status')
     .lean();
   if (!document) throw new HttpError(404, 'Not found');
-
-  await ensureDocumentPdf(documentId);
 
   if (document.status === 'Sent') {
     const result = await DocumentModel.updateOne({ _id: documentId, status: 'Sent' }, { $set: { status: 'Viewed' } });

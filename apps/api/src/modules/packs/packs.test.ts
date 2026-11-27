@@ -15,6 +15,17 @@ vi.mock('../../middleware/authenticate.js', async () => {
   return { authenticate: authenticateAsTestUser };
 });
 
+vi.mock('../google/google.client.js', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../google/google.client.js')>()),
+  requireGoogle: vi.fn(async () => ({ status: 'connected', email: 'agency@example.com', rootFolderId: 'root' }))
+}));
+vi.mock('../google/drive.service.js', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../google/drive.service.js')>()),
+  getFile: vi.fn(async () => ({ id: 'g', name: 'Doc', headRevisionId: 'rev1' })),
+  exportPdf: vi.fn(async () => Buffer.from('%PDF-1.7 fake')),
+  setLocked: vi.fn(async () => undefined)
+}));
+
 const s3 = mockClient(S3Client);
 const CODE = 'ABCD2345EF';
 const sha256 = (value: string | Buffer) => createHash('sha256').update(value).digest('hex');
@@ -35,18 +46,24 @@ function seed() {
     });
   const a = mk('Acme', 'acme');
   const b = mk('Beta', 'beta');
-  const html = '<p>x</p>';
-  const doc = (client: Record<string, any>, title: string, status: string) =>
-    store.insert('Document', {
+  const doc = (client: Record<string, any>, title: string, status: string) => {
+    const file = store.insert('FileMetadata', {
+      bucketKey: `documents/${title}.pdf`,
+      filename: `${title}.pdf`,
+      contentType: 'application/pdf',
+      length: 10,
+      associatedEntityType: 'Client',
+      associatedEntityId: client._id
+    });
+    return store.insert('Document', {
       title,
       client: client._id,
-      template: new Types.ObjectId(),
-      templateVersion: 1,
-      html,
+      googleFileId: `g-${title}`,
+      webViewLink: 'https://docs.google.com/document/d/x/edit',
       status,
-      pdfKey: `documents/${title}.pdf`,
-      pdfSourceHash: sha256(html)
+      pdfFile: file._id
     });
+  };
   const docs = { a: doc(a, 'Acme Contract', 'Sent'), aOutside: doc(a, 'Not in pack', 'Sent'), b: doc(b, 'Beta Contract', 'Sent') };
   const pack = (client: Record<string, any>, title: string, items: Record<string, unknown>[], status = 'Sent') =>
     store.insert('Pack', { client: client._id, title, status, items, sentAt: new Date() });

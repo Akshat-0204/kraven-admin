@@ -2,8 +2,12 @@ import { Router } from 'express';
 import { asyncHandler } from '../../middleware/asyncHandler.js';
 import {
   createDocumentController,
+  deleteDocumentController,
   downloadDocumentPdfController,
-  generateDocumentPdfController,
+  refillDocumentController,
+  reviseDocumentController,
+  saveDocumentPdfController,
+  setDocumentAccessController,
   getDocumentController,
   getDocumentVariablesController,
   listDocumentsController,
@@ -20,8 +24,12 @@ documentRoutes.post('/', asyncHandler(createDocumentController));
 documentRoutes.get('/:id', asyncHandler(getDocumentController));
 documentRoutes.patch('/:id', asyncHandler(updateDocumentController));
 documentRoutes.get('/:id/variables', asyncHandler(getDocumentVariablesController));
-documentRoutes.post('/:id/pdf', asyncHandler(generateDocumentPdfController));
+documentRoutes.post('/:id/pdf', asyncHandler(saveDocumentPdfController));
 documentRoutes.get('/:id/pdf', asyncHandler(downloadDocumentPdfController));
+documentRoutes.put('/:id/access', asyncHandler(setDocumentAccessController));
+documentRoutes.post('/:id/refill', asyncHandler(refillDocumentController));
+documentRoutes.post('/:id/revise', asyncHandler(reviseDocumentController));
+documentRoutes.delete('/:id', asyncHandler(deleteDocumentController));
 documentRoutes.post('/:id/share', asyncHandler(shareDocumentController));
 documentRoutes.get(
   '/:id/signature',

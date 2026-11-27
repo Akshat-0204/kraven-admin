@@ -192,11 +192,15 @@ export async function listEntityFiles(query: unknown): Promise<(FileMetadataDocu
   >();
 }
 
-/** Shares a file with the client portal, or stops sharing it. */
-export async function setFileClientVisible(id: string, body: unknown) {
-  const { clientVisible } = fileVisibilitySchema.parse(body);
+/** Renames, recategorizes or shares/unshares a file (any subset of the fields). */
+export async function updateFileMetadata(id: string, body: unknown) {
+  const input = fileVisibilitySchema.parse(body);
   const metadata = await getFileMetadata(id);
-  metadata.clientVisible = clientVisible;
+  if (input.clientVisible !== undefined) metadata.clientVisible = input.clientVisible;
+  if (input.filename !== undefined) metadata.filename = input.filename;
+  if (input.category !== undefined) metadata.category = input.category;
   await metadata.save();
   return metadata;
 }
+
+export const setFileClientVisible = updateFileMetadata;
