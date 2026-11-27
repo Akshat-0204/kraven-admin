@@ -30,7 +30,7 @@ export const EXPENSE_CATEGORIES = [
   'Other'
 ] as const;
 
-export const DOCUMENT_TEMPLATE_TYPES = ['Proposal', 'Contract', 'Agreement', 'Statement of Work', 'Other'] as const;
+export const DOCUMENT_TEMPLATE_TYPES = ['Proposal', 'Contract', 'Agreement', 'Statement of Work', 'Handover', 'Other'] as const;
 
 export const DOCUMENT_STATUSES = ['Draft', 'Sent', 'Viewed', 'Signed'] as const;
 

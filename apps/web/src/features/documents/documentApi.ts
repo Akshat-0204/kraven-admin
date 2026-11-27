@@ -9,6 +9,7 @@ import type {
   CreateDocumentInput,
   DocumentContextInput,
   DocumentTemplateInput,
+  UpdateDocumentInput,
   UpdateDocumentTemplateInput
 } from '@kraven/validation';
 import { apiUrl, requestJson } from '../../lib/api';
@@ -84,4 +85,16 @@ export function shareDocument(id: string) {
 /** Streams through the API, so it works even when object storage is not publicly reachable. */
 export function documentPdfDownloadUrl(id: string) {
   return apiUrl(`/documents/${id}/pdf`);
+}
+
+export async function getDocument(id: string) {
+  return requestJson<{ document: DocumentDetailRecord }>(`/documents/${id}`);
+}
+
+/** Drafts only. `html` is the document body, not the full print shell. */
+export async function updateDocument(id: string, input: UpdateDocumentInput) {
+  return requestJson<{ document: DocumentDetailRecord }>(`/documents/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify(input)
+  });
 }

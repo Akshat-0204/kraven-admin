@@ -274,3 +274,50 @@ describe('document routes', () => {
     await request(createApp()).get('/documents?client=bogus').expect(200, { documents: [] });
   });
 });
+
+describe('PATCH /documents/:id', () => {
+  beforeEach(() => {
+    s3.reset();
+    stubStore();
+  });
+  afterEach(() => vi.restoreAllMocks());
+
+  async function createDoc(app: ReturnType<typeof createApp>) {
+    const response = await request(app)
+      .post('/documents')
+      .send({ template: String(templateId), client: String(clientId) })
+      .expect(201);
+    return response.body.document as { id: string };
+  }
+
+  it('edits a Draft, sanitizes the HTML and keeps the print shell', async () => {
+    const app = createApp();
+    const created = await createDoc(app);
+
+    const response = await request(app)
+      .patch(`/documents/${created.id}`)
+      .send({ html: '<p onclick="x()">Edited {{not.a.var}}</p><script>alert(1)</script>', title: 'Renamed' })
+      .expect(200);
+
+    expect(response.body.document.title).toBe('Renamed');
+    expect(response.body.document.html).toContain('<!doctype html>');
+    expect(response.body.document.html).toContain('<p>Edited {{not.a.var}}</p>');
+    expect(response.body.document.html).not.toContain('script');
+    expect(response.body.document.html).not.toContain('onclick');
+  });
+
+  it('rejects edits to a document that is no longer a Draft', async () => {
+    const app = createApp();
+    const created = await createDoc(app);
+    documents.get(created.id)!.status = 'Sent';
+
+    await request(app).patch(`/documents/${created.id}`).send({ html: '<p>x</p>' }).expect(409);
+  });
+
+  it('rejects an empty update and unknown documents', async () => {
+    const app = createApp();
+    const created = await createDoc(app);
+    await request(app).patch(`/documents/${created.id}`).send({}).expect(400);
+    await request(app).patch(`/documents/${String(new Types.ObjectId())}`).send({ html: '<p>x</p>' }).expect(404);
+  });
+});

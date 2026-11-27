@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
-import type { CreateDocumentInput, DocumentFilterInput } from '@kraven/validation';
-import { createDocumentSchema, documentFilterSchema } from '@kraven/validation';
+import type { CreateDocumentInput, DocumentFilterInput, UpdateDocumentInput } from '@kraven/validation';
+import { createDocumentSchema, documentFilterSchema, updateDocumentSchema } from '@kraven/validation';
 import { isValidObjectId } from 'mongoose';
 import { logActivity } from '../../shared/activity/activity.service.js';
 import { HttpError } from '../../shared/errors/httpError.js';
@@ -9,7 +9,8 @@ import { htmlToPdf } from '../pdf/gotenberg.client.js';
 import { loadMergeSource } from './document.context.js';
 import { DocumentModel } from './document.model.js';
 import { getDocumentTemplate } from './documentTemplate.service.js';
-import { renderDocumentHtml } from './merge.service.js';
+import { renderDocumentHtml, wrapPrintDocument } from './merge.service.js';
+import { sanitizeTemplateHtml } from './template.sanitize.js';
 
 function sha256(value: string) {
   return createHash('sha256').update(value).digest('hex');
@@ -68,6 +69,30 @@ export async function createDocument(input: CreateDocumentInput, userId?: string
     await logActivity({ entityType: 'Project', entityId: payload.project, action: 'document-created', description });
   }
   return document;
+}
+
+/**
+ * Edits a Draft's content. `html` is the document body (what the editor shows); it is sanitized and
+ * re-wrapped in the print shell. The variable allowlist is not applied: the content is already merged.
+ */
+export async function updateDocument(documentId: string, input: UpdateDocumentInput) {
+  const payload = updateDocumentSchema.parse(input);
+  const document = await getDocument(documentId);
+  if (document.status !== 'Draft') {
+    throw new HttpError(409, 'Only Draft documents can be edited');
+  }
+  if (payload.title !== undefined) document.title = payload.title;
+  if (payload.html !== undefined || payload.title !== undefined) {
+    const body = payload.html !== undefined ? sanitizeTemplateHtml(payload.html) : extractBody(document.html);
+    document.html = wrapPrintDocument(body, document.title);
+  }
+  await document.save();
+  return document;
+}
+
+function extractBody(html: string) {
+  const match = /<body[^>]*>([\s\S]*)<\/body>/i.exec(html);
+  return (match ? match[1] : html).trim();
 }
 
 /** Generates the PDF from the snapshot, reusing the stored one while the snapshot is unchanged. */

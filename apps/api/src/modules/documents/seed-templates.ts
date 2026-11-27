@@ -2,12 +2,12 @@ import { connectDatabase } from '../../config/db.js';
 import { logger } from '../../shared/logger/logger.js';
 import { DocumentTemplateModel } from './documentTemplate.model.js';
 import { prepareTemplateHtml } from './merge.service.js';
-import { PLACEHOLDER_TEMPLATES } from './placeholderTemplates.js';
+import { DEFAULT_TEMPLATES } from './defaultTemplates.js';
 
-/** Idempotent: inserts each placeholder template by name only if it does not exist; never overwrites edits. */
+/** Idempotent: inserts each default template by name only if it does not exist; never overwrites edits. */
 export async function seedDocumentTemplates() {
   let inserted = 0;
-  for (const template of PLACEHOLDER_TEMPLATES) {
+  for (const template of DEFAULT_TEMPLATES) {
     const result = await DocumentTemplateModel.updateOne(
       { name: template.name },
       { $setOnInsert: { ...template, ...prepareTemplateHtml(template.html), version: 1 } },
@@ -21,7 +21,7 @@ export async function seedDocumentTemplates() {
 async function main() {
   await connectDatabase({ required: true });
   const inserted = await seedDocumentTemplates();
-  logger.info({ inserted, total: PLACEHOLDER_TEMPLATES.length }, 'seeded document templates');
+  logger.info({ inserted, total: DEFAULT_TEMPLATES.length }, 'seeded document templates');
   await DocumentTemplateModel.db.close();
 }
 

@@ -299,6 +299,15 @@ export const createDocumentSchema = documentContextSchema.extend({
 
 export type CreateDocumentInput = z.infer<typeof createDocumentSchema>;
 
+export const updateDocumentSchema = z
+  .object({
+    title: z.string().trim().min(1, 'Title is required').optional(),
+    html: z.string().max(500_000, 'Document is too large').optional()
+  })
+  .refine((value) => value.title !== undefined || value.html !== undefined, 'Nothing to update');
+
+export type UpdateDocumentInput = z.infer<typeof updateDocumentSchema>;
+
 export const documentFilterSchema = z.object({
   client: optionalObjectId,
   project: optionalObjectId,

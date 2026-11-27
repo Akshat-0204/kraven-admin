@@ -294,7 +294,7 @@ export interface GlobalSearchResult {
   href: string;
 }
 
-export type DocumentTemplateType = 'Proposal' | 'Contract' | 'Agreement' | 'Statement of Work' | 'Other';
+export type DocumentTemplateType = 'Proposal' | 'Contract' | 'Agreement' | 'Statement of Work' | 'Handover' | 'Other';
 
 export type DocumentStatus = 'Draft' | 'Sent' | 'Viewed' | 'Signed';
 

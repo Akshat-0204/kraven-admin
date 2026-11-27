@@ -6,7 +6,8 @@ import {
   generateDocumentPdfController,
   getDocumentController,
   listDocumentsController,
-  shareDocumentController
+  shareDocumentController,
+  updateDocumentController
 } from './document.controller.js';
 
 import { getDocumentSignature } from '../packs/pack.service.js';
@@ -16,6 +17,7 @@ export const documentRoutes = Router();
 documentRoutes.get('/', asyncHandler(listDocumentsController));
 documentRoutes.post('/', asyncHandler(createDocumentController));
 documentRoutes.get('/:id', asyncHandler(getDocumentController));
+documentRoutes.patch('/:id', asyncHandler(updateDocumentController));
 documentRoutes.post('/:id/pdf', asyncHandler(generateDocumentPdfController));
 documentRoutes.get('/:id/pdf', asyncHandler(downloadDocumentPdfController));
 documentRoutes.post('/:id/share', asyncHandler(shareDocumentController));

@@ -8,7 +8,8 @@ import {
   getDocumentPdfUrl,
   listDocuments,
   openDocumentPdf,
-  shareDocument
+  shareDocument,
+  updateDocument
 } from './document.service.js';
 
 export async function listDocumentsController(req: Request, res: Response) {
@@ -40,4 +41,8 @@ export async function downloadDocumentPdfController(req: Request, res: Response)
 
 export async function shareDocumentController(req: Request, res: Response) {
   res.json({ document: serializeDocumentDetail(await shareDocument(req.params.id)) });
+}
+
+export async function updateDocumentController(req: Request, res: Response) {
+  res.json({ document: serializeDocumentDetail(await updateDocument(req.params.id, req.body)) });
 }
