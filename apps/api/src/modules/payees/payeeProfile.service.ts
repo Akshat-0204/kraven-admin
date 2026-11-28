@@ -32,7 +32,7 @@ async function clearOtherDefaults(id: unknown) {
 }
 
 function duplicateVpa(error: unknown): never {
-  if ((error as { code?: number }).code === 11000) throw new HttpError(409, 'A payee with this UPI ID already exists');
+  if ((error as { code?: number }).code === 11000) throw new HttpError(409, 'A payee with this UPI ID already exists', { vpa: 'A payee with this UPI ID already exists' });
   throw error;
 }
 

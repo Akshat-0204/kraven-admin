@@ -3,6 +3,7 @@ import { expenseFilterSchema, expenseSchema, updateExpenseSchema } from '@kraven
 import { logActivity } from '../../shared/activity/activity.service.js';
 import { HttpError } from '../../shared/errors/httpError.js';
 import { ExpenseModel } from './expense.model.js';
+import { assertObjectId, escapeRegExp } from '../../shared/utils/objectId.js';
 
 export async function listExpenses(filters: ExpenseFilterInput) {
   const parsedFilters = expenseFilterSchema.parse(filters);
@@ -18,8 +19,8 @@ export async function listExpenses(filters: ExpenseFilterInput) {
   }
   if (parsedFilters.search) {
     query.$or = [
-      { name: new RegExp(parsedFilters.search, 'i') },
-      { vendor: new RegExp(parsedFilters.search, 'i') }
+      { name: new RegExp(escapeRegExp(parsedFilters.search), 'i') },
+      { vendor: new RegExp(escapeRegExp(parsedFilters.search), 'i') }
     ];
   }
 
@@ -27,6 +28,7 @@ export async function listExpenses(filters: ExpenseFilterInput) {
 }
 
 export async function getExpenseById(expenseId: string) {
+  assertObjectId(expenseId, 'expense');
   const expense = await ExpenseModel.findById(expenseId);
 
   if (!expense) {

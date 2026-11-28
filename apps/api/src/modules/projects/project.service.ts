@@ -13,6 +13,7 @@ import {
 } from '@kraven/validation';
 import { getEntityActivity, logActivity } from '../../shared/activity/activity.service.js';
 import { HttpError } from '../../shared/errors/httpError.js';
+import { assertObjectId, escapeRegExp } from '../../shared/utils/objectId.js';
 import { ClientModel } from '../clients/client.model.js';
 import { ProjectModel } from './project.model.js';
 
@@ -25,6 +26,7 @@ export async function listProjects(filters: ProjectFilterInput) {
   }
 
   if (parsedFilters.client) {
+    assertObjectId(parsedFilters.client, 'client');
     query.client = parsedFilters.client;
   }
 
@@ -45,8 +47,8 @@ export async function listProjects(filters: ProjectFilterInput) {
 
   if (parsedFilters.search) {
     query.$or = [
-      { projectName: new RegExp(parsedFilters.search, 'i') },
-      { description: new RegExp(parsedFilters.search, 'i') }
+      { projectName: new RegExp(escapeRegExp(parsedFilters.search), 'i') },
+      { description: new RegExp(escapeRegExp(parsedFilters.search), 'i') }
     ];
   }
 
@@ -54,7 +56,7 @@ export async function listProjects(filters: ProjectFilterInput) {
 }
 
 export async function getProjectById(projectId: string) {
-  const project = await ProjectModel.findById(projectId).populate('client');
+  const project = await ProjectModel.findById(assertObjectId(projectId, 'project')).populate('client');
 
   if (!project) {
     throw new HttpError(404, 'Project not found');
@@ -75,7 +77,7 @@ export async function createProject(input: ProjectInput) {
   const client = await ClientModel.findById(payload.client);
 
   if (!client) {
-    throw new HttpError(404, 'Client not found');
+    throw new HttpError(404, 'Client not found', { client: 'Selected client no longer exists' });
   }
 
   const project = await ProjectModel.create(payload);
@@ -99,7 +101,7 @@ export async function createProject(input: ProjectInput) {
 
 export async function updateProject(projectId: string, input: UpdateProjectInput) {
   const payload = updateProjectSchema.parse(input);
-  const project = await ProjectModel.findById(projectId);
+  const project = await ProjectModel.findById(assertObjectId(projectId, 'project'));
 
   if (!project) {
     throw new HttpError(404, 'Project not found');
@@ -148,7 +150,7 @@ export async function updateProject(projectId: string, input: UpdateProjectInput
 }
 
 export async function deleteProject(projectId: string) {
-  const project = await ProjectModel.findById(projectId);
+  const project = await ProjectModel.findById(assertObjectId(projectId, 'project'));
 
   if (!project) {
     throw new HttpError(404, 'Project not found');
@@ -166,7 +168,7 @@ export async function deleteProject(projectId: string) {
 
 export async function addProjectLink(projectId: string, input: unknown) {
   const link = linkSchema.parse(input);
-  const project = await ProjectModel.findById(projectId);
+  const project = await ProjectModel.findById(assertObjectId(projectId, 'project'));
 
   if (!project) {
     throw new HttpError(404, 'Project not found');
@@ -186,13 +188,13 @@ export async function addProjectLink(projectId: string, input: unknown) {
 }
 
 export async function removeProjectLink(projectId: string, linkIndex: number) {
-  const project = await ProjectModel.findById(projectId);
+  const project = await ProjectModel.findById(assertObjectId(projectId, 'project'));
 
   if (!project) {
     throw new HttpError(404, 'Project not found');
   }
 
-  if (linkIndex < 0 || linkIndex >= project.links.length) {
+  if (!Number.isInteger(linkIndex) || linkIndex < 0 || linkIndex >= project.links.length) {
     throw new HttpError(404, 'Link not found');
   }
 
@@ -211,7 +213,7 @@ export async function removeProjectLink(projectId: string, linkIndex: number) {
 
 export async function attachProjectDocument(projectId: string, input: AttachProjectDocumentInput) {
   const document = attachProjectDocumentSchema.parse(input);
-  const project = await ProjectModel.findById(projectId);
+  const project = await ProjectModel.findById(assertObjectId(projectId, 'project'));
 
   if (!project) {
     throw new HttpError(404, 'Project not found');
@@ -231,7 +233,8 @@ export async function attachProjectDocument(projectId: string, input: AttachProj
 }
 
 export async function removeProjectDocument(projectId: string, fileId: string) {
-  const project = await ProjectModel.findById(projectId);
+  assertObjectId(fileId, 'document');
+  const project = await ProjectModel.findById(assertObjectId(projectId, 'project'));
 
   if (!project) {
     throw new HttpError(404, 'Project not found');

@@ -6,6 +6,7 @@ import { ClientModel } from '../clients/client.model.js';
 import { ProjectModel } from '../projects/project.model.js';
 import { computeInvoiceTotals, derivePaymentStatus } from './finance.calculations.js';
 import { InvoiceModel, type InvoiceHydratedDocument } from './invoice.model.js';
+import { assertObjectId, escapeRegExp } from '../../shared/utils/objectId.js';
 
 export async function listInvoices(filters: InvoiceFilterInput) {
   const parsedFilters = invoiceFilterSchema.parse(filters);
@@ -26,7 +27,7 @@ export async function listInvoices(filters: InvoiceFilterInput) {
     };
   }
   if (parsedFilters.search) {
-    query.invoiceNumber = new RegExp(parsedFilters.search, 'i');
+    query.invoiceNumber = new RegExp(escapeRegExp(parsedFilters.search), 'i');
   }
 
   // Read-only: payment status is persisted by the write paths (create/update/payments).
@@ -34,6 +35,7 @@ export async function listInvoices(filters: InvoiceFilterInput) {
 }
 
 export async function getInvoiceById(invoiceId: string) {
+  assertObjectId(invoiceId, 'invoice');
   const invoice = await InvoiceModel.findById(invoiceId);
 
   if (!invoice) {
@@ -87,14 +89,14 @@ export async function createInvoice(input: CreateInvoiceInput) {
   const client = await ClientModel.findById(payload.client);
 
   if (!client) {
-    throw new HttpError(404, 'Client not found');
+    throw new HttpError(404, 'Client not found', { client: 'Selected client no longer exists' });
   }
 
   if (payload.project) {
     const project = await ProjectModel.findById(payload.project);
 
     if (!project) {
-      throw new HttpError(404, 'Project not found');
+      throw new HttpError(404, 'Project not found', { project: 'Selected project no longer exists' });
     }
   }
 

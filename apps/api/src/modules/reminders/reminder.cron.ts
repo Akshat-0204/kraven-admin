@@ -7,6 +7,6 @@ import { runReminders } from './reminder.service.js';
 export function startReminderJob() {
   if (!env.remindersEnabled) return undefined;
   return cron.schedule(env.remindersCron, () => {
-    runReminders().catch((error) => logger.error({ error }, 'reminder run failed'));
+    runReminders().catch((error) => logger.error({ err: error }, 'reminder run failed'));
   });
 }

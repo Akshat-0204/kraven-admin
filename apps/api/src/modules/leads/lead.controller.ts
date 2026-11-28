@@ -45,5 +45,5 @@ export async function deleteLeadController(req: Request, res: Response) {
 export async function convertLeadController(req: Request, res: Response) {
   const client = await convertLeadToClient(req.params.id);
 
-  res.status(201).json({ client: client ? serializeClient(client) : null });
+  res.status(201).json({ client: serializeClient(client) });
 }

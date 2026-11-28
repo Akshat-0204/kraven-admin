@@ -89,19 +89,28 @@ export async function collectReminders(now = new Date(), afterDays = env.reminde
 export async function runReminders(now = new Date()) {
   const targets = await collectReminders(now);
   let sent = 0;
+  let failed = 0;
   for (const target of targets) {
     const client = await ClientModel.findById(target.client);
-    if (!client?.email) continue;
+    if (!client?.email) {
+      logger.warn({ client: target.client }, 'reminder skipped: client missing or has no email');
+      continue;
+    }
     const slug = client.portalAccess?.slug;
     const mail = reminderEmail({
       clientName: client.contactPerson || client.companyName,
       lines: target.lines,
       portalUrl: slug && client.portalAccess?.enabled ? portalUrl(slug) : undefined
     });
-    await sendEmail({ to: client.email, type: 'reminder', ...mail, client: client._id });
-    await target.mark();
-    sent += 1;
+    try {
+      await sendEmail({ to: client.email, type: 'reminder', ...mail, client: client._id });
+      await target.mark();
+      sent += 1;
+    } catch (error) {
+      failed += 1;
+      logger.error({ err: error, client: String(client._id) }, 'reminder email failed');
+    }
   }
-  logger.info({ clients: targets.length, sent }, 'reminder run finished');
-  return { sent };
+  logger.info({ clients: targets.length, sent, failed }, 'reminder run finished');
+  return { sent, failed };
 }

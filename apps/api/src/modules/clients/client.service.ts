@@ -15,6 +15,7 @@ import { getEntityActivity, logActivity } from '../../shared/activity/activity.s
 import { HttpError } from '../../shared/errors/httpError.js';
 import { ProjectModel } from '../projects/project.model.js';
 import { ClientModel } from './client.model.js';
+import { assertObjectId, escapeRegExp } from '../../shared/utils/objectId.js';
 
 export async function listClients(filters: ClientFilterInput) {
   const parsedFilters = clientFilterSchema.parse(filters);
@@ -22,9 +23,9 @@ export async function listClients(filters: ClientFilterInput) {
 
   if (parsedFilters.search) {
     query.$or = [
-      { companyName: new RegExp(parsedFilters.search, 'i') },
-      { contactPerson: new RegExp(parsedFilters.search, 'i') },
-      { email: new RegExp(parsedFilters.search, 'i') }
+      { companyName: new RegExp(escapeRegExp(parsedFilters.search), 'i') },
+      { contactPerson: new RegExp(escapeRegExp(parsedFilters.search), 'i') },
+      { email: new RegExp(escapeRegExp(parsedFilters.search), 'i') }
     ];
   }
 
@@ -32,6 +33,7 @@ export async function listClients(filters: ClientFilterInput) {
 }
 
 export async function getClientById(clientId: string) {
+  assertObjectId(clientId, 'client');
   const client = await ClientModel.findById(clientId);
 
   if (!client) {
@@ -114,7 +116,7 @@ export async function addClientLink(clientId: string, input: unknown) {
 export async function removeClientLink(clientId: string, linkIndex: number) {
   const client = await getClientById(clientId);
 
-  if (linkIndex < 0 || linkIndex >= client.links.length) {
+  if (!Number.isInteger(linkIndex) || linkIndex < 0 || linkIndex >= client.links.length) {
     throw new HttpError(404, 'Link not found');
   }
 
@@ -149,6 +151,7 @@ export async function attachClientDocument(clientId: string, input: AttachClient
 }
 
 export async function removeClientDocument(clientId: string, fileId: string) {
+  assertObjectId(fileId, 'document');
   const client = await getClientById(clientId);
   const nextDocuments = client.documents.filter(
     (document) => String((document as { fileId: unknown }).fileId) !== fileId
