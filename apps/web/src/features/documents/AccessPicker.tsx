@@ -53,7 +53,7 @@ export function AccessPicker({
         ) : null}
         <span className="min-w-0 flex-1 truncate">{label}</span>
         {entry ? (
-          <Select aria-label={`Role for ${address}`} className="h-8 w-32" value={entry.role} onChange={(event) => setRole(address, event.target.value as DocumentAccessRole)}>
+          <Select aria-label={`Role for ${address}`} className="h-8 w-32 shrink-0" value={entry.role} onChange={(event) => setRole(address, event.target.value as DocumentAccessRole)}>
             {DOCUMENT_ACCESS_ROLES.map((role) => (
               <option key={role} value={role}>
                 {role === 'writer' ? 'Can edit' : role === 'commenter' ? 'Can comment' : 'Can view'}

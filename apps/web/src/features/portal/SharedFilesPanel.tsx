@@ -29,7 +29,7 @@ function FileRow({ file, disabled, onPatch }: { file: FileMetadataRecord; disabl
       />
       <Select
         aria-label={`Category for ${file.filename}`}
-        className="h-8 w-28"
+        className="h-8 w-28 shrink-0"
         value={file.category ?? 'Other'}
         disabled={disabled}
         onChange={(event) => onPatch({ category: event.target.value as DocumentCategory })}

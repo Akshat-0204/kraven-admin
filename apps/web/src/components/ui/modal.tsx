@@ -1,5 +1,6 @@
 import { X } from 'lucide-react';
 import { type ReactNode, useEffect, useId } from 'react';
+import { createPortal } from 'react-dom';
 import { cn } from '../../lib/utils';
 
 interface ModalProps {
@@ -15,7 +16,16 @@ interface ModalProps {
 
 const sizeClass = { sm: 'max-w-md', md: 'max-w-xl', lg: 'max-w-3xl' } as const;
 
-export function Modal({ open, onClose, title, description, footer, size = 'md', children, className }: ModalProps) {
+export function Modal({
+  open,
+  onClose,
+  title,
+  description,
+  footer,
+  size = 'md',
+  children,
+  className
+}: ModalProps) {
   const titleId = useId();
 
   useEffect(() => {
@@ -24,14 +34,21 @@ export function Modal({ open, onClose, title, description, footer, size = 'md', 
       if (event.key === 'Escape') onClose();
     };
     document.addEventListener('keydown', onKey);
-    return () => document.removeEventListener('keydown', onKey);
+    // Lock background scroll while open; restore whatever was there before.
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      document.body.style.overflow = previousOverflow;
+    };
   }, [open, onClose]);
 
   if (!open) return null;
 
-  return (
+  // Portaled to <body> so ancestors (transformed/hovered clay cards, overflow, z-index) can't trap or clip it.
+  return createPortal(
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6"
+      className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6"
       style={{ backgroundColor: 'rgba(235, 233, 227, 0.7)' }}
       onMouseDown={(event) => {
         if (event.target === event.currentTarget) onClose();
@@ -42,7 +59,7 @@ export function Modal({ open, onClose, title, description, footer, size = 'md', 
         aria-modal="true"
         aria-labelledby={titleId}
         className={cn(
-          'clay-card w-full max-h-[90vh] overflow-y-auto rounded-xl p-6 sm:p-8 border border-white/90 shadow-clay-floating bg-surface animate-in fade-in zoom-in-95 duration-150',
+          'clay-card hover:!transform-none w-full max-h-[90vh] overflow-y-auto rounded-xl p-6 sm:p-8 border border-white/90 shadow-clay-floating bg-surface animate-in fade-in zoom-in-95 duration-150',
           sizeClass[size],
           className
         )}
@@ -70,6 +87,7 @@ export function Modal({ open, onClose, title, description, footer, size = 'md', 
           </div>
         ) : null}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

@@ -1,3 +1,4 @@
+import { createPortal } from 'react-dom';
 import type { PortalPaymentRecord } from '@kraven/types';
 import { useQuery } from '@tanstack/react-query';
 import { ArrowLeft, Copy, QrCode, Smartphone, X } from 'lucide-react';
@@ -24,7 +25,12 @@ export function PortalPayPage() {
   const { slug = '', invoiceId = '', packId = '', itemId = '' } = useParams();
   const isPackItem = Boolean(packId);
   const [showQr, setShowQr] = useState(false);
-  const invoices = useQuery({ queryKey: portalQueryKeys.section('payments'), queryFn: portalApi.payments, retry: false, enabled: !isPackItem });
+  const invoices = useQuery({
+    queryKey: portalQueryKeys.section('payments'),
+    queryFn: portalApi.payments,
+    retry: false,
+    enabled: !isPackItem
+  });
   const packItem = useQuery({
     queryKey: portalQueryKeys.section(`pack-payment-${packId}-${itemId}`),
     queryFn: () => portalApi.packPayment(packId, itemId),
@@ -34,7 +40,8 @@ export function PortalPayPage() {
   const payments = isPackItem ? packItem : invoices;
   const backTo = `/c/${encodeURIComponent(slug)}`;
 
-  if (payments.error instanceof PortalRequestError && payments.error.status === 401) return <Navigate to={backTo} replace />;
+  if (payments.error instanceof PortalRequestError && payments.error.status === 401)
+    return <Navigate to={backTo} replace />;
 
   const item = packItem.data?.item;
   const payment: PortalPaymentRecord | undefined = isPackItem
@@ -77,7 +84,9 @@ export function PortalPayPage() {
       <PortalShell>
         <BackLink to={backTo} />
         <Card className="mt-6 font-body text-sm text-ink-500">
-          {payment && payment.remainingAmount <= 0 ? 'This invoice is already paid.' : 'This invoice cannot be paid online.'}
+          {payment && payment.remainingAmount <= 0
+            ? 'This invoice is already paid.'
+            : 'This invoice cannot be paid online.'}
         </Card>
       </PortalShell>
     );
@@ -105,10 +114,15 @@ export function PortalPayPage() {
       <BackLink to={backTo} />
       <div className="mx-auto mt-6 max-w-md space-y-6">
         <Card className="text-center">
-          <p className="font-body text-xs uppercase tracking-widest text-ink-500">{isPackItem ? payment.invoiceNumber : `Invoice ${payment.invoiceNumber}`}</p>
-          <p className="mt-3 font-display text-4xl font-bold text-ink-900">{formatInr(payment.remainingAmount)}</p>
+          <p className="font-body text-xs uppercase tracking-widest text-ink-500">
+            {isPackItem ? payment.invoiceNumber : `Invoice ${payment.invoiceNumber}`}
+          </p>
+          <p className="mt-3 font-display text-4xl font-bold text-ink-900">
+            {formatInr(payment.remainingAmount)}
+          </p>
           <p className="mt-2 font-body text-sm text-ink-500">
-            Pay to {request.name}{payment.dueDate ? ` · Due ${formatDate(payment.dueDate)}` : ''}
+            Pay to {request.name}
+            {payment.dueDate ? ` · Due ${formatDate(payment.dueDate)}` : ''}
           </p>
           <button
             type="button"
@@ -144,35 +158,50 @@ export function PortalPayPage() {
           Show QR code
         </Button>
         <p className="text-center font-body text-xs text-ink-500">
-          After paying, the invoice is marked paid once the payment is confirmed. Deep links work on phones with a UPI app.
+          After paying, the invoice is marked paid once the payment is confirmed. Deep links work on
+          phones with a UPI app.
         </p>
       </div>
 
-      {showQr ? (
-        <div
-          role="dialog"
-          aria-modal="true"
-          aria-label="UPI QR code"
-          className="fixed inset-0 z-50 flex items-center justify-center bg-canvas-deep/80 p-4"
-          onClick={() => setShowQr(false)}
-        >
-          <div className="relative rounded-xl bg-surface p-6 text-center text-ink-900 shadow-clay-floating" onClick={(event) => event.stopPropagation()}>
-            <button type="button" className="absolute right-2 top-2 p-1 text-ink-500 hover:text-ink-900" onClick={() => setShowQr(false)} aria-label="Close">
-              <X className="h-4 w-4" />
-            </button>
-            <QRCodeSVG value={upiUri} size={208} level="M" />
-            <p className="mt-3 text-sm font-medium">Scan with any UPI app</p>
-            <p className="text-xs text-ink-500">{formatInr(payment.remainingAmount)}</p>
-          </div>
-        </div>
-      ) : null}
+      {showQr
+        ? createPortal(
+            <div
+              role="dialog"
+              aria-modal="true"
+              aria-label="UPI QR code"
+              className="fixed inset-0 z-[100] flex items-center justify-center bg-canvas-deep/80 p-4"
+              onClick={() => setShowQr(false)}
+            >
+              <div
+                className="relative rounded-xl bg-surface p-6 text-center text-ink-900 shadow-clay-floating"
+                onClick={(event) => event.stopPropagation()}
+              >
+                <button
+                  type="button"
+                  className="absolute right-2 top-2 p-1 text-ink-500 hover:text-ink-900"
+                  onClick={() => setShowQr(false)}
+                  aria-label="Close"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+                <QRCodeSVG value={upiUri} size={208} level="M" />
+                <p className="mt-3 text-sm font-medium">Scan with any UPI app</p>
+                <p className="text-xs text-ink-500">{formatInr(payment.remainingAmount)}</p>
+              </div>
+            </div>,
+            document.body
+          )
+        : null}
     </PortalShell>
   );
 }
 
 function BackLink({ to }: { to: string }) {
   return (
-    <Link to={to} className="inline-flex items-center gap-2 font-body text-sm text-ink-500 hover:text-ink-900">
+    <Link
+      to={to}
+      className="inline-flex items-center gap-2 font-body text-sm text-ink-500 hover:text-ink-900"
+    >
       <ArrowLeft className="h-4 w-4" aria-hidden />
       Back to portal
     </Link>
