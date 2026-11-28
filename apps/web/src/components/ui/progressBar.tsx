@@ -4,8 +4,11 @@ export function ProgressBar({ value, className }: { value: number; className?: s
   const boundedValue = Math.min(Math.max(value, 0), 100);
 
   return (
-    <div className={cn('h-2 w-full overflow-hidden rounded bg-white/10', className)}>
-      <div className="h-full bg-white" style={{ width: `${boundedValue}%` }} />
+    <div className={cn('h-2.5 w-full overflow-hidden rounded-full bg-olive-100 shadow-[var(--clay-inset)]', className)}>
+      <div
+        className="h-full rounded-full bg-[var(--grad-olive)] transition-all duration-300"
+        style={{ width: `${boundedValue}%` }}
+      />
     </div>
   );
 }

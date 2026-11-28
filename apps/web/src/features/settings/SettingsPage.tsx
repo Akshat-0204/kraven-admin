@@ -14,13 +14,12 @@ import {
   Download,
   KeyRound,
   Layers,
-  Moon,
+  Palette,
   RefreshCw,
   Server,
   Shield,
   Sliders,
-  Sparkles,
-  Trash2,
+  Sun,
   User,
   Wallet
 } from 'lucide-react';
@@ -149,16 +148,18 @@ export function SettingsPage() {
   }
 
   return (
-    <section className="space-y-6">
+    <section className="space-y-6 sm:space-y-8">
+      {/* Page Header */}
       <div>
-        <p className="text-xs uppercase tracking-widest text-muted">Administration</p>
-        <h1 className="mt-2 text-2xl font-semibold">Settings</h1>
-        <p className="mt-1 text-sm text-muted">
+        <p className="font-display text-xs uppercase tracking-wider text-olive-700">Administration & Preferences</p>
+        <h1 className="font-display text-2xl sm:text-3xl font-bold text-ink-900">Settings</h1>
+        <p className="font-body text-sm text-ink-500">
           Manage your account security, workspace preferences, pipelines, and system configuration.
         </p>
       </div>
 
-      <div className="flex flex-wrap gap-2 border-b border-border pb-3">
+      {/* Tab Navigation Pill Well */}
+      <div className="clay-card p-1.5 rounded-pill border border-white/80 shadow-[var(--clay-raised-sm)] bg-surface inline-flex flex-wrap gap-1.5">
         <TabButton
           icon={<User className="h-4 w-4" />}
           label="Account & Security"
@@ -191,199 +192,249 @@ export function SettingsPage() {
         />
       </div>
 
+      {/* Tab 1: Account & Security */}
       {activeTab === 'account' && (
         <div className="grid gap-6 lg:grid-cols-2">
           <div className="space-y-6">
-            <section className="rounded border border-border bg-panel p-5">
-              <div className="flex items-center gap-3 border-b border-border pb-4">
-                <div className="flex h-10 w-10 items-center justify-center rounded-full border border-border bg-black text-indigo-400">
+            <section className="clay-card p-6 rounded-lg border border-white/80 shadow-[var(--clay-raised)] bg-surface space-y-4">
+              <div className="flex items-center gap-3.5 border-b border-[rgba(120,110,90,0.12)] pb-4">
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-olive-100 text-olive-800 font-bold shadow-[var(--clay-raised-sm)] border border-white/90">
                   <User className="h-5 w-5" />
                 </div>
                 <div>
-                  <h2 className="text-base font-semibold">User Profile</h2>
-                  <p className="text-xs text-muted">Your active credentials and role</p>
+                  <h2 className="font-display text-base font-bold text-ink-900">User Profile</h2>
+                  <p className="font-body text-xs text-ink-500">Your active credentials and authenticated role</p>
                 </div>
               </div>
 
-              <dl className="mt-4 space-y-3 text-sm">
-                <div className="flex justify-between border-b border-border/50 py-2">
-                  <dt className="text-muted">Email address</dt>
-                  <dd className="font-medium text-white">{user?.email || '-'}</dd>
+              <dl className="space-y-3 font-body text-sm pt-1">
+                <div className="flex justify-between border-b border-[rgba(120,110,90,0.1)] py-2">
+                  <dt className="text-ink-500">Email Address</dt>
+                  <dd className="font-semibold text-ink-900">{user?.email || '-'}</dd>
                 </div>
-                <div className="flex justify-between border-b border-border/50 py-2">
-                  <dt className="text-muted">User ID</dt>
-                  <dd className="font-mono text-xs text-muted">{user?.id || '-'}</dd>
+                <div className="flex justify-between border-b border-[rgba(120,110,90,0.1)] py-2">
+                  <dt className="text-ink-500">Account Identifier</dt>
+                  <dd className="font-mono text-xs text-ink-600">{user?.id || '-'}</dd>
                 </div>
-                <div className="flex justify-between border-b border-border/50 py-2">
-                  <dt className="text-muted">Role</dt>
-                  <dd className="inline-flex items-center gap-1.5 font-medium text-emerald-400">
-                    <Shield className="h-3.5 w-3.5" /> Administrator
+                <div className="flex justify-between border-b border-[rgba(120,110,90,0.1)] py-2">
+                  <dt className="text-ink-500">Role Privilege</dt>
+                  <dd className="inline-flex items-center gap-1.5 font-medium text-olive-800">
+                    <Shield className="h-3.5 w-3.5 text-olive-700" /> Administrator
                   </dd>
                 </div>
                 <div className="flex justify-between py-2">
-                  <dt className="text-muted">Session Status</dt>
-                  <dd className="inline-flex items-center gap-1.5 text-xs text-emerald-400">
-                    <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" /> Active (HTTP-only Cookie)
+                  <dt className="text-ink-500">Session Status</dt>
+                  <dd className="inline-flex items-center gap-2 text-xs font-medium text-olive-800">
+                    <span className="h-2 w-2 rounded-full bg-olive-600 animate-pulse" /> Active (HTTP-only Secure Cookie)
                   </dd>
                 </div>
               </dl>
             </section>
 
-            <section className="rounded border border-border bg-panel p-5">
-              <h2 className="text-base font-semibold">Security & Access Policy</h2>
-              <p className="mt-1 text-xs text-muted">Authentication rules active on this Kraven instance</p>
-              <ul className="mt-4 space-y-2 text-xs text-muted">
-                <li className="flex items-center gap-2">
-                  <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" />
-                  Bcrypt 12-round password hashing enabled
+            <section className="clay-card p-6 rounded-lg border border-white/80 shadow-[var(--clay-raised)] bg-surface space-y-3">
+              <div className="border-b border-[rgba(120,110,90,0.12)] pb-3">
+                <h2 className="font-display text-base font-bold text-ink-900">Security & Authentication Policy</h2>
+                <p className="font-body text-xs text-ink-500">Active cryptographic and session safeguards</p>
+              </div>
+              <ul className="space-y-2.5 font-body text-xs text-ink-700 pt-1">
+                <li className="flex items-center gap-2.5">
+                  <CheckCircle2 className="h-4 w-4 text-olive-600 shrink-0" />
+                  Bcrypt salted password encryption enabled
                 </li>
-                <li className="flex items-center gap-2">
-                  <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" />
-                  Cross-site request protection with secure session cookies
+                <li className="flex items-center gap-2.5">
+                  <CheckCircle2 className="h-4 w-4 text-olive-600 shrink-0" />
+                  Cross-site request forgery protection with strict SameSite cookies
                 </li>
-                <li className="flex items-center gap-2">
-                  <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" />
-                  Express trust proxy enabled for cloud deployments
+                <li className="flex items-center gap-2.5">
+                  <CheckCircle2 className="h-4 w-4 text-olive-600 shrink-0" />
+                  Reverse proxy trust headers verified for secure cloud deployments
                 </li>
               </ul>
             </section>
           </div>
 
-          <section className="rounded border border-border bg-panel p-5">
-            <div className="flex items-center gap-3 border-b border-border pb-4">
-              <div className="flex h-10 w-10 items-center justify-center rounded-full border border-border bg-black text-amber-400">
-                <KeyRound className="h-5 w-5" />
+          <section className="clay-card p-6 rounded-lg border border-white/80 shadow-[var(--clay-raised)] bg-surface space-y-4">
+            <div className="flex items-center gap-3.5 border-b border-[rgba(120,110,90,0.12)] pb-4">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-sand-200 text-ink-800 shadow-[var(--clay-raised-sm)] border border-white/90">
+                <KeyRound className="h-5 w-5 text-olive-800" />
               </div>
               <div>
-                <h2 className="text-base font-semibold">Change Password</h2>
-                <p className="text-xs text-muted">Update your account login password</p>
+                <h2 className="font-display text-base font-bold text-ink-900">Change Password</h2>
+                <p className="font-body text-xs text-ink-500">Update your dashboard authentication password</p>
               </div>
             </div>
 
-            <form className="mt-4 space-y-4" onSubmit={handleSubmit(handlePasswordSubmit)}>
-              <label className="block space-y-1.5">
-                <span className="text-sm text-muted">Current password</span>
+            <form className="space-y-4 pt-1" onSubmit={handleSubmit(handlePasswordSubmit)}>
+              <div>
+                <label className="block font-body text-sm font-medium text-ink-700 mb-1.5">
+                  Current Password
+                </label>
                 <Input
                   type="password"
-                  placeholder="Enter current password"
+                  placeholder="Enter existing password"
+                  className={errors.currentPassword ? 'w-full outline-2 outline-[var(--danger-fg)]' : 'w-full'}
                   {...register('currentPassword', { required: 'Current password is required' })}
                 />
                 {errors.currentPassword && (
-                  <span className="text-xs text-red-300">{errors.currentPassword.message}</span>
+                  <span className="block mt-1 font-body text-xs text-danger-fg">{errors.currentPassword.message}</span>
                 )}
-              </label>
+              </div>
 
-              <label className="block space-y-1.5">
-                <span className="text-sm text-muted">New password</span>
+              <div>
+                <label className="block font-body text-sm font-medium text-ink-700 mb-1.5">
+                  New Password
+                </label>
                 <Input
                   type="password"
                   placeholder="At least 8 characters"
+                  className={errors.newPassword ? 'w-full outline-2 outline-[var(--danger-fg)]' : 'w-full'}
                   {...register('newPassword', {
                     required: 'New password is required',
                     minLength: { value: 8, message: 'Password must be at least 8 characters' }
                   })}
                 />
                 {errors.newPassword && (
-                  <span className="text-xs text-red-300">{errors.newPassword.message}</span>
+                  <span className="block mt-1 font-body text-xs text-danger-fg">{errors.newPassword.message}</span>
                 )}
-              </label>
+              </div>
 
               <div className="pt-2">
-                <Button type="submit" disabled={isSubmitting || passwordMutation.isPending} className="w-full">
-                  {isSubmitting || passwordMutation.isPending ? 'Updating password...' : 'Update password'}
-                </Button>
+                <button
+                  type="submit"
+                  disabled={isSubmitting || passwordMutation.isPending}
+                  className="clay-btn clay-btn--primary w-full h-11 rounded-pill font-body text-sm font-medium text-white shadow-[var(--clay-green)] disabled:opacity-50"
+                >
+                  {isSubmitting || passwordMutation.isPending ? 'Updating password...' : 'Update Password'}
+                </button>
               </div>
             </form>
           </section>
         </div>
       )}
 
+      {/* Tab 2: Workspace Preferences */}
       {activeTab === 'workspace' && (
         <div className="grid gap-6 lg:grid-cols-2">
-          <section className="rounded border border-border bg-panel p-5 space-y-4">
-            <h2 className="text-base font-semibold">Workspace Configuration</h2>
-            <p className="text-xs text-muted">Regional and financial presentation settings</p>
+          <section className="clay-card p-6 rounded-lg border border-white/80 shadow-[var(--clay-raised)] bg-surface space-y-4">
+            <div className="border-b border-[rgba(120,110,90,0.12)] pb-3">
+              <h2 className="font-display text-base font-bold text-ink-900">Workspace Configuration</h2>
+              <p className="font-body text-xs text-ink-500">Regional and financial presentation settings</p>
+            </div>
 
-            <div className="space-y-4 pt-2">
-              <label className="block space-y-1.5">
-                <span className="text-sm text-muted">Application name</span>
-                <Input value={APP_NAME} disabled className="opacity-75 cursor-not-allowed" />
-              </label>
+            <div className="space-y-4 pt-1">
+              <div>
+                <label className="block font-body text-sm font-medium text-ink-700 mb-1.5">
+                  Application Name
+                </label>
+                <Input value={APP_NAME} disabled className="opacity-75 cursor-not-allowed w-full" />
+              </div>
 
-              <label className="block space-y-1.5">
-                <span className="text-sm text-muted">Currency presentation</span>
-                <Select value={currency} onChange={(e) => setCurrency(e.target.value)}>
+              <div>
+                <label className="block font-body text-sm font-medium text-ink-700 mb-1.5">
+                  Currency Presentation
+                </label>
+                <Select value={currency} onChange={(e) => setCurrency(e.target.value)} className="w-full">
                   <option value="INR">INR (₹) - Indian Rupee</option>
                   <option value="USD">USD ($) - US Dollar</option>
                   <option value="EUR">EUR (€) - Euro</option>
                   <option value="GBP">GBP (£) - British Pound</option>
                 </Select>
-              </label>
+              </div>
 
-              <label className="block space-y-1.5">
-                <span className="text-sm text-muted">Date format</span>
-                <Select value={dateFormat} onChange={(e) => setDateFormat(e.target.value)}>
+              <div>
+                <label className="block font-body text-sm font-medium text-ink-700 mb-1.5">
+                  Date Format
+                </label>
+                <Select value={dateFormat} onChange={(e) => setDateFormat(e.target.value)} className="w-full">
                   <option value="DD MMM YYYY">03 Sept 2026 (Standard)</option>
                   <option value="YYYY-MM-DD">2026-09-03 (ISO 8601)</option>
                   <option value="MM/DD/YYYY">09/03/2026 (US Format)</option>
                 </Select>
-              </label>
+              </div>
 
-              <div className="pt-3">
-                <Button onClick={handleSavePreferences}>Save workspace preferences</Button>
+              <div className="pt-2">
+                <button
+                  type="button"
+                  onClick={handleSavePreferences}
+                  className="clay-btn clay-btn--primary h-11 px-6 rounded-pill font-body text-sm font-medium text-white shadow-[var(--clay-green)]"
+                >
+                  Save Workspace Preferences
+                </button>
               </div>
             </div>
           </section>
 
-          <section className="rounded border border-border bg-panel p-5 space-y-4">
-            <h2 className="text-base font-semibold">Appearance & Typography</h2>
-            <p className="text-xs text-muted">Theme and font details active in this build</p>
+          <section className="clay-card p-6 rounded-lg border border-white/80 shadow-[var(--clay-raised)] bg-surface space-y-4">
+            <div className="border-b border-[rgba(120,110,90,0.12)] pb-3">
+              <h2 className="font-display text-base font-bold text-ink-900">Design System & Appearance</h2>
+              <p className="font-body text-xs text-ink-500">Design tokens and font rules active in this build</p>
+            </div>
 
-            <div className="space-y-3 pt-2 text-sm">
-              <div className="rounded border border-border bg-black p-3 flex items-center justify-between">
-                <div className="flex items-center gap-2.5">
-                  <Moon className="h-4 w-4 text-indigo-400" />
-                  <span>Color Theme</span>
+            <div className="space-y-3 pt-1 text-sm font-body">
+              <div className="rounded-md border border-[rgba(120,110,90,0.12)] bg-surface-soft p-4 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <Sun className="h-5 w-5 text-olive-700" />
+                  <div>
+                    <span className="font-semibold text-ink-900 block">Theme Scheme</span>
+                    <span className="text-xs text-ink-500">Light Mode (Claymorphic Sand Canvas)</span>
+                  </div>
                 </div>
-                <span className="text-xs text-muted">Dark Mode (Default)</span>
+                <span className="clay-chip text-xs bg-olive-100 text-olive-800">
+                  Active
+                </span>
               </div>
 
-              <div className="rounded border border-border bg-black p-3 space-y-1.5">
-                <div className="flex items-center gap-2.5">
-                  <Sparkles className="h-4 w-4 text-amber-400" />
-                  <span>Configured Font Families</span>
+              <div className="rounded-md border border-[rgba(120,110,90,0.12)] bg-surface-soft p-4 space-y-2">
+                <div className="flex items-center gap-3">
+                  <Palette className="h-5 w-5 text-olive-700" />
+                  <div>
+                    <span className="font-semibold text-ink-900 block">Active Typography</span>
+                    <span className="text-xs text-ink-500">Strict Two-Font System (Section 2.1)</span>
+                  </div>
                 </div>
-                <p className="text-xs text-muted font-open">Open Sans (Primary Sans font)</p>
-                <p className="text-xs text-muted font-valley">Valley Sans (Display fallback)</p>
-                <p className="text-xs text-muted font-alien">Alien Block (Accents)</p>
+                <div className="pt-1 space-y-1 font-body text-xs text-ink-700">
+                  <p><span className="font-display font-bold">Space Grotesk: </span>Used for all headings, title banners, and eyebrows.</p>
+                  <p><span className="font-semibold">Poppins: </span>Used for body copy, form controls, buttons, tables, and chips.</p>
+                </div>
               </div>
             </div>
           </section>
         </div>
       )}
 
+      {/* Tab 3: Pipelines & Stages */}
       {activeTab === 'pipeline' && (
         <div className="space-y-6">
-          <section className="rounded border border-border bg-panel p-5">
-            <h2 className="text-base font-semibold">Lead Pipeline Stages</h2>
-            <p className="mt-1 text-xs text-muted">Configured stages for incoming inquiries and opportunities</p>
-            <div className="mt-4 grid gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+          <section className="clay-card p-6 rounded-lg border border-white/80 shadow-[var(--clay-raised)] bg-surface space-y-4">
+            <div className="border-b border-[rgba(120,110,90,0.12)] pb-3">
+              <h2 className="font-display text-base font-bold text-ink-900">Lead Pipeline Stages</h2>
+              <p className="font-body text-xs text-ink-500">Configured stages for incoming inquiries and opportunities</p>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 pt-1">
               {LEAD_STATUSES.map((status, index) => (
-                <div key={status} className="flex items-center justify-between rounded border border-border bg-black p-3">
-                  <span className="text-xs text-muted">#{index + 1}</span>
+                <div
+                  key={status}
+                  className="flex items-center justify-between rounded-md border border-[rgba(120,110,90,0.12)] bg-surface-soft p-3.5"
+                >
+                  <span className="font-mono text-xs text-ink-500">#{index + 1}</span>
                   <LeadStatusBadge status={status} />
                 </div>
               ))}
             </div>
           </section>
 
-          <section className="rounded border border-border bg-panel p-5">
-            <h2 className="text-base font-semibold">Project Delivery Stages</h2>
-            <p className="mt-1 text-xs text-muted">Configured workflow stages for client projects</p>
-            <div className="mt-4 grid gap-3 sm:grid-cols-2 md:grid-cols-3">
+          <section className="clay-card p-6 rounded-lg border border-white/80 shadow-[var(--clay-raised)] bg-surface space-y-4">
+            <div className="border-b border-[rgba(120,110,90,0.12)] pb-3">
+              <h2 className="font-display text-base font-bold text-ink-900">Project Delivery Stages</h2>
+              <p className="font-body text-xs text-ink-500">Configured workflow stages for client project fulfillment</p>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3 pt-1">
               {PROJECT_STATUSES.map((status, index) => (
-                <div key={status} className="flex items-center justify-between rounded border border-border bg-black p-3">
-                  <span className="text-xs text-muted">Step {index + 1}</span>
+                <div
+                  key={status}
+                  className="flex items-center justify-between rounded-md border border-[rgba(120,110,90,0.12)] bg-surface-soft p-3.5"
+                >
+                  <span className="font-mono text-xs text-ink-500">Phase {index + 1}</span>
                   <ProjectStatusBadge status={status} />
                 </div>
               ))}
@@ -391,24 +442,34 @@ export function SettingsPage() {
           </section>
 
           <div className="grid gap-6 md:grid-cols-2">
-            <section className="rounded border border-border bg-panel p-5">
-              <h2 className="text-base font-semibold">Invoice Payment Statuses</h2>
-              <p className="mt-1 text-xs text-muted">Automated financial tracking states</p>
-              <div className="mt-3 flex flex-wrap gap-2">
+            <section className="clay-card p-6 rounded-lg border border-white/80 shadow-[var(--clay-raised)] bg-surface space-y-3">
+              <div className="border-b border-[rgba(120,110,90,0.12)] pb-3">
+                <h2 className="font-display text-base font-bold text-ink-900">Invoice Payment Statuses</h2>
+                <p className="font-body text-xs text-ink-500">Automated ledger states</p>
+              </div>
+              <div className="flex flex-wrap gap-2 pt-1">
                 {INVOICE_PAYMENT_STATUSES.map((status) => (
-                  <span key={status} className="rounded border border-border bg-black px-2.5 py-1 text-xs font-medium text-white">
+                  <span
+                    key={status}
+                    className="clay-chip text-xs bg-sand-200 text-ink-800 font-medium px-3 py-1"
+                  >
                     {status}
                   </span>
                 ))}
               </div>
             </section>
 
-            <section className="rounded border border-border bg-panel p-5">
-              <h2 className="text-base font-semibold">Expense Categories</h2>
-              <p className="mt-1 text-xs text-muted">Cost center allocation categories</p>
-              <div className="mt-3 flex flex-wrap gap-2">
+            <section className="clay-card p-6 rounded-lg border border-white/80 shadow-[var(--clay-raised)] bg-surface space-y-3">
+              <div className="border-b border-[rgba(120,110,90,0.12)] pb-3">
+                <h2 className="font-display text-base font-bold text-ink-900">Expense Allocation Categories</h2>
+                <p className="font-body text-xs text-ink-500">Cost accounting breakdown tags</p>
+              </div>
+              <div className="flex flex-wrap gap-2 pt-1">
                 {EXPENSE_CATEGORIES.map((category) => (
-                  <span key={category} className="rounded border border-border bg-black px-2.5 py-1 text-xs font-medium text-muted">
+                  <span
+                    key={category}
+                    className="clay-chip text-xs bg-olive-100 text-olive-800 font-medium px-3 py-1"
+                  >
                     {category}
                   </span>
                 ))}
@@ -418,84 +479,101 @@ export function SettingsPage() {
         </div>
       )}
 
+      {/* Tab 4: Payments */}
       {activeTab === 'payments' && (
-        <div className="max-w-2xl">
+        <div className="max-w-3xl">
           <PayeeProfilesSection />
         </div>
       )}
 
+      {/* Tab 5: System & Diagnostics */}
       {activeTab === 'system' && (
         <div className="grid gap-6 lg:grid-cols-2">
-          <section className="rounded border border-border bg-panel p-5 space-y-4">
-            <div className="flex items-center justify-between border-b border-border pb-3">
-              <div className="flex items-center gap-2.5">
-                <Server className="h-5 w-5 text-indigo-400" />
+          <section className="clay-card p-6 rounded-lg border border-white/80 shadow-[var(--clay-raised)] bg-surface space-y-4">
+            <div className="flex items-center justify-between border-b border-[rgba(120,110,90,0.12)] pb-3">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-olive-100 text-olive-800 shadow-[var(--clay-raised-sm)] border border-white/90">
+                  <Server className="h-5 w-5" />
+                </div>
                 <div>
-                  <h2 className="text-base font-semibold">API & Server Diagnostics</h2>
-                  <p className="text-xs text-muted">Live connection status</p>
+                  <h2 className="font-display text-base font-bold text-ink-900">API & Server Diagnostics</h2>
+                  <p className="font-body text-xs text-ink-500">Live operational telemetry</p>
                 </div>
               </div>
-              <Button className="h-8 text-xs" onClick={pingServer} disabled={isPinging}>
-                <Activity className={`mr-1.5 h-3.5 w-3.5 ${isPinging ? 'animate-spin' : ''}`} />
-                {isPinging ? 'Pinging...' : 'Ping API'}
-              </Button>
+              <button
+                type="button"
+                className="clay-btn clay-btn--secondary h-9 px-4 rounded-pill font-body text-xs font-medium text-ink-900 bg-surface shadow-[var(--clay-raised-sm)] border border-white/80 hover:text-olive-700 flex items-center gap-1.5"
+                onClick={pingServer}
+                disabled={isPinging}
+              >
+                <Activity className={`h-3.5 w-3.5 ${isPinging ? 'animate-spin' : ''}`} />
+                <span>{isPinging ? 'Pinging...' : 'Ping API'}</span>
+              </button>
             </div>
 
-            <dl className="space-y-3 text-sm">
-              <div className="flex justify-between border-b border-border/50 py-2">
-                <dt className="text-muted">API Health</dt>
-                <dd className="inline-flex items-center gap-1.5 font-medium text-emerald-400">
-                  <span className="h-2 w-2 rounded-full bg-emerald-400" />
+            <dl className="space-y-3 font-body text-sm pt-1">
+              <div className="flex justify-between border-b border-[rgba(120,110,90,0.1)] py-2">
+                <dt className="text-ink-500">API Health Status</dt>
+                <dd className="inline-flex items-center gap-1.5 font-semibold text-olive-800">
+                  <span className="h-2 w-2 rounded-full bg-olive-600 animate-pulse" />
                   {healthQuery.data?.status === 'ok' ? 'Healthy (OK)' : 'Connecting...'}
                 </dd>
               </div>
-              <div className="flex justify-between border-b border-border/50 py-2">
-                <dt className="text-muted">Ping Latency</dt>
-                <dd className="font-mono text-xs text-white">
+              <div className="flex justify-between border-b border-[rgba(120,110,90,0.1)] py-2">
+                <dt className="text-ink-500">Ping Latency</dt>
+                <dd className="font-mono text-xs font-semibold text-ink-900">
                   {latency !== null ? `${latency} ms` : 'Click Ping to test'}
                 </dd>
               </div>
-              <div className="flex justify-between border-b border-border/50 py-2">
-                <dt className="text-muted">Database Engine</dt>
-                <dd className="inline-flex items-center gap-1 text-xs text-white">
-                  <Database className="h-3.5 w-3.5 text-emerald-400" /> MongoDB 8.x
+              <div className="flex justify-between border-b border-[rgba(120,110,90,0.1)] py-2">
+                <dt className="text-ink-500">Database Engine</dt>
+                <dd className="inline-flex items-center gap-1.5 text-xs font-semibold text-ink-900">
+                  <Database className="h-3.5 w-3.5 text-olive-700" /> MongoDB 8.x
                 </dd>
               </div>
               <div className="flex justify-between py-2">
-                <dt className="text-muted">Vite Client Environment</dt>
-                <dd className="font-mono text-xs text-muted">{import.meta.env.MODE}</dd>
+                <dt className="text-ink-500">Client Build Mode</dt>
+                <dd className="font-mono text-xs text-ink-600 uppercase">{import.meta.env.MODE}</dd>
               </div>
             </dl>
           </section>
 
-          <section className="rounded border border-border bg-panel p-5 space-y-4">
-            <h2 className="text-base font-semibold">Data Backup & Maintenance</h2>
-            <p className="text-xs text-muted">Export workspace data or clear query cache</p>
+          <section className="clay-card p-6 rounded-lg border border-white/80 shadow-[var(--clay-raised)] bg-surface space-y-4">
+            <div className="border-b border-[rgba(120,110,90,0.12)] pb-3">
+              <h2 className="font-display text-base font-bold text-ink-900">Data Backup & Maintenance</h2>
+              <p className="font-body text-xs text-ink-500">Export workspace records or invalidate in-memory query cache</p>
+            </div>
 
-            <div className="space-y-3 pt-2">
-              <div className="rounded border border-border bg-black p-4 flex items-center justify-between">
+            <div className="space-y-3 pt-1">
+              <div className="rounded-md border border-[rgba(120,110,90,0.12)] bg-surface-soft p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div>
-                  <div className="text-sm font-medium">Export Workspace JSON</div>
-                  <div className="text-xs text-muted">Download all leads, clients, projects, and invoices</div>
+                  <div className="font-body text-sm font-semibold text-ink-900">Export Workspace JSON</div>
+                  <div className="font-body text-xs text-ink-500">Backup all leads, clients, projects, and invoices</div>
                 </div>
-                <Button className="h-8 text-xs" onClick={handleExportData} disabled={isExporting}>
-                  <Download className="mr-1.5 h-3.5 w-3.5" />
-                  {isExporting ? 'Exporting...' : 'Export'}
-                </Button>
+                <button
+                  type="button"
+                  className="clay-btn clay-btn--primary h-9 px-4 rounded-pill font-body text-xs font-medium text-white shadow-[var(--clay-green)] flex items-center justify-center gap-1.5 shrink-0"
+                  onClick={handleExportData}
+                  disabled={isExporting}
+                >
+                  <Download className="h-3.5 w-3.5" />
+                  <span>{isExporting ? 'Exporting...' : 'Export Data'}</span>
+                </button>
               </div>
 
-              <div className="rounded border border-border bg-black p-4 flex items-center justify-between">
+              <div className="rounded-md border border-[rgba(120,110,90,0.12)] bg-surface-soft p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div>
-                  <div className="text-sm font-medium">Clear Query Cache</div>
-                  <div className="text-xs text-muted">Force refresh all in-memory client queries</div>
+                  <div className="font-body text-sm font-semibold text-ink-900">Clear Query Cache</div>
+                  <div className="font-body text-xs text-ink-500">Force invalidate all in-memory client queries</div>
                 </div>
-                <Button
-                  className="h-8 text-xs bg-transparent text-red-300 hover:bg-red-500/20 border-red-500/30"
+                <button
+                  type="button"
+                  className="clay-btn h-9 px-4 rounded-pill font-body text-xs font-medium text-danger-fg bg-surface shadow-[var(--clay-raised-sm)] border border-danger-fg/30 hover:bg-danger-fg/10 flex items-center justify-center gap-1.5 shrink-0"
                   onClick={handleClearCache}
                 >
-                  <RefreshCw className="mr-1.5 h-3.5 w-3.5" />
-                  Clear Cache
-                </Button>
+                  <RefreshCw className="h-3.5 w-3.5" />
+                  <span>Clear Cache</span>
+                </button>
               </div>
             </div>
           </section>
@@ -520,14 +598,14 @@ function TabButton({
     <button
       type="button"
       onClick={onClick}
-      className={`inline-flex items-center gap-2 rounded px-3 py-2 text-sm font-medium transition ${
+      className={`inline-flex items-center gap-2 rounded-pill px-4 py-2 font-body text-xs sm:text-sm font-medium transition-all duration-200 ${
         active
-          ? 'bg-white text-black shadow'
-          : 'text-muted hover:bg-white/10 hover:text-white'
+          ? 'bg-ink-900 text-white shadow-[var(--clay-pressed)]'
+          : 'text-ink-600 hover:text-ink-900 hover:bg-surface-soft'
       }`}
     >
       {icon}
-      {label}
+      <span>{label}</span>
     </button>
   );
 }

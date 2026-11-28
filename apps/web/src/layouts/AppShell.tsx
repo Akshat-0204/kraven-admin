@@ -16,10 +16,10 @@ export function AppShell() {
   }
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
-      <aside className="fixed inset-y-0 left-0 hidden w-64 border-r border-border bg-black px-4 py-5 md:block">
-        <div className="mb-5 text-lg font-semibold">{APP_NAME}</div>
-        <div className="mb-5">
+    <div className="min-h-screen bg-canvas text-ink-700 font-body">
+      <aside className="fixed inset-y-0 left-0 hidden w-64 border-r border-white/60 bg-surface px-5 py-6 shadow-[var(--clay-raised-sm)] md:block z-30">
+        <div className="mb-6 font-display text-2xl font-bold tracking-tight text-ink-900">{APP_NAME}</div>
+        <div className="mb-6">
           <GlobalSearch />
         </div>
         <nav className="space-y-1" aria-label="Primary navigation">
@@ -30,15 +30,15 @@ export function AppShell() {
                 end={item.path === '/'}
                 className={({ isActive }) =>
                   cn(
-                    'block rounded px-3 py-2 text-sm text-muted hover:bg-white/10 hover:text-white',
-                    isActive && 'bg-white text-black hover:bg-white hover:text-black'
+                    'block rounded-pill px-3.5 py-2.5 text-sm font-medium text-ink-700 transition-all hover:bg-surface-soft hover:text-olive-700',
+                    isActive && 'bg-ink-900 text-white font-semibold shadow-[var(--clay-raised-sm)] hover:bg-ink-900 hover:text-white'
                   )
                 }
               >
                 {item.label}
               </NavLink>
               {'children' in item ? (
-                <div className="ml-4 mt-1 space-y-1 border-l border-border pl-3">
+                <div className="ml-4 mt-1 space-y-1 border-l-2 border-[rgba(120,110,90,0.18)] pl-3">
                   {item.children.map((child) => (
                     <NavLink
                       key={child.label}
@@ -46,8 +46,8 @@ export function AppShell() {
                       end={child.path === '/finance'}
                       className={({ isActive }) =>
                         cn(
-                          'block rounded px-3 py-2 text-xs text-muted hover:bg-white/10 hover:text-white',
-                          isActive && 'bg-white text-black hover:bg-white hover:text-black'
+                          'block rounded-pill px-3 py-1.5 text-xs font-medium text-ink-500 transition-all hover:bg-surface-soft hover:text-olive-700',
+                          isActive && 'bg-olive-100 font-semibold text-olive-700 hover:bg-olive-100 hover:text-olive-700'
                         )
                       }
                     >
@@ -59,25 +59,32 @@ export function AppShell() {
             </div>
           ))}
         </nav>
-        <div className="absolute bottom-5 left-4 right-4 space-y-3 border-t border-border pt-4">
-          <div className="truncate text-xs text-muted">{user?.email}</div>
-          <Button className="w-full justify-between bg-transparent text-white hover:bg-white/10" onClick={handleLogout}>
-            Logout
+        <div className="absolute bottom-5 left-5 right-5 space-y-3 border-t border-[rgba(120,110,90,0.12)] pt-4">
+          <div className="truncate text-xs font-medium text-ink-500">{user?.email}</div>
+          <Button
+            className="w-full justify-between rounded-pill border border-white/80 bg-surface-soft text-ink-700 shadow-[var(--clay-raised-sm)] hover:bg-danger-bg hover:text-danger-fg hover:border-transparent transition-all"
+            onClick={handleLogout}
+          >
+            <span>Logout</span>
             <LogOut className="h-4 w-4" aria-hidden="true" />
           </Button>
         </div>
       </aside>
       <div className="md:pl-64">
-        <header className="space-y-3 border-b border-border bg-black px-4 py-4 md:hidden">
+        <header className="space-y-3 border-b border-[rgba(120,110,90,0.12)] bg-surface px-4 py-4 shadow-[var(--clay-raised-sm)] md:hidden">
           <div className="flex items-center justify-between">
-            <div className="text-lg font-semibold">{APP_NAME}</div>
-            <Button className="h-8 px-2" onClick={handleLogout} aria-label="Logout">
+            <div className="font-display text-xl font-bold tracking-tight text-ink-900">{APP_NAME}</div>
+            <Button
+              className="h-9 w-9 p-0 rounded-full border border-white/80 bg-surface-soft text-ink-700 shadow-[var(--clay-raised-sm)]"
+              onClick={handleLogout}
+              aria-label="Logout"
+            >
               <LogOut className="h-4 w-4" aria-hidden="true" />
             </Button>
           </div>
           <GlobalSearch />
         </header>
-        <main className="mx-auto w-full max-w-6xl px-4 py-6 md:px-8">
+        <main className="mx-auto w-full max-w-[1280px] px-4 py-8 md:px-8">
           <Outlet />
         </main>
       </div>

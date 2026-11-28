@@ -82,87 +82,131 @@ export function DocumentsPanel({ scope }: { scope: DocumentScope }) {
   const templates = templatesQuery.data?.templates ?? [];
 
   return (
-    <section className="rounded border border-border bg-panel p-4">
-      <div className="mb-4 flex items-center justify-between">
-        <h2 className="text-sm font-semibold">Generated documents</h2>
-        <Button className="h-8 px-2" aria-label="New document" onClick={() => setIsCreating((value) => !value)}>
+    <section className="clay-card p-6 rounded-lg border border-white/80 shadow-[var(--clay-raised)] bg-surface space-y-4">
+      {/* Panel Header */}
+      <div className="flex items-center justify-between border-b border-[rgba(120,110,90,0.12)] pb-3">
+        <div>
+          <h2 className="font-display text-base font-bold text-ink-900">Generated Documents</h2>
+          <p className="font-body text-xs text-ink-500">Produce and manage dynamic client or project paperwork</p>
+        </div>
+        <button
+          type="button"
+          aria-label="New document"
+          onClick={() => setIsCreating((value) => !value)}
+          className="clay-btn clay-btn--secondary h-9 w-9 rounded-pill flex items-center justify-center p-0 text-ink-700 hover:text-olive-700 shadow-[var(--clay-raised-sm)] border border-white/80"
+        >
           <FilePlus2 className="h-4 w-4" aria-hidden="true" />
-        </Button>
+        </button>
       </div>
 
+      {/* Creation form */}
       {isCreating ? (
-        <div className="mb-4 space-y-2 rounded border border-border p-3">
-          <Select
-            aria-label="Template"
-            value={templateId}
-            onChange={(event) => {
-              setTemplateId(event.target.value);
-              setPreviewHtml(null);
-            }}
-          >
-            <option value="">{templatesQuery.isLoading ? 'Loading templates...' : 'Choose a template'}</option>
-            {templates.map((template) => (
-              <option key={template.id} value={template.id}>
-                {template.name} (v{template.version})
-              </option>
-            ))}
-          </Select>
-          <div className="flex gap-2">
-            <Button
-              className="flex-1 bg-transparent text-white hover:bg-white/10"
+        <div className="space-y-3 rounded-md bg-surface-soft p-4 border border-[rgba(120,110,90,0.14)]">
+          <div>
+            <label className="block font-body text-xs font-semibold uppercase tracking-wider text-ink-700 mb-1.5">
+              Select Template
+            </label>
+            <Select
+              aria-label="Template"
+              value={templateId}
+              onChange={(event) => {
+                setTemplateId(event.target.value);
+                setPreviewHtml(null);
+              }}
+              className="w-full bg-surface"
+            >
+              <option value="">{templatesQuery.isLoading ? 'Loading templates...' : 'Choose a template'}</option>
+              {templates.map((template) => (
+                <option key={template.id} value={template.id}>
+                  {template.name} (v{template.version})
+                </option>
+              ))}
+            </Select>
+          </div>
+
+          <div className="flex gap-3">
+            <button
+              type="button"
+              className="clay-btn clay-btn--secondary flex-1 h-10 rounded-pill font-body text-xs font-medium text-ink-900 bg-surface shadow-[var(--clay-raised-sm)] border border-white/80 hover:text-olive-700 disabled:opacity-50"
               disabled={!templateId || previewMutation.isPending}
               onClick={() => previewMutation.mutate()}
             >
               {previewMutation.isPending ? 'Loading...' : 'Preview'}
-            </Button>
-            <Button className="flex-1" disabled={!templateId || createMutation.isPending} onClick={() => createMutation.mutate()}>
+            </button>
+            <button
+              type="button"
+              className="clay-btn clay-btn--primary flex-1 h-10 rounded-pill font-body text-xs font-medium text-white shadow-[var(--clay-green)] disabled:opacity-50"
+              disabled={!templateId || createMutation.isPending}
+              onClick={() => createMutation.mutate()}
+            >
               {createMutation.isPending ? 'Generating...' : 'Create PDF'}
-            </Button>
+            </button>
           </div>
+
           {previewHtml !== null ? (
-            <iframe
-              title="Document preview"
-              sandbox=""
-              srcDoc={previewHtml}
-              className="h-96 w-full rounded border border-border bg-white"
-            />
+            <div className="pt-2">
+              <iframe
+                title="Document preview"
+                sandbox=""
+                srcDoc={previewHtml}
+                className="h-96 w-full rounded-md border border-[rgba(120,110,90,0.16)] bg-white shadow-[var(--clay-inset-sm)]"
+              />
+            </div>
           ) : null}
         </div>
       ) : null}
 
+      {/* Documents List */}
       {documents.length === 0 ? (
-        <div className="rounded border border-dashed border-border p-3 text-sm text-muted">No generated documents</div>
+        <div className="rounded-md border border-dashed border-[rgba(120,110,90,0.2)] p-6 text-center font-body text-xs text-ink-500">
+          No generated documents
+        </div>
       ) : (
-        <div className="space-y-2">
+        <div className="space-y-2.5">
           {documents.map((document) => (
-            <div key={document.id} className="flex items-center gap-2 rounded border border-border p-2">
-              <FileText className="h-4 w-4 shrink-0 text-muted" aria-hidden="true" />
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-sm">{document.title}</p>
-                <p className="text-xs text-muted">
-                  {document.status} · v{document.templateVersion} ·{' '}
-                  {new Date(document.createdAt).toLocaleDateString('en-IN')}
-                </p>
+            <div
+              key={document.id}
+              className="flex items-center gap-3 rounded-md border border-[rgba(120,110,90,0.12)] bg-surface p-3 transition-colors hover:bg-surface-soft/80"
+            >
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-sm bg-olive-100 text-olive-700 shadow-[var(--clay-raised-sm)]">
+                <FileText className="h-4 w-4" aria-hidden="true" />
               </div>
-              {document.status === 'Draft' ? (
-                <Button
-                  className="h-7 w-7 bg-transparent p-0 text-white hover:bg-white/10"
-                  aria-label={`Share ${document.title} in the client portal`}
-                  title="Share in client portal"
-                  disabled={shareMutation.isPending}
-                  onClick={() => shareMutation.mutate(document.id)}
+              <div className="min-w-0 flex-1">
+                <p className="truncate font-body text-sm font-semibold text-ink-900">{document.title}</p>
+                <div className="flex items-center gap-2 pt-0.5">
+                  <span className="clay-chip text-[11px] py-0.5 px-2 bg-sand-200 text-ink-800">
+                    {document.status}
+                  </span>
+                  <span className="font-body text-xs text-ink-500">
+                    v{document.templateVersion} · {new Date(document.createdAt).toLocaleDateString('en-IN')}
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-1.5">
+                {document.status === 'Draft' ? (
+                  <button
+                    type="button"
+                    className="flex h-8 w-8 items-center justify-center rounded-sm bg-surface shadow-[var(--clay-raised-sm)] border border-white/80 text-ink-700 transition-all hover:text-olive-700 hover:shadow-[var(--clay-hover)] active:scale-[0.95] disabled:opacity-50"
+                    aria-label={`Share ${document.title} in the client portal`}
+                    title="Share in client portal"
+                    disabled={shareMutation.isPending}
+                    onClick={() => shareMutation.mutate(document.id)}
+                  >
+                    <Send className="h-3.5 w-3.5" aria-hidden="true" />
+                  </button>
+                ) : null}
+                <button
+                  type="button"
+                  className="flex h-8 w-8 items-center justify-center rounded-sm bg-surface shadow-[var(--clay-raised-sm)] border border-white/80 text-ink-700 transition-all hover:text-olive-700 hover:shadow-[var(--clay-hover)] active:scale-[0.95] disabled:opacity-50"
+                  aria-label={`Download ${document.title}`}
+                  title="Download PDF"
+                  disabled={pdfMutation.isPending}
+                  onClick={() => pdfMutation.mutate(document.id)}
                 >
-                  <Send className="h-3 w-3" aria-hidden="true" />
-                </Button>
-              ) : null}
-              <Button
-                className="h-7 w-7 bg-transparent p-0 text-white hover:bg-white/10"
-                aria-label={`Download ${document.title}`}
-                disabled={pdfMutation.isPending}
-                onClick={() => pdfMutation.mutate(document.id)}
-              >
-                <Download className="h-3 w-3" aria-hidden="true" />
-              </Button>
+                  <Download className="h-3.5 w-3.5" aria-hidden="true" />
+                </button>
+              </div>
             </div>
           ))}
         </div>

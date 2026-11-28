@@ -22,25 +22,45 @@ import type { WaitingOnClient } from '@kraven/types';
 import { formatCurrency } from '../finance/financeFormat';
 
 const leadStatusColors: Record<string, string> = {
-  New: '#64748b',
-  Contacted: '#06b6d4',
-  Qualified: '#3b82f6',
-  'Proposal Sent': '#8b5cf6',
-  Negotiation: '#f59e0b',
-  Won: '#10b981',
-  Lost: '#ef4444'
+  New: '#7A7F82',
+  Contacted: '#6F8F7B',
+  Qualified: '#4A6B57',
+  'Proposal Sent': '#9A7420',
+  Negotiation: '#A9BFB0',
+  Won: '#4A7A5A',
+  Lost: '#C0504D'
 };
 
 const projectStatusColors: Record<string, string> = {
-  'Not Started': '#64748b',
-  'In Progress': '#3b82f6',
-  'Client Review': '#f59e0b',
-  'On Hold': '#ec4899',
-  Completed: '#10b981',
-  Cancelled: '#ef4444'
+  'Not Started': '#7A7F82',
+  'In Progress': '#4A6B57',
+  'Client Review': '#9A7420',
+  'On Hold': '#A9BFB0',
+  Completed: '#4A7A5A',
+  Cancelled: '#C0504D'
 };
 
-const defaultPalette = ['#6366f1', '#10b981', '#f59e0b', '#3b82f6', '#ec4899', '#06b6d4', '#8b5cf6', '#ef4444'];
+const defaultPalette = [
+  '#4A6B57',
+  '#6F8F7B',
+  '#A9BFB0',
+  '#F1E7D3',
+  '#2F4A3A',
+  '#4A7A5A',
+  '#9A7420',
+  '#C0504D'
+];
+
+const chartTooltipStyle = {
+  backgroundColor: '#FFFFFF',
+  border: '1px solid rgba(255, 255, 255, 0.8)',
+  borderRadius: '12px',
+  boxShadow: '0 10px 24px rgba(120, 110, 90, 0.18)',
+  padding: '10px 14px',
+  fontFamily: 'Poppins, system-ui, sans-serif',
+  fontSize: '13px',
+  color: '#1C1F21'
+};
 
 export function DashboardPage() {
   const dashboardQuery = useQuery({
@@ -49,13 +69,17 @@ export function DashboardPage() {
   });
 
   if (dashboardQuery.isLoading) {
-    return <div className="rounded border border-border bg-panel p-5 text-sm text-muted">Loading dashboard...</div>;
+    return (
+      <div className="clay-card p-6 text-sm font-body text-ink-500 animate-pulse">
+        Loading dashboard metrics...
+      </div>
+    );
   }
 
   if (dashboardQuery.isError || !dashboardQuery.data) {
     return (
-      <div className="rounded border border-red-400/40 bg-panel p-5 text-sm text-red-200">
-        Unable to load dashboard.
+      <div className="clay-card p-6 text-sm font-body text-danger-fg bg-danger-bg border border-danger-fg/20">
+        Unable to load dashboard. Please try refreshing the page.
       </div>
     );
   }
@@ -63,118 +87,127 @@ export function DashboardPage() {
   const dashboard = dashboardQuery.data;
 
   return (
-    <section className="space-y-5">
-      <div>
-        <p className="text-xs uppercase tracking-widest text-muted">Agency state</p>
-        <h1 className="mt-2 text-2xl font-semibold">Dashboard</h1>
+    <section className="space-y-6">
+      <div className="space-y-1">
+        <p className="font-display text-xs font-normal uppercase tracking-[0.08em] text-olive-700">Agency state</p>
+        <h1 className="font-display text-3xl md:text-4xl font-bold tracking-tight text-ink-900">Dashboard</h1>
       </div>
 
-      <div className="grid gap-3 md:grid-cols-3 xl:grid-cols-6">
-        <Metric label="Leads" value={dashboard.leads.total} colorClass="text-sky-400" />
-        <Metric label="Conversion" value={`${dashboard.leads.conversionRate}%`} colorClass="text-emerald-400" />
-        <Metric label="Active projects" value={dashboard.projects.totalActive} colorClass="text-blue-400" />
-        <Metric label="Overall progress" value={`${dashboard.projects.overallProgress}%`} colorClass="text-indigo-400" />
-        <Metric label="Received" value={formatCurrency(dashboard.finance.received)} colorClass="text-emerald-400" />
-        <Metric label="Profit" value={formatCurrency(dashboard.finance.profit)} colorClass="text-violet-400" />
+      {/* Top 6 Metric Cards */}
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+        <Metric label="Leads" value={dashboard.leads.total} />
+        <Metric label="Conversion" value={`${dashboard.leads.conversionRate}%`} />
+        <Metric label="Active projects" value={dashboard.projects.totalActive} />
+        <Metric label="Overall progress" value={`${dashboard.projects.overallProgress}%`} />
+        <Metric label="Received" value={formatCurrency(dashboard.finance.received)} />
+        <Metric label="Profit" value={formatCurrency(dashboard.finance.profit)} isHero={true} />
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-3">
-        <section className="rounded border border-border bg-panel p-4">
-          <h2 className="mb-4 text-sm font-semibold">Leads</h2>
-          <div className="grid gap-3 text-sm">
-            <Row label="New" value={dashboard.leads.new} dotColor="#64748b" />
-            <Row label="In progress" value={dashboard.leads.inProgress} dotColor="#3b82f6" />
-            <Row label="Won" value={dashboard.leads.won} dotColor="#10b981" />
-            <Row label="Lost" value={dashboard.leads.lost} dotColor="#ef4444" />
+      {/* 3 Summary Cards (Leads, Projects, Finance) */}
+      <div className="grid gap-6 lg:grid-cols-3">
+        <section className="clay-card p-6">
+          <h2 className="mb-5 font-display text-xl font-bold text-ink-900">Leads</h2>
+          <div className="grid gap-1 font-body text-sm">
+            <Row label="New" value={dashboard.leads.new} dotColor="#7A7F82" />
+            <Row label="In progress" value={dashboard.leads.inProgress} dotColor="#6F8F7B" />
+            <Row label="Won" value={dashboard.leads.won} dotColor="#4A7A5A" />
+            <Row label="Lost" value={dashboard.leads.lost} dotColor="#C0504D" />
           </div>
         </section>
 
-        <section className="rounded border border-border bg-panel p-4">
-          <h2 className="mb-4 text-sm font-semibold">Projects</h2>
-          <div className="mb-4 space-y-2">
-            <div className="flex justify-between text-sm">
-              <span className="text-muted">Overall progress</span>
-              <span className="font-medium text-blue-400">{dashboard.projects.overallProgress}%</span>
+        <section className="clay-card p-6">
+          <h2 className="mb-5 font-display text-xl font-bold text-ink-900">Projects</h2>
+          <div className="mb-5 space-y-2.5">
+            <div className="flex justify-between items-center text-sm font-body">
+              <span className="text-ink-500">Overall progress</span>
+              <span className="font-display font-bold text-olive-700">{dashboard.projects.overallProgress}%</span>
             </div>
             <ProgressBar value={dashboard.projects.overallProgress} />
           </div>
-          <div className="grid gap-3 text-sm">
-            <Row label="In progress" value={dashboard.projects.inProgress} dotColor="#3b82f6" />
-            <Row label="On hold" value={dashboard.projects.onHold} dotColor="#ec4899" />
-            <Row label="Completed" value={dashboard.projects.completed} dotColor="#10b981" />
-            <Row label="Approaching deadline" value={dashboard.projects.approachingDeadline} dotColor="#f59e0b" />
+          <div className="grid gap-1 font-body text-sm">
+            <Row label="In progress" value={dashboard.projects.inProgress} dotColor="#4A6B57" />
+            <Row label="On hold" value={dashboard.projects.onHold} dotColor="#A9BFB0" />
+            <Row label="Completed" value={dashboard.projects.completed} dotColor="#4A7A5A" />
+            <Row label="Approaching deadline" value={dashboard.projects.approachingDeadline} dotColor="#9A7420" />
           </div>
         </section>
 
-        <section className="rounded border border-border bg-panel p-4">
-          <h2 className="mb-4 text-sm font-semibold">Finance</h2>
-          <div className="grid gap-3 text-sm">
-            <Row label="Revenue" value={formatCurrency(dashboard.finance.revenue)} dotColor="#6366f1" />
-            <Row label="Received" value={formatCurrency(dashboard.finance.received)} dotColor="#10b981" />
-            <Row label="Pending" value={formatCurrency(dashboard.finance.pending)} dotColor="#f59e0b" />
-            <Row label="Overdue" value={formatCurrency(dashboard.finance.overdue)} dotColor="#ef4444" />
-            <Row label="Expenses" value={formatCurrency(dashboard.finance.expenses)} dotColor="#f43f5e" />
-            <Row label="Profit" value={formatCurrency(dashboard.finance.profit)} dotColor="#8b5cf6" />
+        <section className="clay-card p-6">
+          <h2 className="mb-5 font-display text-xl font-bold text-ink-900">Finance</h2>
+          <div className="grid gap-1 font-body text-sm">
+            <Row label="Revenue" value={formatCurrency(dashboard.finance.revenue)} dotColor="#2F4A3A" />
+            <Row label="Received" value={formatCurrency(dashboard.finance.received)} dotColor="#4A6B57" />
+            <Row label="Pending" value={formatCurrency(dashboard.finance.pending)} dotColor="#9A7420" />
+            <Row label="Overdue" value={formatCurrency(dashboard.finance.overdue)} dotColor="#C0504D" />
+            <Row label="Expenses" value={formatCurrency(dashboard.finance.expenses)} dotColor="#7A7F82" />
+            <Row label="Profit" value={formatCurrency(dashboard.finance.profit)} dotColor="#6F8F7B" />
           </div>
         </section>
       </div>
 
+      {/* Waiting On Client Section */}
       <WaitingOnClientCard data={dashboard.waitingOnClient} />
 
-      <section className="rounded border border-border bg-panel p-4">
-        <h2 className="mb-4 text-sm font-semibold">Attention</h2>
+      {/* Attention / Alerts Section */}
+      <section className="clay-card p-6">
+        <h2 className="mb-5 font-display text-xl font-bold text-ink-900">Attention</h2>
         {dashboard.alerts.length === 0 ? (
-          <div className="rounded border border-dashed border-border p-4 text-sm text-muted">
+          <div className="rounded-md border border-dashed border-[rgba(120,110,90,0.2)] p-6 text-center text-sm font-body text-ink-500 bg-surface-soft/60">
             Nothing needs attention right now.
           </div>
         ) : (
-          <div className="grid gap-2 md:grid-cols-2">
+          <div className="grid gap-4 md:grid-cols-2">
             {dashboard.alerts.map((alert) => (
-              <Link key={alert.id} to={alert.href} className="rounded border border-border bg-black p-3 transition hover:border-indigo-500/50">
-                <div className="text-sm font-medium text-white">{alert.title}</div>
-                <div className="mt-1 text-xs text-muted">{alert.description}</div>
+              <Link
+                key={alert.id}
+                to={alert.href}
+                className="block rounded-md p-4 bg-surface-soft border border-white/80 shadow-[var(--clay-raised-sm)] transition-all hover:-translate-y-0.5 hover:shadow-[var(--clay-hover)]"
+              >
+                <div className="font-body text-sm font-semibold text-ink-900">{alert.title}</div>
+                <div className="mt-1.5 font-body text-xs text-ink-500 leading-relaxed">{alert.description}</div>
               </Link>
             ))}
           </div>
         )}
       </section>
 
-      <div className="grid gap-4 xl:grid-cols-2">
+      {/* Charts Grid */}
+      <div className="grid gap-6 xl:grid-cols-2">
         <ChartPanel title="Revenue over time">
-          <ResponsiveContainer width="100%" height={280}>
+          <ResponsiveContainer width="100%" height={290}>
             <AreaChart data={dashboard.revenueOverTime}>
               <defs>
                 <linearGradient id="colorInvoiced" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#6366f1" stopOpacity={0.4} />
-                  <stop offset="95%" stopColor="#6366f1" stopOpacity={0.0} />
+                  <stop offset="5%" stopColor="#4A6B57" stopOpacity={0.35} />
+                  <stop offset="95%" stopColor="#4A6B57" stopOpacity={0.0} />
                 </linearGradient>
                 <linearGradient id="colorReceived" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#10b981" stopOpacity={0.4} />
-                  <stop offset="95%" stopColor="#10b981" stopOpacity={0.0} />
+                  <stop offset="5%" stopColor="#6F8F7B" stopOpacity={0.35} />
+                  <stop offset="95%" stopColor="#6F8F7B" stopOpacity={0.0} />
                 </linearGradient>
               </defs>
-              <CartesianGrid stroke="#262626" strokeDasharray="3 3" />
-              <XAxis dataKey="date" stroke="#a3a3a3" fontSize={11} />
-              <YAxis stroke="#a3a3a3" fontSize={11} tickFormatter={(val) => `₹${(val / 1000).toFixed(0)}k`} />
+              <CartesianGrid stroke="rgba(120,110,90,0.12)" strokeDasharray="3 3" vertical={false} />
+              <XAxis dataKey="date" stroke="#7A7F82" fontSize={11} tickLine={false} axisLine={{ stroke: 'rgba(120,110,90,0.16)' }} />
+              <YAxis stroke="#7A7F82" fontSize={11} tickLine={false} axisLine={{ stroke: 'rgba(120,110,90,0.16)' }} tickFormatter={(val) => `₹${(val / 1000).toFixed(0)}k`} />
               <Tooltip
-                contentStyle={{ background: '#0a0a0a', border: '1px solid #262626', borderRadius: '6px' }}
+                contentStyle={chartTooltipStyle}
                 formatter={(val: number) => [formatCurrency(val), '']}
               />
-              <Legend wrapperStyle={{ paddingTop: '8px', fontSize: '12px' }} />
+              <Legend wrapperStyle={{ paddingTop: '16px', fontSize: '13px', fontFamily: 'Poppins, system-ui, sans-serif', color: '#7A7F82' }} />
               <Area
                 name="Invoiced"
                 type="monotone"
                 dataKey="invoiced"
-                stroke="#6366f1"
-                strokeWidth={2}
+                stroke="#4A6B57"
+                strokeWidth={2.5}
                 fill="url(#colorInvoiced)"
               />
               <Area
                 name="Received"
                 type="monotone"
                 dataKey="received"
-                stroke="#10b981"
-                strokeWidth={2}
+                stroke="#6F8F7B"
+                strokeWidth={2.5}
                 fill="url(#colorReceived)"
               />
             </AreaChart>
@@ -182,29 +215,29 @@ export function DashboardPage() {
         </ChartPanel>
 
         <ChartPanel title="Leads over time">
-          <ResponsiveContainer width="100%" height={280}>
+          <ResponsiveContainer width="100%" height={290}>
             <BarChart data={dashboard.leads.overTime}>
               <defs>
                 <linearGradient id="colorLeads" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#38bdf8" />
-                  <stop offset="100%" stopColor="#0284c7" />
+                  <stop offset="0%" stopColor="#4A6B57" />
+                  <stop offset="100%" stopColor="#6F8F7B" />
                 </linearGradient>
               </defs>
-              <CartesianGrid stroke="#262626" strokeDasharray="3 3" />
-              <XAxis dataKey="date" stroke="#a3a3a3" fontSize={11} />
-              <YAxis stroke="#a3a3a3" fontSize={11} allowDecimals={false} />
+              <CartesianGrid stroke="rgba(120,110,90,0.12)" strokeDasharray="3 3" vertical={false} />
+              <XAxis dataKey="date" stroke="#7A7F82" fontSize={11} tickLine={false} axisLine={{ stroke: 'rgba(120,110,90,0.16)' }} />
+              <YAxis stroke="#7A7F82" fontSize={11} tickLine={false} axisLine={{ stroke: 'rgba(120,110,90,0.16)' }} allowDecimals={false} />
               <Tooltip
-                contentStyle={{ background: '#0a0a0a', border: '1px solid #262626', borderRadius: '6px' }}
+                contentStyle={chartTooltipStyle}
                 formatter={(val: number) => [val, 'Leads']}
               />
-              <Legend wrapperStyle={{ paddingTop: '8px', fontSize: '12px' }} />
-              <Bar name="New Leads" dataKey="count" fill="url(#colorLeads)" radius={[4, 4, 0, 0]} />
+              <Legend wrapperStyle={{ paddingTop: '16px', fontSize: '13px', fontFamily: 'Poppins, system-ui, sans-serif', color: '#7A7F82' }} />
+              <Bar name="New Leads" dataKey="count" fill="url(#colorLeads)" radius={[6, 6, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </ChartPanel>
 
         <ChartPanel title="Lead status distribution">
-          <ResponsiveContainer width="100%" height={280}>
+          <ResponsiveContainer width="100%" height={290}>
             <PieChart>
               <Pie
                 data={dashboard.leads.byStatus}
@@ -212,31 +245,31 @@ export function DashboardPage() {
                 nameKey="status"
                 cx="50%"
                 cy="45%"
-                innerRadius={45}
-                outerRadius={80}
-                paddingAngle={3}
+                innerRadius={50}
+                outerRadius={85}
+                paddingAngle={4}
                 label={({ name, percent }) => (percent > 0 ? `${name} (${(percent * 100).toFixed(0)}%)` : '')}
               >
                 {dashboard.leads.byStatus.map((entry, index) => (
                   <Cell
                     key={entry.status}
                     fill={leadStatusColors[entry.status] ?? defaultPalette[index % defaultPalette.length]}
-                    stroke="#0f0f0f"
+                    stroke="#FFFFFF"
                     strokeWidth={2}
                   />
                 ))}
               </Pie>
               <Tooltip
-                contentStyle={{ background: '#0a0a0a', border: '1px solid #262626', borderRadius: '6px' }}
+                contentStyle={chartTooltipStyle}
                 formatter={(val: number, name: string) => [val, name]}
               />
-              <Legend wrapperStyle={{ paddingTop: '8px', fontSize: '12px' }} />
+              <Legend wrapperStyle={{ paddingTop: '16px', fontSize: '13px', fontFamily: 'Poppins, system-ui, sans-serif', color: '#7A7F82' }} />
             </PieChart>
           </ResponsiveContainer>
         </ChartPanel>
 
         <ChartPanel title="Project status distribution">
-          <ResponsiveContainer width="100%" height={280}>
+          <ResponsiveContainer width="100%" height={290}>
             <PieChart>
               <Pie
                 data={dashboard.projects.byStatus}
@@ -244,42 +277,42 @@ export function DashboardPage() {
                 nameKey="status"
                 cx="50%"
                 cy="45%"
-                innerRadius={45}
-                outerRadius={80}
-                paddingAngle={3}
+                innerRadius={50}
+                outerRadius={85}
+                paddingAngle={4}
                 label={({ name, percent }) => (percent > 0 ? `${name} (${(percent * 100).toFixed(0)}%)` : '')}
               >
                 {dashboard.projects.byStatus.map((entry, index) => (
                   <Cell
                     key={entry.status}
                     fill={projectStatusColors[entry.status] ?? defaultPalette[index % defaultPalette.length]}
-                    stroke="#0f0f0f"
+                    stroke="#FFFFFF"
                     strokeWidth={2}
                   />
                 ))}
               </Pie>
               <Tooltip
-                contentStyle={{ background: '#0a0a0a', border: '1px solid #262626', borderRadius: '6px' }}
+                contentStyle={chartTooltipStyle}
                 formatter={(val: number, name: string) => [val, name]}
               />
-              <Legend wrapperStyle={{ paddingTop: '8px', fontSize: '12px' }} />
+              <Legend wrapperStyle={{ paddingTop: '16px', fontSize: '13px', fontFamily: 'Poppins, system-ui, sans-serif', color: '#7A7F82' }} />
             </PieChart>
           </ResponsiveContainer>
         </ChartPanel>
 
         <ChartPanel title="Income vs. expenses">
-          <ResponsiveContainer width="100%" height={280}>
+          <ResponsiveContainer width="100%" height={290}>
             <BarChart data={dashboard.revenueOverTime}>
-              <CartesianGrid stroke="#262626" strokeDasharray="3 3" />
-              <XAxis dataKey="date" stroke="#a3a3a3" fontSize={11} />
-              <YAxis stroke="#a3a3a3" fontSize={11} tickFormatter={(val) => `₹${(val / 1000).toFixed(0)}k`} />
+              <CartesianGrid stroke="rgba(120,110,90,0.12)" strokeDasharray="3 3" vertical={false} />
+              <XAxis dataKey="date" stroke="#7A7F82" fontSize={11} tickLine={false} axisLine={{ stroke: 'rgba(120,110,90,0.16)' }} />
+              <YAxis stroke="#7A7F82" fontSize={11} tickLine={false} axisLine={{ stroke: 'rgba(120,110,90,0.16)' }} tickFormatter={(val) => `₹${(val / 1000).toFixed(0)}k`} />
               <Tooltip
-                contentStyle={{ background: '#0a0a0a', border: '1px solid #262626', borderRadius: '6px' }}
+                contentStyle={chartTooltipStyle}
                 formatter={(val: number) => [formatCurrency(val), '']}
               />
-              <Legend wrapperStyle={{ paddingTop: '8px', fontSize: '12px' }} />
-              <Bar name="Income (Received)" dataKey="received" fill="#10b981" radius={[4, 4, 0, 0]} />
-              <Bar name="Expenses" dataKey="expenses" fill="#f43f5e" radius={[4, 4, 0, 0]} />
+              <Legend wrapperStyle={{ paddingTop: '16px', fontSize: '13px', fontFamily: 'Poppins, system-ui, sans-serif', color: '#7A7F82' }} />
+              <Bar name="Income (Received)" dataKey="received" fill="#4A6B57" radius={[6, 6, 0, 0]} />
+              <Bar name="Expenses" dataKey="expenses" fill="#C0504D" radius={[6, 6, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </ChartPanel>
@@ -288,31 +321,40 @@ export function DashboardPage() {
   );
 }
 
-function Metric({ label, value, colorClass }: { label: string; value: string | number; colorClass?: string }) {
+function Metric({ label, value, isHero = false }: { label: string; value: string | number; isHero?: boolean }) {
+  if (isHero) {
+    return (
+      <div className="clay-card clay-card--hero p-5 flex flex-col justify-between">
+        <div className="font-display text-xs font-normal uppercase tracking-[0.06em] text-white/80">{label}</div>
+        <div className="mt-3 font-display text-3xl font-bold tracking-tight text-white">{value}</div>
+      </div>
+    );
+  }
+
   return (
-    <div className="rounded border border-border bg-panel p-4">
-      <div className="text-xs uppercase text-muted">{label}</div>
-      <div className={`mt-2 text-xl font-semibold ${colorClass ?? 'text-foreground'}`}>{value}</div>
+    <div className="clay-card p-5 flex flex-col justify-between">
+      <div className="font-display text-xs font-normal uppercase tracking-[0.06em] text-ink-500">{label}</div>
+      <div className="mt-3 font-display text-3xl font-bold tracking-tight text-ink-900">{value}</div>
     </div>
   );
 }
 
 function Row({ label, value, dotColor }: { label: string; value: string | number; dotColor?: string }) {
   return (
-    <div className="flex items-center justify-between border-b border-border pb-2 last:border-b-0 last:pb-0">
-      <span className="flex items-center gap-2 text-muted">
-        {dotColor ? <span className="h-2 w-2 rounded-full" style={{ backgroundColor: dotColor }} /> : null}
-        {label}
+    <div className="flex items-center justify-between py-2.5 border-b border-[rgba(120,110,90,0.12)] last:border-b-0">
+      <span className="flex items-center gap-2.5 text-ink-700 font-body text-sm">
+        {dotColor ? <span className="h-2.5 w-2.5 rounded-full shadow-[0_1px_3px_rgba(0,0,0,0.12)] shrink-0" style={{ backgroundColor: dotColor }} /> : null}
+        <span>{label}</span>
       </span>
-      <span className="font-medium text-foreground">{value}</span>
+      <span className="font-display font-bold text-sm text-ink-900">{value}</span>
     </div>
   );
 }
 
 function ChartPanel({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <section className="rounded border border-border bg-panel p-4">
-      <h2 className="mb-4 text-sm font-semibold">{title}</h2>
+    <section className="clay-card p-6">
+      <h2 className="mb-6 font-display text-xl font-bold text-ink-900">{title}</h2>
       {children}
     </section>
   );
@@ -327,23 +369,29 @@ function WaitingOnClientCard({ data }: { data: WaitingOnClient }) {
   const total = groups.reduce((sum, group) => sum + group.items.length, 0);
 
   return (
-    <section className="rounded border border-border bg-panel p-4">
-      <h2 className="mb-4 text-sm font-semibold">Waiting on client</h2>
+    <section className="clay-card p-6">
+      <h2 className="mb-5 font-display text-xl font-bold text-ink-900">Waiting on client</h2>
       {total === 0 ? (
-        <div className="rounded border border-dashed border-border p-4 text-sm text-muted">Nothing is waiting on a client.</div>
+        <div className="rounded-md border border-dashed border-[rgba(120,110,90,0.2)] p-6 text-center text-sm font-body text-ink-500 bg-surface-soft/60">
+          Nothing is waiting on a client.
+        </div>
       ) : (
-        <div className="grid gap-4 md:grid-cols-3">
+        <div className="grid gap-6 md:grid-cols-3">
           {groups.map((group) => (
             <div key={group.label}>
-              <div className="mb-2 text-xs text-muted">
-                {group.label} ({group.items.length})
+              <div className="mb-3 flex items-center justify-between">
+                <span className="font-display text-xs font-normal uppercase tracking-[0.06em] text-ink-500">{group.label}</span>
+                <span className="clay-chip font-medium text-xs px-2.5 py-0.5">{group.items.length}</span>
               </div>
-              <ul className="space-y-2">
+              <ul className="space-y-2.5">
                 {group.items.map((item) => (
                   <li key={item.id}>
-                    <Link to={item.href} className="block rounded border border-border bg-black p-2 text-sm hover:border-indigo-500/50">
-                      <div className="font-medium text-white">{item.title}</div>
-                      <div className="text-xs text-muted">
+                    <Link
+                      to={item.href}
+                      className="block rounded-md p-3.5 bg-surface-soft border border-white/80 shadow-[var(--clay-raised-sm)] transition-all hover:-translate-y-0.5 hover:shadow-[var(--clay-hover)]"
+                    >
+                      <div className="font-body text-sm font-semibold text-ink-900">{item.title}</div>
+                      <div className="mt-1 font-body text-xs text-ink-500">
                         {item.clientName}
                         {item.detail ? ` · ${item.detail}` : ''}
                       </div>

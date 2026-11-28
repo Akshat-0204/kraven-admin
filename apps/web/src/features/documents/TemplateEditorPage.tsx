@@ -1,7 +1,7 @@
 import { DOCUMENT_TEMPLATE_TYPES } from '@kraven/config';
 import type { DocumentTemplateType } from '@kraven/types';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, Save } from 'lucide-react';
+import { ArrowLeft, Info, Save } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -55,56 +55,120 @@ export function TemplateEditorPage() {
   });
 
   if (!isNew && templateQuery.isLoading) {
-    return <div className="rounded border border-border bg-panel p-5 text-sm text-muted">Loading template...</div>;
+    return (
+      <div className="clay-card p-8 text-center font-body text-sm text-ink-500">
+        <div className="inline-block h-6 w-6 animate-spin rounded-full border-2 border-olive-600 border-t-transparent mb-2" />
+        <p>Loading template...</p>
+      </div>
+    );
   }
   if (!isNew && !template) {
-    return <div className="rounded border border-red-400/40 bg-panel p-5 text-sm text-red-200">Unable to load template.</div>;
+    return (
+      <div className="clay-card p-8 text-center font-body text-sm text-danger-fg">
+        Unable to load template. Please check the URL or return to templates.
+      </div>
+    );
   }
 
   return (
-    <section className="space-y-5">
-      <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-        <div className="space-y-3">
-          <Link className="inline-flex items-center text-sm text-muted hover:text-white" to="/templates">
-            <ArrowLeft className="mr-2 h-4 w-4" aria-hidden="true" />
-            Back to templates
+    <section className="space-y-6 sm:space-y-8">
+      {/* Page Header */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div className="space-y-2">
+          <Link
+            className="inline-flex items-center gap-1.5 text-xs font-body font-medium text-ink-500 hover:text-olive-700 transition-colors"
+            to="/templates"
+          >
+            <ArrowLeft className="h-3.5 w-3.5" aria-hidden="true" />
+            <span>Back to templates</span>
           </Link>
-          <h1 className="text-2xl font-semibold">{isNew ? 'New template' : template?.name}</h1>
-          {template ? <p className="text-xs text-muted">Version {template.version}</p> : null}
+          <div className="flex flex-wrap items-center gap-3">
+            <h1 className="font-display text-2xl sm:text-3xl font-bold text-ink-900">
+              {isNew ? 'New Template' : template?.name}
+            </h1>
+            {template ? (
+              <span className="clay-chip bg-olive-100 text-olive-800 text-xs">
+                Version {template.version}
+              </span>
+            ) : null}
+          </div>
         </div>
-        <Button disabled={!name.trim() || saveMutation.isPending} onClick={() => saveMutation.mutate()}>
-          <Save className="mr-2 h-4 w-4" aria-hidden="true" />
-          {saveMutation.isPending ? 'Saving...' : 'Save'}
-        </Button>
+
+        <div>
+          <Button
+            disabled={!name.trim() || saveMutation.isPending}
+            onClick={() => saveMutation.mutate()}
+            className="h-11 px-6 rounded-pill"
+          >
+            <Save className="mr-2 h-4 w-4" aria-hidden="true" />
+            <span>{saveMutation.isPending ? 'Saving...' : 'Save Template'}</span>
+          </Button>
+        </div>
       </div>
 
-      <div className="grid gap-3 rounded border border-border bg-panel p-4 md:grid-cols-2">
-        <label className="space-y-1 text-sm">
-          <span className="text-muted">Name</span>
-          <Input value={name} onChange={(event) => setName(event.target.value)} placeholder="Project Proposal" />
-        </label>
-        <label className="space-y-1 text-sm">
-          <span className="text-muted">Type</span>
-          <Select value={type} onChange={(event) => setType(event.target.value as DocumentTemplateType)}>
-            {DOCUMENT_TEMPLATE_TYPES.map((option) => (
-              <option key={option} value={option}>
-                {option}
-              </option>
-            ))}
-          </Select>
-        </label>
+      {/* Metadata Configuration Card */}
+      <div className="clay-card p-6 rounded-lg border border-white/80 shadow-[var(--clay-raised)] bg-surface space-y-4">
+        <div className="border-b border-[rgba(120,110,90,0.12)] pb-3">
+          <h2 className="font-display text-base font-bold text-ink-900">
+            Template Properties
+          </h2>
+          <p className="font-body text-xs text-ink-500">
+            Define template naming and category classification for document generation.
+          </p>
+        </div>
+
+        <div className="grid gap-6 md:grid-cols-2 pt-1">
+          <div>
+            <label className="block font-body text-sm font-medium text-ink-700 mb-2">
+              Template Name
+            </label>
+            <Input
+              value={name}
+              onChange={(event) => setName(event.target.value)}
+              placeholder="e.g. Master Services Agreement"
+              className="w-full"
+            />
+          </div>
+
+          <div>
+            <label className="block font-body text-sm font-medium text-ink-700 mb-2">
+              Document Type
+            </label>
+            <Select
+              value={type}
+              onChange={(event) => setType(event.target.value as DocumentTemplateType)}
+              className="w-full"
+            >
+              {DOCUMENT_TEMPLATE_TYPES.map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </Select>
+          </div>
+        </div>
       </div>
 
+      {/* Rich Text Editor Canvas */}
       <TiptapEditor
         key={template ? `${template.id}:${template.version}` : 'new'}
         initialHtml={template?.html ?? ''}
         onChange={setHtml}
         variables={variablesQuery.data?.variables ?? []}
       />
-      <p className="text-xs text-muted">
-        Variables are written as {'{{client.company}}'} and filled when a document is created. Editing a template never
-        changes documents already created from it.
-      </p>
+
+      {/* Helpful Guidelines Callout */}
+      <div className="p-4 rounded-md bg-surface-soft border border-[rgba(120,110,90,0.14)] flex items-start gap-3">
+        <div className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-olive-100 text-olive-700">
+          <Info className="h-3.5 w-3.5" />
+        </div>
+        <p className="font-body text-xs text-ink-600 leading-relaxed">
+          <span className="font-semibold text-ink-800">Dynamic Merge Fields: </span>
+          Variables are wrapped in double curly braces like <code className="bg-sand-200 text-olive-900 px-1.5 py-0.5 rounded font-mono text-[11px]">{'{{client.company}}'}</code>.
+          When creating a client or project document, Kraven automatically substitutes these tags with verified database records.
+          Editing a template creates a new version increment and never alters already issued documents.
+        </p>
+      </div>
     </section>
   );
 }
