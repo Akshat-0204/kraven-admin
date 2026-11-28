@@ -121,7 +121,7 @@ export function ProjectUpdatesPanel({ projectId }: { projectId: string }) {
             onChange={(event) => setDraft({ ...draft, body: event.target.value })}
             className="w-full bg-surface"
           />
-          <label className="flex items-center gap-2 font-body text-xs text-ink-800 cursor-pointer pt-1">
+          <label className="flex items-center gap-2 font-body text-xs text-ink-900 cursor-pointer pt-1">
             <input
               type="checkbox"
               checked={draft.clientVisible}
@@ -132,7 +132,7 @@ export function ProjectUpdatesPanel({ projectId }: { projectId: string }) {
           </label>
           {projectFiles.length > 0 ? (
             <fieldset className="space-y-1.5 pt-2 border-t border-[rgba(120,110,90,0.1)]">
-              <legend className="font-body text-xs font-medium text-ink-600 mb-1">
+              <legend className="font-body text-xs font-medium text-ink-700 mb-1">
                 Attachments (shown in client portal):
               </legend>
               {projectFiles.map((file) => (
@@ -175,7 +175,7 @@ export function ProjectUpdatesPanel({ projectId }: { projectId: string }) {
               <div className="min-w-0">
                 <p className="font-body text-sm font-semibold text-ink-900">{update.title}</p>
                 <div className="flex items-center gap-2 pt-0.5">
-                  <span className={update.clientVisible ? 'clay-chip text-[10px] py-0.2 px-2 bg-olive-100 text-olive-800' : 'clay-chip text-[10px] py-0.2 px-2 bg-sand-200 text-ink-700'}>
+                  <span className={update.clientVisible ? 'clay-chip text-[10px] py-0.2 px-2 bg-olive-100 text-olive-900' : 'clay-chip text-[10px] py-0.2 px-2 bg-sand-200 text-ink-700'}>
                     {update.clientVisible ? 'Client visible' : 'Internal only'}
                   </span>
                   <span className="font-body text-xs text-ink-500">

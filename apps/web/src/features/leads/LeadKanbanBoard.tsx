@@ -31,7 +31,7 @@ export function LeadKanbanBoard({ leads, onStatusChange }: LeadKanbanBoardProps)
             {/* Column Header */}
             <div className="flex items-center justify-between border-b border-[rgba(120,110,90,0.12)] px-1 pb-2.5 pt-0.5 mb-2.5">
               <LeadStatusBadge status={status} />
-              <span className="font-mono text-xs font-medium text-ink-600 bg-sand-200 px-2 py-0.5 rounded-pill border border-[rgba(120,110,90,0.12)]">
+              <span className="font-mono text-xs font-medium text-ink-700 bg-sand-200 px-2 py-0.5 rounded-pill border border-[rgba(120,110,90,0.12)]">
                 {columnLeads.length}
               </span>
             </div>
@@ -50,7 +50,7 @@ export function LeadKanbanBoard({ leads, onStatusChange }: LeadKanbanBoardProps)
                     className="block clay-card p-3.5 rounded-md shadow-clay-sm hover:shadow-clay-hover transition-all hover:-translate-y-0.5 border border-white/90 bg-surface cursor-grab active:cursor-grabbing group"
                   >
                     <div className="mb-2.5 flex items-center gap-2.5">
-                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-olive-100 text-olive-800 font-semibold text-xs shadow-clay-sm border border-white/80">
+                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-olive-100 text-olive-900 font-semibold text-xs shadow-clay-sm border border-white/80">
                         {leadInitials(lead)}
                       </div>
                       <div className="min-w-0 flex-1">
@@ -61,14 +61,14 @@ export function LeadKanbanBoard({ leads, onStatusChange }: LeadKanbanBoardProps)
                       </div>
                     </div>
 
-                    <div className="space-y-1.5 pt-1 border-t border-[rgba(120,110,90,0.1)] text-[11px] font-body text-ink-600">
+                    <div className="space-y-1.5 pt-1 border-t border-[rgba(120,110,90,0.1)] text-[11px] font-body text-ink-700">
                       <div className="flex items-center gap-1 font-medium text-ink-900">
                         <DollarSign className="h-3 w-3 text-olive-700 shrink-0" />
                         <span>{formatCurrency(lead.estimatedValue)}</span>
                       </div>
                       {lead.nextFollowUpDate && (
                         <div className="flex items-center gap-1 text-ink-500">
-                          <Calendar className="h-3 w-3 text-ink-400 shrink-0" />
+                          <Calendar className="h-3 w-3 text-ink-500 shrink-0" />
                           <span>{formatDate(lead.nextFollowUpDate)}</span>
                         </div>
                       )}

@@ -75,12 +75,12 @@ export function PayeeProfilesSection() {
               <div className="flex items-center gap-2">
                 <p className="font-body text-sm font-semibold text-ink-900">{payee.name}</p>
                 {payee.isDefault ? (
-                  <span className="clay-chip text-[10px] py-0.5 px-2 bg-olive-100 text-olive-800 font-semibold">
+                  <span className="clay-chip text-[10px] py-0.5 px-2 bg-olive-100 text-olive-900 font-semibold">
                     Default Payee
                   </span>
                 ) : null}
               </div>
-              <p className="font-mono text-xs text-olive-800 font-medium pt-0.5">{payee.vpa}</p>
+              <p className="font-mono text-xs text-olive-900 font-medium pt-0.5">{payee.vpa}</p>
             </div>
 
             <div className="flex items-center gap-1.5 shrink-0">
@@ -99,7 +99,7 @@ export function PayeeProfilesSection() {
               ) : null}
               <button
                 type="button"
-                className="h-8 w-8 rounded-sm flex items-center justify-center text-ink-400 hover:text-danger-fg transition-colors"
+                className="h-8 w-8 rounded-sm flex items-center justify-center text-ink-500 hover:text-danger-fg transition-colors"
                 onClick={() => {
                   if (window.confirm(`Delete payee ${payee.name}?`)) remove.mutate(payee.id);
                 }}

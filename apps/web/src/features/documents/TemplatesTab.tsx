@@ -34,7 +34,7 @@ export function TemplatesTab({ onEdit }: { onEdit: (template: DocumentTemplateRe
   }
   if (templatesQuery.isError) {
     return (
-      <Card className="font-body text-sm text-red-600">Unable to load templates.</Card>
+      <Card className="font-body text-sm text-danger-fg">Unable to load templates.</Card>
     );
   }
   if (templates.length === 0) {
@@ -48,7 +48,7 @@ export function TemplatesTab({ onEdit }: { onEdit: (template: DocumentTemplateRe
   return (
     <Card padded={false}>
       <Table className="min-w-[560px]">
-        <thead className="border-b border-sand-300/40 bg-sand-100/50">
+        <thead className="border-b border-sand-200/40 bg-sand-200/50">
           <tr>
             <Th>Name</Th>
             <Th>Type</Th>
@@ -56,9 +56,9 @@ export function TemplatesTab({ onEdit }: { onEdit: (template: DocumentTemplateRe
             <Th />
           </tr>
         </thead>
-        <tbody className="divide-y divide-sand-300/30">
+        <tbody className="divide-y divide-sand-200/30">
           {templates.map((template) => (
-            <tr key={template.id} className="transition-colors hover:bg-sand-50/60">
+            <tr key={template.id} className="transition-colors hover:bg-surface-soft/60">
               <Td className="font-medium text-ink-900">{template.name}</Td>
               <Td className="text-ink-500">{template.type}</Td>
               <Td>
@@ -78,7 +78,7 @@ export function TemplatesTab({ onEdit }: { onEdit: (template: DocumentTemplateRe
                 </button>
                 <button
                   type="button"
-                  className="text-ink-500 hover:text-red-600"
+                  className="text-ink-500 hover:text-danger-fg"
                   onClick={() => {
                     if (window.confirm(`Delete template "${template.name}"?`)) remove.mutate(template.id);
                   }}

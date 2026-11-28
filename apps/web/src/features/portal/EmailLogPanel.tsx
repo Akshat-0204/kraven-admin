@@ -62,7 +62,7 @@ export function EmailLogPanel({ clientId, hasEmail }: { clientId: string; hasEma
                 className={
                   email.status === 'bounced' || email.status === 'failed'
                     ? 'clay-chip text-[10px] py-0.2 px-2 bg-danger-bg text-danger-fg'
-                    : 'clay-chip text-[10px] py-0.2 px-2 bg-olive-100 text-olive-800'
+                    : 'clay-chip text-[10px] py-0.2 px-2 bg-olive-100 text-olive-900'
                 }
               >
                 {email.status}

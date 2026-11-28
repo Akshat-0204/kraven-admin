@@ -52,7 +52,7 @@ export function DataTable<T>({ columns, rows, rowKey, onRowClick, empty, classNa
 
   return (
     <Table className={className}>
-      <thead className="border-b border-sand-300/40 bg-sand-100/50">
+      <thead className="border-b border-sand-200/40 bg-sand-200/50">
         <tr>
           {columns.map((column) => (
             <Th key={column.key} className={cn(alignClass[column.align ?? 'left'], column.className)}>
@@ -61,12 +61,12 @@ export function DataTable<T>({ columns, rows, rowKey, onRowClick, empty, classNa
           ))}
         </tr>
       </thead>
-      <tbody className="divide-y divide-sand-300/30">
+      <tbody className="divide-y divide-sand-200/30">
         {rows.map((row) => (
           <tr
             key={rowKey(row)}
             onClick={onRowClick ? () => onRowClick(row) : undefined}
-            className={cn('transition-colors hover:bg-sand-50/60', onRowClick && 'cursor-pointer')}
+            className={cn('transition-colors hover:bg-surface-soft/60', onRowClick && 'cursor-pointer')}
           >
             {columns.map((column) => (
               <Td key={column.key} className={cn(alignClass[column.align ?? 'left'], column.className)}>

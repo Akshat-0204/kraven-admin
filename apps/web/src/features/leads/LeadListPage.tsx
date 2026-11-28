@@ -100,19 +100,19 @@ export function LeadListPage() {
     {
       key: 'value',
       header: 'Est. Value',
-      className: 'font-medium text-ink-800',
+      className: 'font-medium text-ink-900',
       render: (lead) => formatCurrency(lead.estimatedValue)
     },
     {
       key: 'assigned',
       header: 'Assigned',
-      className: 'text-xs text-ink-600',
+      className: 'text-xs text-ink-700',
       render: (lead) => lead.assignedPerson || '-'
     },
     {
       key: 'followUp',
       header: 'Next Follow-Up',
-      className: 'text-xs text-ink-600',
+      className: 'text-xs text-ink-700',
       render: (lead) => formatDate(lead.nextFollowUpDate)
     },
     {

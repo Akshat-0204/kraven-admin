@@ -103,7 +103,7 @@ export function ExpenseFormModal({ expense, isOpen, onClose, onSubmit }: Expense
           <label className="space-y-1.5 md:col-span-2">
             <span className="font-body text-xs font-semibold uppercase tracking-wider text-ink-700">Expense Title</span>
             <Input placeholder="e.g. AWS Cloud Hosting, Ergonomic Chairs" {...register('name')} />
-            {errors.name ? <span className="block text-xs font-body text-red-600">{errors.name.message}</span> : null}
+            {errors.name ? <span className="block text-xs font-body text-danger-fg">{errors.name.message}</span> : null}
           </label>
 
           <label className="space-y-1.5">

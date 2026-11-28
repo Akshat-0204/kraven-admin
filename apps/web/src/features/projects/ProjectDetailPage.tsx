@@ -199,7 +199,7 @@ export function ProjectDetailPage() {
                 {project.projectName}
               </h1>
               <ProjectStatusBadge status={project.status} />
-              <span className="clay-chip bg-sand-200 text-ink-800 text-xs font-mono">
+              <span className="clay-chip bg-sand-200 text-ink-900 text-xs font-mono">
                 {project.progressPercentage}% complete
               </span>
             </div>
@@ -231,7 +231,7 @@ export function ProjectDetailPage() {
             <div className="rounded-md bg-surface-soft p-4 border border-[rgba(120,110,90,0.12)] space-y-2">
               <div className="flex items-center justify-between text-xs font-body font-medium">
                 <span className="text-ink-700">Overall Progress</span>
-                <span className="font-mono text-olive-800 font-bold">{project.progressPercentage}%</span>
+                <span className="font-mono text-olive-900 font-bold">{project.progressPercentage}%</span>
               </div>
               <ProgressBar value={project.progressPercentage} />
             </div>
@@ -297,9 +297,9 @@ export function ProjectDetailPage() {
                 {project.deliverables.map((deliverable) => (
                   <li
                     key={deliverable}
-                    className="flex items-center gap-2.5 rounded-md bg-surface-soft p-3 border border-[rgba(120,110,90,0.12)] text-sm font-body text-ink-800"
+                    className="flex items-center gap-2.5 rounded-md bg-surface-soft p-3 border border-[rgba(120,110,90,0.12)] text-sm font-body text-ink-900"
                   >
-                    <span className="h-2 w-2 rounded-full bg-olive-600 shrink-0" />
+                    <span className="h-2 w-2 rounded-full bg-olive-700 shrink-0" />
                     <span>{deliverable}</span>
                   </li>
                 ))}
@@ -343,7 +343,7 @@ export function ProjectDetailPage() {
               >
                 {client.companyName}
               </Link>
-              <div className="text-ink-600">{client.contactPerson}</div>
+              <div className="text-ink-700">{client.contactPerson}</div>
               <div className="text-xs text-ink-500">{client.email || '-'}</div>
               <div className="text-xs text-ink-500">{client.phone || '-'}</div>
             </div>
@@ -372,11 +372,11 @@ export function ProjectDetailPage() {
                     >
                       {link.label}
                     </a>
-                    <ExternalLink className="h-3 w-3 text-ink-400 shrink-0" aria-hidden="true" />
+                    <ExternalLink className="h-3 w-3 text-ink-500 shrink-0" aria-hidden="true" />
                     <button
                       type="button"
                       aria-label="Remove link"
-                      className="h-7 w-7 rounded-sm flex items-center justify-center text-ink-400 hover:text-danger-fg transition-colors"
+                      className="h-7 w-7 rounded-sm flex items-center justify-center text-ink-500 hover:text-danger-fg transition-colors"
                       onClick={() => removeLinkMutation.mutate(index)}
                     >
                       <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
@@ -456,7 +456,7 @@ export function ProjectDetailPage() {
                     <button
                       type="button"
                       aria-label="Remove document"
-                      className="h-7 w-7 rounded-sm flex items-center justify-center text-ink-400 hover:text-danger-fg transition-colors"
+                      className="h-7 w-7 rounded-sm flex items-center justify-center text-ink-500 hover:text-danger-fg transition-colors"
                       onClick={() => removeDocumentMutation.mutate(document.fileId)}
                     >
                       <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
@@ -491,7 +491,7 @@ export function ProjectDetailPage() {
                 {activity.map((item) => (
                   <li key={item.id} className="relative pl-3.5 border-l-2 border-olive-500/50 space-y-0.5">
                     <div className="font-mono text-[11px] text-ink-500">{formatDate(item.timestamp)}</div>
-                    <div className="font-body text-xs text-ink-800 font-medium">{item.description}</div>
+                    <div className="font-body text-xs text-ink-900 font-medium">{item.description}</div>
                   </li>
                 ))}
               </ol>
@@ -515,7 +515,7 @@ function Metric({ label, value, isHero = false }: { label: string; value: string
     <div
       className={
         isHero
-          ? 'rounded-md p-4 bg-olive-100/70 border border-olive-200 shadow-clay-sm'
+          ? 'rounded-md p-4 bg-olive-100/70 border border-olive-300 shadow-clay-sm'
           : 'rounded-md p-4 bg-surface-soft border border-[rgba(120,110,90,0.12)] shadow-clay-sm'
       }
     >
@@ -543,9 +543,9 @@ function Info({
   return (
     <div className={className}>
       <dt className="font-display text-xs uppercase tracking-wider text-ink-500">{label}</dt>
-      <dd className={multiline ? 'mt-1.5 whitespace-pre-wrap font-body text-sm text-ink-800 bg-surface-soft p-3 rounded-md border border-[rgba(120,110,90,0.1)] leading-relaxed' : 'mt-1 font-body text-sm font-medium text-ink-900'}>
+      <dd className={multiline ? 'mt-1.5 whitespace-pre-wrap font-body text-sm text-ink-900 bg-surface-soft p-3 rounded-md border border-[rgba(120,110,90,0.1)] leading-relaxed' : 'mt-1 font-body text-sm font-medium text-ink-900'}>
         {to && value ? (
-          <Link className="font-semibold text-olive-800 hover:text-olive-600 transition-colors" to={to}>
+          <Link className="font-semibold text-olive-900 hover:text-olive-700 transition-colors" to={to}>
             {value}
           </Link>
         ) : (

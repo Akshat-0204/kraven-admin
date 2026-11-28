@@ -18,7 +18,7 @@ function FileRow({ file, disabled, onPatch }: { file: FileMetadataRecord; disabl
     else if (next !== file.filename) onPatch({ filename: next });
   };
   return (
-    <li className="flex flex-wrap items-center gap-2 rounded-md border border-[rgba(120,110,90,0.12)] bg-surface-soft p-2.5 font-body text-sm text-ink-800">
+    <li className="flex flex-wrap items-center gap-2 rounded-md border border-[rgba(120,110,90,0.12)] bg-surface-soft p-2.5 font-body text-sm text-ink-900">
       <Input
         aria-label={`Filename ${file.filename}`}
         className="h-8 min-w-0 flex-1"

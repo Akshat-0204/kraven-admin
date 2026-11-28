@@ -28,9 +28,9 @@ function SignatureAudit({ documentId }: { documentId: string }) {
       <dt className="font-semibold text-ink-700">IP:</dt>
       <dd>{signature.ip}</dd>
       <dt className="font-semibold text-ink-700">Original SHA-256:</dt>
-      <dd className="break-all font-mono text-[10px] text-ink-600">{signature.originalSha256}</dd>
+      <dd className="break-all font-mono text-[10px] text-ink-700">{signature.originalSha256}</dd>
       <dt className="font-semibold text-ink-700">Sealed SHA-256:</dt>
-      <dd className="break-all font-mono text-[10px] text-ink-600">{signature.sealedSha256}</dd>
+      <dd className="break-all font-mono text-[10px] text-ink-700">{signature.sealedSha256}</dd>
     </dl>
   );
 }
@@ -64,7 +64,7 @@ function PackCard({ pack, onChange }: { pack: PackRecord; onChange: () => void }
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[rgba(120,110,90,0.1)] pb-2.5">
         <div className="flex items-center gap-2">
           <p className="font-body text-sm font-semibold text-ink-900">{pack.title}</p>
-          <span className="clay-chip text-[11px] py-0.5 px-2 bg-sand-200 text-ink-800">
+          <span className="clay-chip text-[11px] py-0.5 px-2 bg-sand-200 text-ink-900">
             {pack.status}
           </span>
         </div>
@@ -101,8 +101,8 @@ function PackCard({ pack, onChange }: { pack: PackRecord; onChange: () => void }
         {pack.items.map((item) => (
           <li key={item.id} className="rounded border border-[rgba(120,110,90,0.1)] bg-surface p-2.5">
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <span className="font-medium text-ink-800">
-                <span className="capitalize text-olive-800 font-semibold">{item.kind}</span>: {item.title}
+              <span className="font-medium text-ink-900">
+                <span className="capitalize text-olive-900 font-semibold">{item.kind}</span>: {item.title}
                 {item.kind === 'document' ? ` · ${item.documentStatus}` : ''}
                 {item.kind === 'payment' ? ` · INR ${item.amount} · ${item.paymentStatus}` : ''}
               </span>
@@ -194,7 +194,7 @@ export function PacksPanel({ clientId }: { clientId: string }) {
           <div className="space-y-1.5">
             <span className="font-body text-xs font-semibold text-ink-700">Attach Documents:</span>
             {(documents.data?.documents ?? []).map((document) => (
-              <label key={document.id} className="flex items-center gap-2 font-body text-xs text-ink-800 cursor-pointer">
+              <label key={document.id} className="flex items-center gap-2 font-body text-xs text-ink-900 cursor-pointer">
                 <input
                   type="checkbox"
                   checked={selected.includes(document.id)}
@@ -202,7 +202,7 @@ export function PacksPanel({ clientId }: { clientId: string }) {
                   className="accent-olive-700 h-3.5 w-3.5 rounded"
                 />
                 <span>{document.title}</span>
-                <span className="clay-chip text-[10px] py-0 px-1.5 bg-sand-200 text-ink-600">({document.status})</span>
+                <span className="clay-chip text-[10px] py-0 px-1.5 bg-sand-200 text-ink-700">({document.status})</span>
               </label>
             ))}
           </div>

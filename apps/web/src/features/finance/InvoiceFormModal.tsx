@@ -107,7 +107,7 @@ export function InvoiceFormModal({ invoice, isOpen, onClose, onSubmit }: Invoice
                 </option>
               ))}
             </Select>
-            {errors.client ? <span className="block text-xs font-body text-red-600">{errors.client.message}</span> : null}
+            {errors.client ? <span className="block text-xs font-body text-danger-fg">{errors.client.message}</span> : null}
           </label>
 
           <label className="space-y-1.5">
@@ -135,7 +135,7 @@ export function InvoiceFormModal({ invoice, isOpen, onClose, onSubmit }: Invoice
           </label>
 
           {/* Line items section */}
-          <div className="space-y-3 rounded-card border border-[rgba(120,110,90,0.14)] bg-sand-100/50 p-4 shadow-clay-inset-sm md:col-span-2">
+          <div className="space-y-3 rounded-card border border-[rgba(120,110,90,0.14)] bg-sand-200/50 p-4 shadow-clay-inset-sm md:col-span-2">
             <div className="flex items-center justify-between">
               <div>
                 <span className="font-display text-xs font-semibold uppercase tracking-wider text-ink-900">Line Items</span>
@@ -176,7 +176,7 @@ export function InvoiceFormModal({ invoice, isOpen, onClose, onSubmit }: Invoice
                 />
                 <Button
                   type="button"
-                  className="clay-btn h-10 w-9 rounded-pill p-0 text-ink-400 hover:bg-danger-bg hover:text-danger-fg"
+                  className="clay-btn h-10 w-9 rounded-pill p-0 text-ink-500 hover:bg-danger-bg hover:text-danger-fg"
                   aria-label="Remove item"
                   onClick={() => remove(index)}
                 >
@@ -186,8 +186,8 @@ export function InvoiceFormModal({ invoice, isOpen, onClose, onSubmit }: Invoice
             ))}
 
             {fields.length > 0 ? (
-              <div className="border-t border-sand-300/40 pt-2 text-right text-xs font-body text-ink-600">
-                Subtotal: <span className="font-semibold text-ink-900">₹{subtotal.toFixed(2)}</span> · Tax: <span className="font-semibold text-ink-900">₹{tax.toFixed(2)}</span> · Total: <span className="font-semibold text-emerald-700">₹{(subtotal + tax).toFixed(2)}</span>
+              <div className="border-t border-sand-200/40 pt-2 text-right text-xs font-body text-ink-700">
+                Subtotal: <span className="font-semibold text-ink-900">₹{subtotal.toFixed(2)}</span> · Tax: <span className="font-semibold text-ink-900">₹{tax.toFixed(2)}</span> · Total: <span className="font-semibold text-success-fg">₹{(subtotal + tax).toFixed(2)}</span>
               </div>
             ) : null}
           </div>

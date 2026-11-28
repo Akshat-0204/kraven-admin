@@ -44,7 +44,7 @@ function JumpPanel({
         </div>
         <p className="text-sm font-body text-ink-500">{description}</p>
       </div>
-      <div className="mt-6 border-t border-sand-300/40 pt-4">
+      <div className="mt-6 border-t border-sand-200/40 pt-4">
         <Link
           to={to}
           className="inline-flex items-center text-sm font-body font-semibold text-olive-700 transition-colors hover:text-olive-900"
@@ -97,7 +97,7 @@ export function FinanceOverviewPage() {
           <LoadingState label="Loading financial metrics..." />
         </Card>
       ) : summaryQuery.isError || !summary ? (
-        <Card className="border-red-200/60 bg-danger-bg p-6 font-body text-sm text-danger-fg">
+        <Card className="bg-danger-bg p-6 font-body text-sm text-danger-fg">
           Unable to load finance overview. Please refresh or verify permissions.
         </Card>
       ) : (
@@ -111,27 +111,27 @@ export function FinanceOverviewPage() {
               hint="Gross billed to clients"
             />
             <StatCard
-              label={<span className="text-emerald-800">Received</span>}
-              value={<span className="text-emerald-700">{formatCurrency(summary.received)}</span>}
+              label={<span className="text-success-fg">Received</span>}
+              value={<span className="text-success-fg">{formatCurrency(summary.received)}</span>}
               icon={<CheckCircle2 className="h-4 w-4 text-success-fg" aria-hidden="true" />}
               hint="Collected in bank accounts"
             />
             <StatCard
-              label={<span className="text-amber-800">Pending</span>}
-              value={<span className="text-amber-600">{formatCurrency(summary.pending)}</span>}
+              label={<span className="text-warning-fg">Pending</span>}
+              value={<span className="text-warning-fg">{formatCurrency(summary.pending)}</span>}
               icon={<Clock className="h-4 w-4 text-warning-fg" aria-hidden="true" />}
               hint="Outstanding awaiting payment"
             />
             <StatCard
-              label={<span className="text-red-800">Overdue</span>}
-              value={<span className="text-red-600">{formatCurrency(summary.overdue)}</span>}
+              label={<span className="text-danger-fg">Overdue</span>}
+              value={<span className="text-danger-fg">{formatCurrency(summary.overdue)}</span>}
               icon={<AlertTriangle className="h-4 w-4 text-danger-fg" aria-hidden="true" />}
               hint="Past agreed due dates"
             />
             <StatCard
               label="Expenses"
               value={formatCurrency(summary.expenses)}
-              icon={<TrendingDown className="h-4 w-4 text-red-500" aria-hidden="true" />}
+              icon={<TrendingDown className="h-4 w-4 text-danger-fg" aria-hidden="true" />}
               hint="Operational costs & vendors"
             />
             <StatCard

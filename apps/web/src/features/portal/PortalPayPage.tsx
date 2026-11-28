@@ -6,6 +6,7 @@ import { useState } from 'react';
 import { Link, Navigate, useParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import { Button } from '../../components/ui/button';
+import { Card } from '../../components/ui/card';
 import { PortalRequestError, portalApi, portalQueryKeys } from './portalApi';
 import { PortalShell, formatDate, formatInr, isPayable } from './PortalPage';
 import { UPI_APP_SCHEMES, buildUpiUri } from './upi';
@@ -54,7 +55,7 @@ export function PortalPayPage() {
   if (payments.isLoading) {
     return (
       <PortalShell>
-        <p className="text-sm text-muted">Loading…</p>
+        <p className="font-body text-sm text-ink-500">Loading…</p>
       </PortalShell>
     );
   }
@@ -63,9 +64,9 @@ export function PortalPayPage() {
     return (
       <PortalShell>
         <BackLink to={backTo} />
-        <p className="mt-6 rounded border border-border bg-panel p-4 text-sm text-muted">
+        <Card className="mt-6 font-body text-sm text-ink-500">
           {payment && payment.remainingAmount <= 0 ? 'This invoice is already paid.' : 'This invoice cannot be paid online.'}
-        </p>
+        </Card>
       </PortalShell>
     );
   }
@@ -91,21 +92,21 @@ export function PortalPayPage() {
     <PortalShell>
       <BackLink to={backTo} />
       <div className="mx-auto mt-6 max-w-md space-y-6">
-        <div className="rounded border border-border bg-panel p-6 text-center">
-          <p className="text-xs uppercase tracking-widest text-muted">{isPackItem ? payment.invoiceNumber : `Invoice ${payment.invoiceNumber}`}</p>
-          <p className="mt-3 text-4xl font-semibold">{formatInr(payment.remainingAmount)}</p>
-          <p className="mt-2 text-sm text-muted">
+        <Card className="text-center">
+          <p className="font-body text-xs uppercase tracking-widest text-ink-500">{isPackItem ? payment.invoiceNumber : `Invoice ${payment.invoiceNumber}`}</p>
+          <p className="mt-3 font-display text-4xl font-bold text-ink-900">{formatInr(payment.remainingAmount)}</p>
+          <p className="mt-2 font-body text-sm text-ink-500">
             Pay to {request.name}{payment.dueDate ? ` · Due ${formatDate(payment.dueDate)}` : ''}
           </p>
           <button
             type="button"
             onClick={copyVpa}
-            className="mt-4 inline-flex items-center gap-2 rounded border border-border px-3 py-1.5 font-mono text-sm hover:bg-white/10"
+            className="mt-4 inline-flex items-center gap-2 rounded-pill border border-white/60 bg-surface-soft px-3 py-1.5 font-mono text-sm text-ink-900 shadow-clay-inset transition-all hover:shadow-clay-sm"
           >
             {request.vpa}
             <Copy className="h-4 w-4" aria-label="Copy UPI ID" />
           </button>
-        </div>
+        </Card>
 
         <Button asChild className="h-11 w-full">
           <a href={upiUri}>
@@ -119,18 +120,18 @@ export function PortalPayPage() {
             <a
               key={app.id}
               href={buildUpiUri(request, app.scheme)}
-              className="rounded border border-border bg-panel px-3 py-4 text-center text-sm hover:bg-white/10"
+              className="rounded-lg border border-white/60 bg-surface px-3 py-4 text-center font-body text-sm text-ink-900 shadow-clay-sm transition-all hover:-translate-y-0.5 hover:shadow-clay-hover"
             >
               {app.label}
             </a>
           ))}
         </div>
 
-        <Button className="w-full bg-transparent text-white hover:bg-white/10" onClick={() => setShowQr(true)}>
+        <Button className="w-full" onClick={() => setShowQr(true)}>
           <QrCode className="mr-2 h-4 w-4" aria-hidden />
           Show QR code
         </Button>
-        <p className="text-center text-xs text-muted">
+        <p className="text-center font-body text-xs text-ink-500">
           After paying, the invoice is marked paid once the payment is confirmed. Deep links work on phones with a UPI app.
         </p>
       </div>
@@ -140,16 +141,16 @@ export function PortalPayPage() {
           role="dialog"
           aria-modal="true"
           aria-label="UPI QR code"
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-canvas-deep/80 p-4"
           onClick={() => setShowQr(false)}
         >
-          <div className="relative rounded bg-white p-6 text-center text-black" onClick={(event) => event.stopPropagation()}>
-            <button type="button" className="absolute right-2 top-2 p-1" onClick={() => setShowQr(false)} aria-label="Close">
+          <div className="relative rounded-xl bg-surface p-6 text-center text-ink-900 shadow-clay-floating" onClick={(event) => event.stopPropagation()}>
+            <button type="button" className="absolute right-2 top-2 p-1 text-ink-500 hover:text-ink-900" onClick={() => setShowQr(false)} aria-label="Close">
               <X className="h-4 w-4" />
             </button>
             <QRCodeSVG value={upiUri} size={208} level="M" />
             <p className="mt-3 text-sm font-medium">Scan with any UPI app</p>
-            <p className="text-xs text-neutral-600">{formatInr(payment.remainingAmount)}</p>
+            <p className="text-xs text-ink-500">{formatInr(payment.remainingAmount)}</p>
           </div>
         </div>
       ) : null}
@@ -159,7 +160,7 @@ export function PortalPayPage() {
 
 function BackLink({ to }: { to: string }) {
   return (
-    <Link to={to} className="inline-flex items-center gap-2 text-sm text-muted hover:text-white">
+    <Link to={to} className="inline-flex items-center gap-2 font-body text-sm text-ink-500 hover:text-ink-900">
       <ArrowLeft className="h-4 w-4" aria-hidden />
       Back to portal
     </Link>

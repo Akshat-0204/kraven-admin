@@ -69,7 +69,7 @@ export function ClientFormModal({ client, isOpen, onClose, onSubmit }: ClientFor
               <Input
                 {...register('companyName')}
                 placeholder="e.g. Acme Corporation"
-                className={errors.companyName ? 'outline-2 outline-[var(--danger-fg)]' : ''}
+                className={errors.companyName ? 'outline-2 outline-danger-fg' : ''}
               />
               {errors.companyName ? (
                 <span className="block mt-1 font-body text-xs text-danger-fg">{errors.companyName.message}</span>
@@ -83,7 +83,7 @@ export function ClientFormModal({ client, isOpen, onClose, onSubmit }: ClientFor
               <Input
                 {...register('contactPerson')}
                 placeholder="e.g. John Doe"
-                className={errors.contactPerson ? 'outline-2 outline-[var(--danger-fg)]' : ''}
+                className={errors.contactPerson ? 'outline-2 outline-danger-fg' : ''}
               />
               {errors.contactPerson ? (
                 <span className="block mt-1 font-body text-xs text-danger-fg">{errors.contactPerson.message}</span>
@@ -98,7 +98,7 @@ export function ClientFormModal({ client, isOpen, onClose, onSubmit }: ClientFor
                 type="email"
                 {...register('email')}
                 placeholder="contact@acme.com"
-                className={errors.email ? 'outline-2 outline-[var(--danger-fg)]' : ''}
+                className={errors.email ? 'outline-2 outline-danger-fg' : ''}
               />
               {errors.email ? (
                 <span className="block mt-1 font-body text-xs text-danger-fg">{errors.email.message}</span>

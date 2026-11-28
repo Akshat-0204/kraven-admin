@@ -127,7 +127,7 @@ export function ExpensesPage() {
           <LoadingState label="Loading expenses..." />
         </Card>
       ) : expensesQuery.isError ? (
-        <Card className="border-red-200/60 bg-danger-bg p-6 font-body text-sm text-danger-fg">
+        <Card className="bg-danger-bg p-6 font-body text-sm text-danger-fg">
           Unable to load expenses.
         </Card>
       ) : expenses.length === 0 ? (
@@ -137,7 +137,7 @@ export function ExpensesPage() {
       ) : (
         <Card padded={false}>
             <Table>
-              <thead className="border-b border-sand-300/40 bg-sand-100/50">
+              <thead className="border-b border-sand-200/40 bg-sand-200/50">
                 <tr>
                   <Th>Expense</Th>
                   <Th>Category</Th>
@@ -149,12 +149,12 @@ export function ExpensesPage() {
               </thead>
               <tbody className="divide-y divide-sand-200/60">
                 {expenses.map((expense) => (
-                  <tr key={expense.id} className="transition-colors hover:bg-sand-50/60">
+                  <tr key={expense.id} className="transition-colors hover:bg-surface-soft/60">
                     <Td className="font-semibold text-ink-900">
                       {expense.name}
                     </Td>
                     <Td>
-                      <span className="clay-chip inline-flex items-center rounded-pill border border-[rgba(120,110,90,0.18)] bg-sand-200 px-2.5 py-0.5 text-xs font-body font-medium text-ink-800 shadow-clay-sm">
+                      <span className="clay-chip inline-flex items-center rounded-pill border border-[rgba(120,110,90,0.18)] bg-sand-200 px-2.5 py-0.5 text-xs font-body font-medium text-ink-900 shadow-clay-sm">
                         <Tag className="mr-1 h-3 w-3 text-ink-500" aria-hidden="true" />
                         {expense.category}
                       </span>
@@ -162,7 +162,7 @@ export function ExpensesPage() {
                     <Td className="font-display font-semibold text-ink-900">
                       {formatCurrency(expense.amount)}
                     </Td>
-                    <Td className="text-ink-600">
+                    <Td className="text-ink-700">
                       {expense.vendor || '—'}
                     </Td>
                     <Td className="text-ink-500">
@@ -170,7 +170,7 @@ export function ExpensesPage() {
                     </Td>
                     <Td className="text-right">
                       <Button
-                        className="clay-btn h-8 w-8 rounded-pill p-0 text-ink-400 hover:bg-danger-bg hover:text-danger-fg"
+                        className="clay-btn h-8 w-8 rounded-pill p-0 text-ink-500 hover:bg-danger-bg hover:text-danger-fg"
                         aria-label={`Delete expense ${expense.name}`}
                         onClick={() => {
                           if (window.confirm(`Delete expense ${expense.name}?`)) {

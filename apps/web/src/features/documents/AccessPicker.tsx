@@ -93,7 +93,7 @@ export function AccessPicker({
           Add
         </Button>
       </div>
-      {error ? <p className="font-body text-xs text-red-600">{error}</p> : null}
+      {error ? <p className="font-body text-xs text-danger-fg">{error}</p> : null}
     </div>
   );
 }

@@ -148,7 +148,7 @@ export function ProjectListPage() {
       ) : (
         <Card padded={false}>
             <Table>
-              <thead className="border-b border-sand-300/40 bg-sand-100/50">
+              <thead className="border-b border-sand-200/40 bg-sand-200/50">
                 <tr>
                   <Th>Project & Team</Th>
                   <Th>Status</Th>
@@ -158,7 +158,7 @@ export function ProjectListPage() {
                   <Th className="text-right">Actions</Th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-sand-300/30">
+              <tbody className="divide-y divide-sand-200/30">
                 {projects.map((project) => (
                   <tr key={project.id} className="group transition-colors hover:bg-surface-soft/70">
                     <Td>
@@ -177,15 +177,15 @@ export function ProjectListPage() {
                     <Td>
                       <div className="flex min-w-36 items-center gap-2.5">
                         <ProgressBar value={project.progressPercentage} />
-                        <span className="w-10 text-xs font-mono font-medium text-ink-600">
+                        <span className="w-10 text-xs font-mono font-medium text-ink-700">
                           {project.progressPercentage}%
                         </span>
                       </div>
                     </Td>
-                    <Td className="font-medium text-ink-800">
+                    <Td className="font-medium text-ink-900">
                       {formatCurrency(project.projectValue)}
                     </Td>
-                    <Td className="text-xs text-ink-600">
+                    <Td className="text-xs text-ink-700">
                       {formatDate(project.expectedCompletionDate)}
                     </Td>
                     <Td className="text-right">

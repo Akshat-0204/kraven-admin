@@ -90,7 +90,7 @@ export function ProjectFormModal({ project, isOpen, onClose, onSubmit }: Project
               <Input
                 {...register('projectName')}
                 placeholder="e.g. Brand Identity & Design System"
-                className={errors.projectName ? 'outline-2 outline-[var(--danger-fg)]' : ''}
+                className={errors.projectName ? 'outline-2 outline-danger-fg' : ''}
               />
               {errors.projectName ? (
                 <span className="block mt-1 font-body text-xs text-danger-fg">{errors.projectName.message}</span>
@@ -116,7 +116,7 @@ export function ProjectFormModal({ project, isOpen, onClose, onSubmit }: Project
                 aria-label="Client"
                 {...register('client')}
                 disabled={Boolean(project)}
-                className={errors.client ? 'w-full outline-2 outline-[var(--danger-fg)]' : 'w-full'}
+                className={errors.client ? 'w-full outline-2 outline-danger-fg' : 'w-full'}
               >
                 <option value="">Select an existing client</option>
                 {(clientsQuery.data?.clients ?? []).map((client) => (

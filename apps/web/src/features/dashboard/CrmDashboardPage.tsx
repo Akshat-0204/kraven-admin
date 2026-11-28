@@ -48,12 +48,12 @@ export function CrmDashboardPage() {
             <GoogleConnectCard />
 
             <div className="grid gap-4 md:grid-cols-3 xl:grid-cols-6">
-              <Metric label="Active projects" value={dashboard.projects.totalActive} colorClass="text-blue-600" />
-              <Metric label="Overall progress" value={`${dashboard.projects.overallProgress}%`} colorClass="text-indigo-600" />
-              <Metric label="Revenue" value={formatCurrency(dashboard.finance.revenue)} colorClass="text-indigo-500" />
-              <Metric label="Received" value={formatCurrency(dashboard.finance.received)} colorClass="text-emerald-600" />
-              <Metric label="Pending" value={formatCurrency(dashboard.finance.pending)} colorClass="text-amber-600" />
-              <Metric label="Profit" value={formatCurrency(dashboard.finance.profit)} colorClass="text-violet-600" />
+              <Metric label="Active projects" value={dashboard.projects.totalActive} colorClass="text-olive-700" />
+              <Metric label="Overall progress" value={`${dashboard.projects.overallProgress}%`} colorClass="text-olive-700" />
+              <Metric label="Revenue" value={formatCurrency(dashboard.finance.revenue)} colorClass="text-olive-700" />
+              <Metric label="Received" value={formatCurrency(dashboard.finance.received)} colorClass="text-success-fg" />
+              <Metric label="Pending" value={formatCurrency(dashboard.finance.pending)} colorClass="text-warning-fg" />
+              <Metric label="Profit" value={formatCurrency(dashboard.finance.profit)} colorClass="text-olive-900" />
             </div>
 
             <div className="grid gap-4 lg:grid-cols-2">
@@ -62,7 +62,7 @@ export function CrmDashboardPage() {
                 <div className="mb-4 space-y-2">
                   <div className="flex justify-between text-sm">
                     <span className="text-ink-500">Overall progress</span>
-                    <span className="font-medium text-blue-600">{dashboard.projects.overallProgress}%</span>
+                    <span className="font-medium text-olive-700">{dashboard.projects.overallProgress}%</span>
                   </div>
                   <ProgressBar value={dashboard.projects.overallProgress} />
                 </div>

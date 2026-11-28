@@ -73,7 +73,7 @@ export function LeadFormModal({ lead, isOpen, onClose, onSubmit }: LeadFormModal
               <Input
                 {...register('name')}
                 placeholder="e.g. Rahul Sharma"
-                className={errors.name ? 'outline-2 outline-[var(--danger-fg)]' : ''}
+                className={errors.name ? 'outline-2 outline-danger-fg' : ''}
               />
               {errors.name ? (
                 <span className="block mt-1 font-body text-xs text-danger-fg">{errors.name.message}</span>
@@ -87,7 +87,7 @@ export function LeadFormModal({ lead, isOpen, onClose, onSubmit }: LeadFormModal
               <Input
                 {...register('companyName')}
                 placeholder="e.g. Acme Studio"
-                className={errors.companyName ? 'outline-2 outline-[var(--danger-fg)]' : ''}
+                className={errors.companyName ? 'outline-2 outline-danger-fg' : ''}
               />
               {errors.companyName ? (
                 <span className="block mt-1 font-body text-xs text-danger-fg">{errors.companyName.message}</span>
@@ -102,7 +102,7 @@ export function LeadFormModal({ lead, isOpen, onClose, onSubmit }: LeadFormModal
                 type="email"
                 {...register('email')}
                 placeholder="rahul@acme.com"
-                className={errors.email ? 'outline-2 outline-[var(--danger-fg)]' : ''}
+                className={errors.email ? 'outline-2 outline-danger-fg' : ''}
               />
               {errors.email ? (
                 <span className="block mt-1 font-body text-xs text-danger-fg">{errors.email.message}</span>

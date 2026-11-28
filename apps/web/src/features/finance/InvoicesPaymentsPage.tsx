@@ -173,7 +173,7 @@ export function InvoicesPaymentsPage() {
           <LoadingState label="Loading invoices..." />
         </Card>
       ) : invoicesQuery.isError ? (
-        <Card className="border-red-200/60 bg-danger-bg p-6 font-body text-sm text-danger-fg">
+        <Card className="bg-danger-bg p-6 font-body text-sm text-danger-fg">
           Unable to load invoices.
         </Card>
       ) : invoices.length === 0 ? (
@@ -183,7 +183,7 @@ export function InvoicesPaymentsPage() {
       ) : (
         <Card padded={false}>
             <Table>
-              <thead className="border-b border-sand-300/40 bg-sand-100/50">
+              <thead className="border-b border-sand-200/40 bg-sand-200/50">
                 <tr>
                   <Th>Invoice</Th>
                   <Th>Amount</Th>
@@ -196,21 +196,21 @@ export function InvoicesPaymentsPage() {
               </thead>
               <tbody className="divide-y divide-sand-200/60">
                 {invoices.map((invoice) => (
-                  <tr key={invoice.id} className="transition-colors hover:bg-sand-50/60">
+                  <tr key={invoice.id} className="transition-colors hover:bg-surface-soft/60">
                     <Td className="font-semibold text-ink-900">
                       {invoice.invoiceNumber}
                     </Td>
                     <Td className="font-medium text-ink-900">
                       {formatCurrency(invoice.amount)}
                     </Td>
-                    <Td className="text-emerald-700 font-medium">
+                    <Td className="text-success-fg font-medium">
                       {formatCurrency(invoice.amountPaid)}
                     </Td>
                     <Td className="font-medium text-ink-700">
                       {invoice.remainingAmount > 0 ? (
-                        <span className="text-amber-700">{formatCurrency(invoice.remainingAmount)}</span>
+                        <span className="text-warning-fg">{formatCurrency(invoice.remainingAmount)}</span>
                       ) : (
-                        <span className="text-ink-400 font-normal">₹0.00</span>
+                        <span className="text-ink-500 font-normal">₹0.00</span>
                       )}
                     </Td>
                     <Td>
@@ -240,7 +240,7 @@ export function InvoicesPaymentsPage() {
                           Pay
                         </Button>
                         <Button
-                          className="clay-btn h-8 w-8 rounded-pill p-0 text-ink-400 hover:bg-danger-bg hover:text-danger-fg"
+                          className="clay-btn h-8 w-8 rounded-pill p-0 text-ink-500 hover:bg-danger-bg hover:text-danger-fg"
                           aria-label={`Delete invoice ${invoice.invoiceNumber}`}
                           onClick={() => {
                             if (window.confirm(`Delete invoice ${invoice.invoiceNumber}?`)) {
@@ -273,7 +273,7 @@ export function InvoicesPaymentsPage() {
         ) : (
           <Card padded={false}>
               <Table>
-                <thead className="border-b border-sand-300/40 bg-sand-100/50">
+                <thead className="border-b border-sand-200/40 bg-sand-200/50">
                   <tr>
                     <Th>Date</Th>
                     <Th>Amount</Th>
@@ -283,9 +283,9 @@ export function InvoicesPaymentsPage() {
                 </thead>
                 <tbody className="divide-y divide-sand-200/60">
                   {(paymentsQuery.data?.payments ?? []).map((payment) => (
-                    <tr key={payment.id} className="transition-colors hover:bg-sand-50/60">
+                    <tr key={payment.id} className="transition-colors hover:bg-surface-soft/60">
                       <Td className="text-ink-500">{formatDate(payment.paymentDate)}</Td>
-                      <Td className="font-semibold text-emerald-700">{formatCurrency(payment.amount)}</Td>
+                      <Td className="font-semibold text-success-fg">{formatCurrency(payment.amount)}</Td>
                       <Td className="text-ink-700">{payment.paymentMethod || '—'}</Td>
                       <Td className="font-mono text-xs text-ink-500">{payment.transactionReferenceId || '—'}</Td>
                     </tr>

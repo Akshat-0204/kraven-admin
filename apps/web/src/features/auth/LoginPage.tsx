@@ -79,12 +79,12 @@ export function LoginPage() {
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <div className="flex h-9 w-9 items-center justify-center rounded-pill bg-[var(--grad-olive)] font-display text-sm font-bold text-white shadow-clay-sm">
+                <div className="flex h-9 w-9 items-center justify-center rounded-pill bg-grad-olive font-display text-sm font-bold text-white shadow-clay-sm">
                   K
                 </div>
                 <span className="font-display text-xl font-bold tracking-tight text-ink-900">KRAVEN</span>
               </div>
-              <span className="clay-chip inline-flex items-center rounded-pill border border-[rgba(120,110,90,0.18)] bg-sand-200 px-2.5 py-0.5 text-xs font-body font-medium text-ink-800 shadow-clay-sm">
+              <span className="clay-chip inline-flex items-center rounded-pill border border-[rgba(120,110,90,0.18)] bg-sand-200 px-2.5 py-0.5 text-xs font-body font-medium text-ink-900 shadow-clay-sm">
                 Admin Console
               </span>
             </div>
@@ -114,7 +114,7 @@ export function LoginPage() {
                 {...register('email')}
               />
               {errors.email ? (
-                <span className="block text-xs font-body text-red-600">{errors.email.message}</span>
+                <span className="block text-xs font-body text-danger-fg">{errors.email.message}</span>
               ) : null}
             </div>
 
@@ -134,7 +134,7 @@ export function LoginPage() {
                 <button
                   type="button"
                   tabIndex={-1}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-ink-400 hover:text-ink-700 transition-colors p-1"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-ink-500 hover:text-ink-700 transition-colors p-1"
                   onClick={() => setShowPassword((prev) => !prev)}
                   aria-label={showPassword ? 'Hide password' : 'Show password'}
                 >
@@ -146,13 +146,13 @@ export function LoginPage() {
                 </button>
               </div>
               {errors.password ? (
-                <span className="block text-xs font-body text-red-600">{errors.password.message}</span>
+                <span className="block text-xs font-body text-danger-fg">{errors.password.message}</span>
               ) : null}
             </div>
 
             <div className="pt-2">
               <Button
-                className="clay-btn--primary h-12 w-full rounded-pill bg-[var(--grad-olive)] font-body text-sm font-semibold text-white shadow-clay-green transition-all hover:opacity-95 flex items-center justify-center gap-2"
+                className="clay-btn--primary h-12 w-full rounded-pill bg-grad-olive font-body text-sm font-semibold text-white shadow-clay-green transition-all hover:opacity-95 flex items-center justify-center gap-2"
                 type="submit"
                 disabled={isSubmitting || isLoading}
               >
@@ -163,8 +163,8 @@ export function LoginPage() {
           </form>
 
           {/* Security footnote */}
-          <div className="mt-6 flex items-center justify-center gap-1.5 border-t border-sand-300/40 pt-4 text-center text-xs font-body text-ink-400">
-            <ShieldCheck className="h-3.5 w-3.5 text-olive-600" aria-hidden="true" />
+          <div className="mt-6 flex items-center justify-center gap-1.5 border-t border-sand-200/40 pt-4 text-center text-xs font-body text-ink-500">
+            <ShieldCheck className="h-3.5 w-3.5 text-olive-700" aria-hidden="true" />
             <span>End-to-end encrypted session · Kraven Operating System</span>
           </div>
         </div>

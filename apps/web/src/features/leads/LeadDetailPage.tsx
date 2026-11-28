@@ -139,7 +139,7 @@ export function LeadDetailPage() {
             </div>
             <div>
               <dt className="font-display text-xs uppercase tracking-wider text-ink-500">Estimated Value</dt>
-              <dd className="mt-1 font-body font-semibold text-olive-800 text-base">
+              <dd className="mt-1 font-body font-semibold text-olive-900 text-base">
                 {formatCurrency(lead.estimatedValue)}
               </dd>
             </div>
@@ -183,7 +183,7 @@ export function LeadDetailPage() {
               {activity.map((item) => (
                 <li key={item.id} className="relative pl-4 border-l-2 border-olive-500/50 space-y-1">
                   <div className="font-mono text-[11px] text-ink-500">{formatDate(item.timestamp)}</div>
-                  <div className="font-body text-xs text-ink-800 leading-relaxed font-medium">
+                  <div className="font-body text-xs text-ink-900 leading-relaxed font-medium">
                     {item.description}
                   </div>
                 </li>

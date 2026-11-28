@@ -113,8 +113,8 @@ export function PortalPanel({ clientId, defaultSlug }: { clientId: string; defau
           <span
             className={
               portal.enabled
-                ? 'clay-chip text-xs bg-olive-100 text-olive-800'
-                : 'clay-chip text-xs bg-sand-200 text-ink-600'
+                ? 'clay-chip text-xs bg-olive-100 text-olive-900'
+                : 'clay-chip text-xs bg-sand-200 text-ink-700'
             }
           >
             {portal.enabled ? 'Enabled' : 'Disabled'}
@@ -147,7 +147,7 @@ export function PortalPanel({ clientId, defaultSlug }: { clientId: string; defau
           />
         </div>
 
-        <label className="flex items-center gap-2 font-body text-xs text-ink-800 cursor-pointer pt-1">
+        <label className="flex items-center gap-2 font-body text-xs text-ink-900 cursor-pointer pt-1">
           <input
             type="checkbox"
             checked={enabled}
@@ -168,7 +168,7 @@ export function PortalPanel({ clientId, defaultSlug }: { clientId: string; defau
 
       {portal.url ? (
         <div className="flex items-center gap-2 rounded-md border border-[rgba(120,110,90,0.14)] bg-surface-soft p-2.5 text-xs">
-          <span className="min-w-0 flex-1 truncate font-mono text-ink-800">{portal.url}</span>
+          <span className="min-w-0 flex-1 truncate font-mono text-ink-900">{portal.url}</span>
           <button
             type="button"
             className="h-7 w-7 rounded-sm flex items-center justify-center text-ink-500 hover:text-olive-700 transition-colors"
@@ -187,17 +187,17 @@ export function PortalPanel({ clientId, defaultSlug }: { clientId: string; defau
         </p>
 
         {revealedCode ? (
-          <div className="rounded-md border border-amber-300/50 bg-[var(--warning-bg)] p-3 space-y-1">
-            <p className="font-body text-xs text-[var(--warning-fg)] font-semibold">
+          <div className="rounded-md border border-warning-fg/20 bg-warning-bg p-3 space-y-1">
+            <p className="font-body text-xs text-warning-fg font-semibold">
               Temporary view: Share this code directly with the client now.
             </p>
             <div className="flex items-center gap-2">
-              <code className="flex-1 font-mono text-lg font-bold tracking-widest text-[var(--warning-fg)]">
+              <code className="flex-1 font-mono text-lg font-bold tracking-widest text-warning-fg">
                 {revealedCode}
               </code>
               <button
                 type="button"
-                className="h-7 w-7 rounded-sm flex items-center justify-center text-[var(--warning-fg)] hover:text-ink-900 transition-colors"
+                className="h-7 w-7 rounded-sm flex items-center justify-center text-warning-fg hover:text-ink-900 transition-colors"
                 onClick={() => copy(revealedCode, 'Code')}
                 aria-label="Copy code"
                 title="Copy code"
@@ -259,9 +259,9 @@ export function PortalPanel({ clientId, defaultSlug }: { clientId: string; defau
 
       <dl className="grid grid-cols-2 gap-2 border-t border-[rgba(120,110,90,0.12)] pt-3 text-xs font-body">
         <dt className="text-ink-500">Last login:</dt>
-        <dd className="font-medium text-ink-800">{formatDateTime(portal.lastLoginAt)}</dd>
+        <dd className="font-medium text-ink-900">{formatDateTime(portal.lastLoginAt)}</dd>
         <dt className="text-ink-500">Last viewed:</dt>
-        <dd className="font-medium text-ink-800">{formatDateTime(portal.lastViewedAt)}</dd>
+        <dd className="font-medium text-ink-900">{formatDateTime(portal.lastViewedAt)}</dd>
         {portal.lockedUntil && new Date(portal.lockedUntil) > new Date() ? (
           <>
             <dt className="text-danger-fg font-semibold">Locked until:</dt>

@@ -4,7 +4,6 @@ import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AppShell } from './AppShell';
 import { workspaceForPath } from './workspace';
-import { PlaceholderPage } from '../pages/PlaceholderPage';
 
 vi.mock('../features/auth/AuthProvider', () => ({
   useAuth: () => ({
@@ -28,7 +27,7 @@ function renderShell(initialPath: string) {
       <MemoryRouter initialEntries={[initialPath]}>
         <Routes>
           <Route element={<AppShell />}>
-            <Route path="*" element={<PlaceholderPage title="Page" description="Placeholder" />} />
+            <Route path="*" element={<div>Page</div>} />
           </Route>
         </Routes>
         <LocationProbe />

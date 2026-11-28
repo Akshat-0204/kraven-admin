@@ -139,7 +139,7 @@ function DocumentsTab({ onNew }: { onNew: () => void }) {
           <LoadingState label="Loading documents..." />
         </Card>
       ) : documentsQuery.isError ? (
-        <Card className="font-body text-sm text-red-600">Unable to load documents.</Card>
+        <Card className="font-body text-sm text-danger-fg">Unable to load documents.</Card>
       ) : documents.length === 0 ? (
         hasFilters ? (
           <Card>
@@ -163,7 +163,7 @@ function DocumentsTab({ onNew }: { onNew: () => void }) {
       ) : (
         <Card padded={false}>
           <Table className="min-w-[820px]">
-            <thead className="border-b border-sand-300/40 bg-sand-100/50">
+            <thead className="border-b border-sand-200/40 bg-sand-200/50">
               <tr>
                 <Th>Title</Th>
                 <Th>Client</Th>
@@ -175,9 +175,9 @@ function DocumentsTab({ onNew }: { onNew: () => void }) {
                 </Th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-sand-300/30">
+            <tbody className="divide-y divide-sand-200/30">
               {documents.map((document) => (
-                <tr key={document.id} className="transition-colors hover:bg-sand-50/60">
+                <tr key={document.id} className="transition-colors hover:bg-surface-soft/60">
                   <Td>
                     <a className="font-medium text-ink-900 hover:text-olive-700" href={document.webViewLink} target="_blank" rel="noreferrer">
                       {document.title}

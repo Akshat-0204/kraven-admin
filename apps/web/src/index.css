@@ -7,14 +7,11 @@
 
   /* Canvas & surfaces */
   --bg-canvas: #EBE9E3;
-  --bg-canvas-deep: #E2DFD7;
   --surface: #FFFFFF;
   --surface-soft: #F6F5F1;
 
   /* Olive scale */
-  --olive-900: #2F4A3A;
   --olive-700: #4A6B57;
-  --olive-500: #6F8F7B;
   --olive-300: #A9BFB0;
   --olive-100: #E4EDE7;
   --sand-200: #F1E7D3;
@@ -23,28 +20,25 @@
   --ink-900: #1C1F21;
   --ink-700: #3A3F42;
   --ink-500: #7A7F82;
-  --ink-300: #B4B7B8;
 
   /* Status */
   --success-bg: #E3EEE6; --success-fg: #4A7A5A;
   --danger-bg:  #F9E1E1; --danger-fg:  #C0504D;
-  --warning-bg: #F7EBCB; --warning-fg: #9A7420;
+  --warning-fg: #9A7420;
 
   /* Gradients */
   --grad-olive: linear-gradient(145deg, #86A292 0%, #4A6B57 100%);
   --grad-olive-soft: linear-gradient(145deg, #E4EDE7 0%, #CFDDD4 100%);
-  --grad-fade-chart: linear-gradient(180deg, rgba(74, 107, 87, 0.18) 0%, rgba(74, 107, 87, 0) 100%);
 
   /* Radius */
-  --r-xs: 8px;  --r-sm: 12px; --r-md: 16px;
+  --r-sm: 12px; --r-md: 16px;
   --r-lg: 24px; --r-xl: 32px; --r-pill: 999px;
 
   /* Spacing (8px base) */
-  --s-1: 4px;  --s-2: 8px;  --s-3: 12px; --s-4: 16px;
+  --s-2: 8px;  --s-3: 12px; --s-4: 16px;
   --s-5: 24px; --s-6: 32px; --s-7: 48px; --s-8: 64px; --s-9: 96px;
 
   /* Fonts */
-  --font-display: 'Space Grotesk', system-ui, -apple-system, 'Segoe UI', sans-serif;
   --font-body: 'Poppins', system-ui, -apple-system, 'Segoe UI', sans-serif;
 
   /* Clay shadows */
@@ -167,11 +161,6 @@ a {
     filter: brightness(1.05);
   }
 
-  .clay-btn--dark {
-    background: var(--ink-900);
-    color: #ffffff;
-  }
-
   .clay-input {
     font-family: var(--font-body);
     width: 100%;
@@ -205,24 +194,6 @@ a {
     color: var(--olive-700);
   }
 
-  .clay-chip--up {
-    background: var(--success-bg);
-    color: var(--success-fg);
-  }
-
-  .clay-chip--down {
-    background: var(--danger-bg);
-    color: var(--danger-fg);
-  }
-
-  .clay-icon-circle {
-    width: 48px;
-    height: 48px;
-    border-radius: 50%;
-    display: grid;
-    place-items: center;
-  }
-
   select {
     -webkit-appearance: none;
     -moz-appearance: none;
@@ -234,8 +205,5 @@ a {
     color: var(--ink-900);
     font-family: var(--font-body);
     padding: 8px 12px;
-  }
-  .clay-icon-circle--sand {
-    background: var(--sand-200);
   }
 }

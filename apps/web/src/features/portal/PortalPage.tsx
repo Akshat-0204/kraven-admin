@@ -36,7 +36,7 @@ function statusOf(error: unknown) {
 
 export function PortalShell({ children }: { children: ReactNode }) {
   return (
-    <div className="min-h-screen bg-black text-white">
+    <div className="min-h-screen bg-canvas font-body text-ink-900">
       <div className="mx-auto w-full max-w-4xl px-4 py-8 sm:py-12">{children}</div>
     </div>
   );
@@ -61,10 +61,10 @@ function CodeForm({ slug }: { slug: string }) {
 
   return (
     <PortalShell>
-      <form onSubmit={submit} className="mx-auto mt-16 max-w-sm space-y-4 rounded border border-border bg-panel p-6">
+      <form onSubmit={submit} className="clay-card mx-auto mt-16 max-w-sm space-y-4 p-6">
         <div>
-          <h1 className="text-xl font-semibold">Client portal</h1>
-          <p className="mt-1 text-sm text-muted">Enter the access code you were given.</p>
+          <h1 className="font-display text-xl font-bold text-ink-900">Client portal</h1>
+          <p className="mt-1 text-sm text-ink-500">Enter the access code you were given.</p>
         </div>
         <Input
           aria-label="Access code"
@@ -76,7 +76,7 @@ function CodeForm({ slug }: { slug: string }) {
           className="font-mono uppercase tracking-widest"
         />
         {verify.error ? (
-          <p role="alert" className="text-sm text-red-400">
+          <p role="alert" className="text-sm text-danger-fg">
             {locked ? 'Too many attempts. Try again in 15 minutes.' : 'That link or code is not valid.'}
           </p>
         ) : null}
@@ -102,7 +102,7 @@ export function PortalPage() {
   if (me.isLoading) {
     return (
       <PortalShell>
-        <p className="text-sm text-muted">Loading…</p>
+        <p className="text-sm text-ink-500">Loading…</p>
       </PortalShell>
     );
   }
@@ -115,26 +115,26 @@ export function PortalPage() {
   if (me.error || !me.data) {
     return (
       <PortalShell>
-        <p className="text-sm text-red-400">The portal is unavailable right now. Please try again later.</p>
+        <p className="text-sm text-danger-fg">The portal is unavailable right now. Please try again later.</p>
       </PortalShell>
     );
   }
 
   return (
     <PortalShell>
-      <header className="flex flex-wrap items-start justify-between gap-4 border-b border-border pb-6">
+      <header className="flex flex-wrap items-start justify-between gap-4 border-b border-sand-200 pb-6">
         <div>
-          <p className="text-xs uppercase tracking-widest text-muted">Client portal</p>
-          <h1 className="mt-1 text-2xl font-semibold">{me.data.client.companyName}</h1>
-          <p className="text-sm text-muted">{me.data.client.contactPerson}</p>
+          <p className="text-xs uppercase tracking-widest text-ink-500">Client portal</p>
+          <h1 className="mt-1 font-display text-2xl font-bold text-ink-900">{me.data.client.companyName}</h1>
+          <p className="text-sm text-ink-500">{me.data.client.contactPerson}</p>
         </div>
-        <Button className="bg-transparent text-white hover:bg-white/10" onClick={() => logout.mutate()}>
+        <Button className="bg-transparent shadow-none" onClick={() => logout.mutate()}>
           <LogOut className="mr-2 h-4 w-4" aria-hidden />
           Log out
         </Button>
       </header>
 
-      <nav className="mt-6 flex gap-1 overflow-x-auto border-b border-border" aria-label="Portal sections">
+      <nav className="mt-6 flex gap-1 overflow-x-auto border-b border-sand-200" aria-label="Portal sections">
         {TABS.map((item) => (
           <button
             key={item.id}
@@ -142,7 +142,7 @@ export function PortalPage() {
             onClick={() => setTab(item.id)}
             aria-current={tab === item.id ? 'page' : undefined}
             className={`whitespace-nowrap border-b-2 px-3 py-2 text-sm ${
-              tab === item.id ? 'border-white text-white' : 'border-transparent text-muted hover:text-white'
+              tab === item.id ? 'border-olive-700 font-medium text-ink-900' : 'border-transparent text-ink-500 hover:text-ink-900'
             }`}
           >
             {item.label}
@@ -163,12 +163,12 @@ export function PortalPage() {
 }
 
 function Empty({ children }: { children: ReactNode }) {
-  return <p className="rounded border border-border bg-panel p-4 text-sm text-muted">{children}</p>;
+  return <p className="clay-card p-4 text-sm text-ink-500">{children}</p>;
 }
 
 function SectionState({ isLoading, error }: { isLoading: boolean; error: unknown }) {
-  if (isLoading) return <p className="text-sm text-muted">Loading…</p>;
-  if (error) return <p className="text-sm text-red-400">Could not load this section.</p>;
+  if (isLoading) return <p className="text-sm text-ink-500">Loading…</p>;
+  if (error) return <p className="text-sm text-danger-fg">Could not load this section.</p>;
   return null;
 }
 
@@ -177,15 +177,15 @@ function OverviewTab({ projects }: { projects: { id: string; projectName: string
   return (
     <ul className="grid gap-3 sm:grid-cols-2">
       {projects.map((project) => (
-        <li key={project.id} className="rounded border border-border bg-panel p-4">
+        <li key={project.id} className="clay-card p-4">
           <div className="flex items-start justify-between gap-2">
-            <h2 className="font-medium">{project.projectName}</h2>
-            <span className="text-xs text-muted">{project.status}</span>
+            <h2 className="font-medium text-ink-900">{project.projectName}</h2>
+            <span className="text-xs text-ink-500">{project.status}</span>
           </div>
           <div className="mt-3">
             <ProgressBar value={project.progressPercentage} />
           </div>
-          <p className="mt-2 text-xs text-muted">
+          <p className="mt-2 text-xs text-ink-500">
             {project.progressPercentage}% complete · Expected {formatDate(project.expectedCompletionDate)}
           </p>
         </li>
@@ -203,12 +203,12 @@ function UpdatesTab() {
   return (
     <ol className="space-y-3">
       {query.data.updates.map((update) => (
-        <li key={update.id} className="rounded border border-border bg-panel p-4">
-          <p className="text-xs text-muted">
+        <li key={update.id} className="clay-card p-4">
+          <p className="text-xs text-ink-500">
             {update.project.projectName} · {formatDate(update.postedAt)}
           </p>
           <h2 className="mt-1 font-medium">{update.title}</h2>
-          {update.body ? <p className="mt-2 whitespace-pre-wrap text-sm text-neutral-300">{update.body}</p> : null}
+          {update.body ? <p className="mt-2 whitespace-pre-wrap text-sm text-ink-700">{update.body}</p> : null}
           {update.attachments.length > 0 ? (
             <ul className="mt-3 flex flex-wrap gap-2">
               {update.attachments.map((file) => (
@@ -230,12 +230,12 @@ function DocumentsTab() {
   if (query.data.documents.length === 0) return <Empty>No documents shared yet.</Empty>;
 
   return (
-    <ul className="divide-y divide-border rounded border border-border bg-panel">
+    <ul className="clay-card divide-y divide-sand-200 p-0 overflow-hidden">
       {query.data.documents.map((document) => (
         <li key={document.id} className="flex items-center justify-between gap-3 p-4">
           <div className="min-w-0">
             <p className="truncate font-medium">{document.title}</p>
-            <p className="text-xs text-muted">
+            <p className="text-xs text-ink-500">
               {document.status} · {formatDate(document.createdAt)}
             </p>
           </div>
@@ -261,12 +261,12 @@ function PaymentsTab({ slug }: { slug: string }) {
   if (query.data.payments.length === 0) return <Empty>No invoices yet.</Empty>;
 
   return (
-    <ul className="divide-y divide-border rounded border border-border bg-panel">
+    <ul className="clay-card divide-y divide-sand-200 p-0 overflow-hidden">
       {query.data.payments.map((payment) => (
         <li key={payment.id} className="flex flex-wrap items-center justify-between gap-3 p-4">
           <div>
-            <p className="font-medium">Invoice {payment.invoiceNumber}</p>
-            <p className="text-xs text-muted">
+            <p className="font-medium text-ink-900">Invoice {payment.invoiceNumber}</p>
+            <p className="text-xs text-ink-500">
               {payment.paymentStatus} · Due {formatDate(payment.dueDate)}
             </p>
           </div>
@@ -274,7 +274,7 @@ function PaymentsTab({ slug }: { slug: string }) {
             <div className="text-right text-sm">
               <p>{formatInr(payment.amount)}</p>
               {payment.remainingAmount > 0 && payment.remainingAmount !== payment.amount ? (
-                <p className="text-xs text-muted">{formatInr(payment.remainingAmount)} due</p>
+                <p className="text-xs text-ink-500">{formatInr(payment.remainingAmount)} due</p>
               ) : null}
             </div>
             {isPayable(payment) ? (
@@ -313,7 +313,7 @@ function DownloadButton({ id, filename, packFile }: { id: string; filename: stri
   }
 
   return (
-    <Button className="bg-transparent text-white hover:bg-white/10" onClick={open} disabled={pending}>
+    <Button className="bg-transparent shadow-none" onClick={open} disabled={pending}>
       <Download className="mr-2 h-4 w-4" aria-hidden />
       <span className="max-w-[14rem] truncate">{filename}</span>
     </Button>
@@ -326,12 +326,12 @@ function DownloadsTab() {
   if (query.data.downloads.length === 0) return <Empty>No files shared yet.</Empty>;
 
   return (
-    <ul className="divide-y divide-border rounded border border-border bg-panel">
+    <ul className="clay-card divide-y divide-sand-200 p-0 overflow-hidden">
       {query.data.downloads.map((file) => (
         <li key={file.id} className="flex items-center justify-between gap-3 p-4">
           <div className="min-w-0">
             <p className="truncate text-sm">{file.filename}</p>
-            <p className="text-xs text-muted">
+            <p className="text-xs text-ink-500">
               {(file.length / 1024).toFixed(1)} KB · {formatDate(file.createdAt)}
             </p>
           </div>
@@ -350,17 +350,17 @@ function PacksTab({ slug }: { slug: string }) {
   return (
     <div className="space-y-4">
       {query.data.packs.map((pack) => (
-        <section key={pack.id} className="rounded border border-border bg-panel">
-          <h2 className="border-b border-border p-4 font-medium">
+        <section key={pack.id} className="clay-card p-0 overflow-hidden">
+          <h2 className="border-b border-sand-200 p-4 font-medium">
             {pack.title}
-            {pack.expiresAt ? <span className="ml-2 text-xs text-muted">Expires {formatDate(pack.expiresAt)}</span> : null}
+            {pack.expiresAt ? <span className="ml-2 text-xs text-ink-500">Expires {formatDate(pack.expiresAt)}</span> : null}
           </h2>
-          <ul className="divide-y divide-border">
+          <ul className="divide-y divide-sand-200">
             {pack.items.map((item) => (
               <li key={item.id} className="flex flex-wrap items-center justify-between gap-3 p-4">
                 <div className="min-w-0">
                   <p className="truncate">{item.title}</p>
-                  <p className="text-xs text-muted">
+                  <p className="text-xs text-ink-500">
                     {item.kind === 'document' ? item.documentStatus : null}
                     {item.kind === 'payment' ? `${formatInr(item.amount ?? 0)} · ${item.paymentStatus}` : null}
                     {item.kind === 'file' ? 'File' : null}
@@ -389,7 +389,7 @@ function PackItemActions({ slug, packId, item }: { slug: string; packId: string;
     }
     return (
       <div className="flex gap-2">
-        <Button asChild className="bg-transparent text-white hover:bg-white/10">
+        <Button asChild className="bg-transparent shadow-none">
           <a href={portalDocumentPdfUrl(item.document)} target="_blank" rel="noopener noreferrer">
             View PDF
           </a>

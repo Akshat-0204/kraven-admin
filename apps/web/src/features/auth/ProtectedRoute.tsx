@@ -1,4 +1,5 @@
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
+import { LoadingState } from '../../components/ui';
 import { useAuth } from './AuthProvider';
 
 export function ProtectedRoute() {
@@ -7,8 +8,8 @@ export function ProtectedRoute() {
 
   if (isLoading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-background text-sm text-muted">
-        Loading Kraven...
+      <div className="flex min-h-screen items-center justify-center bg-canvas">
+        <LoadingState label="Loading Kraven..." />
       </div>
     );
   }

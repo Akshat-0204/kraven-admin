@@ -124,7 +124,7 @@ export function NewDocumentDialog({ open, onClose, defaultClientId, defaultProje
             ))}
           </div>
           {templatesQuery.isLoading ? <p className="mt-4 font-body text-sm text-ink-500">Loading templates...</p> : null}
-          {templatesQuery.isError ? <p className="mt-4 font-body text-sm text-red-600">Unable to load templates.</p> : null}
+          {templatesQuery.isError ? <p className="mt-4 font-body text-sm text-danger-fg">Unable to load templates.</p> : null}
         </div>
       </div>
     </Modal>
@@ -185,7 +185,7 @@ function PickerCard({
       onClick={onPick}
       className="clay-card group flex h-full flex-col overflow-hidden p-0 text-left transition hover:-translate-y-0.5 hover:shadow-clay-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-olive-300 disabled:cursor-wait disabled:opacity-60"
     >
-      <div className="relative h-28 overflow-hidden border-b border-sand-300/40 bg-surface-soft px-4 py-3">
+      <div className="relative h-28 overflow-hidden border-b border-sand-200/40 bg-surface-soft px-4 py-3">
         {snippet ? (
           <p className="text-[10px] leading-snug text-ink-500">{snippet}</p>
         ) : (

@@ -99,7 +99,7 @@ export function Metric({ label, value, colorClass }: { label: string; value: str
 
 export function Row({ label, value, dotColor }: { label: string; value: string | number; dotColor?: string }) {
   return (
-    <div className="flex items-center justify-between border-b border-sand-300/40 pb-2 font-body last:border-b-0 last:pb-0">
+    <div className="flex items-center justify-between border-b border-sand-200/40 pb-2 font-body last:border-b-0 last:pb-0">
       <span className="flex items-center gap-2 text-ink-500">
         {dotColor ? <span className="h-2 w-2 rounded-full" style={{ backgroundColor: dotColor }} /> : null}
         {label}

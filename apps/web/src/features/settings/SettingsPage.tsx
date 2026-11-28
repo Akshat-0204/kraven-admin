@@ -202,7 +202,7 @@ export function SettingsPage() {
           <div className="space-y-6">
             <Card className="space-y-4">
               <div className="flex items-center gap-3.5 border-b border-[rgba(120,110,90,0.12)] pb-4">
-                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-olive-100 text-olive-800 font-bold shadow-clay-sm border border-white/90">
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-olive-100 text-olive-900 font-bold shadow-clay-sm border border-white/90">
                   <User className="h-5 w-5" />
                 </div>
                 <div>
@@ -218,18 +218,18 @@ export function SettingsPage() {
                 </div>
                 <div className="flex justify-between border-b border-[rgba(120,110,90,0.1)] py-2">
                   <dt className="text-ink-500">Account Identifier</dt>
-                  <dd className="font-mono text-xs text-ink-600">{user?.id || '-'}</dd>
+                  <dd className="font-mono text-xs text-ink-700">{user?.id || '-'}</dd>
                 </div>
                 <div className="flex justify-between border-b border-[rgba(120,110,90,0.1)] py-2">
                   <dt className="text-ink-500">Role Privilege</dt>
-                  <dd className="inline-flex items-center gap-1.5 font-medium text-olive-800">
+                  <dd className="inline-flex items-center gap-1.5 font-medium text-olive-900">
                     <Shield className="h-3.5 w-3.5 text-olive-700" /> Administrator
                   </dd>
                 </div>
                 <div className="flex justify-between py-2">
                   <dt className="text-ink-500">Session Status</dt>
-                  <dd className="inline-flex items-center gap-2 text-xs font-medium text-olive-800">
-                    <span className="h-2 w-2 rounded-full bg-olive-600 animate-pulse" /> Active (HTTP-only Secure Cookie)
+                  <dd className="inline-flex items-center gap-2 text-xs font-medium text-olive-900">
+                    <span className="h-2 w-2 rounded-full bg-olive-700 animate-pulse" /> Active (HTTP-only Secure Cookie)
                   </dd>
                 </div>
               </dl>
@@ -239,15 +239,15 @@ export function SettingsPage() {
               <CardHeader title="Security & Authentication Policy" subtitle="Active cryptographic and session safeguards" />
               <ul className="space-y-2.5 font-body text-xs text-ink-700 pt-1">
                 <li className="flex items-center gap-2.5">
-                  <CheckCircle2 className="h-4 w-4 text-olive-600 shrink-0" />
+                  <CheckCircle2 className="h-4 w-4 text-olive-700 shrink-0" />
                   Bcrypt salted password encryption enabled
                 </li>
                 <li className="flex items-center gap-2.5">
-                  <CheckCircle2 className="h-4 w-4 text-olive-600 shrink-0" />
+                  <CheckCircle2 className="h-4 w-4 text-olive-700 shrink-0" />
                   Cross-site request forgery protection with strict SameSite cookies
                 </li>
                 <li className="flex items-center gap-2.5">
-                  <CheckCircle2 className="h-4 w-4 text-olive-600 shrink-0" />
+                  <CheckCircle2 className="h-4 w-4 text-olive-700 shrink-0" />
                   Reverse proxy trust headers verified for secure cloud deployments
                 </li>
               </ul>
@@ -256,8 +256,8 @@ export function SettingsPage() {
 
           <Card className="space-y-4">
             <div className="flex items-center gap-3.5 border-b border-[rgba(120,110,90,0.12)] pb-4">
-              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-sand-200 text-ink-800 shadow-clay-sm border border-white/90">
-                <KeyRound className="h-5 w-5 text-olive-800" />
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-sand-200 text-ink-900 shadow-clay-sm border border-white/90">
+                <KeyRound className="h-5 w-5 text-olive-900" />
               </div>
               <div>
                 <h2 className="font-display text-base font-bold text-ink-900">Change Password</h2>
@@ -273,7 +273,7 @@ export function SettingsPage() {
                 <Input
                   type="password"
                   placeholder="Enter existing password"
-                  className={errors.currentPassword ? 'w-full outline-2 outline-[var(--danger-fg)]' : 'w-full'}
+                  className={errors.currentPassword ? 'w-full outline-2 outline-danger-fg' : 'w-full'}
                   {...register('currentPassword', { required: 'Current password is required' })}
                 />
                 {errors.currentPassword && (
@@ -288,7 +288,7 @@ export function SettingsPage() {
                 <Input
                   type="password"
                   placeholder="At least 8 characters"
-                  className={errors.newPassword ? 'w-full outline-2 outline-[var(--danger-fg)]' : 'w-full'}
+                  className={errors.newPassword ? 'w-full outline-2 outline-danger-fg' : 'w-full'}
                   {...register('newPassword', {
                     required: 'New password is required',
                     minLength: { value: 8, message: 'Password must be at least 8 characters' }
@@ -374,7 +374,7 @@ export function SettingsPage() {
                     <span className="text-xs text-ink-500">Light Mode (Claymorphic Sand Canvas)</span>
                   </div>
                 </div>
-                <span className="clay-chip text-xs bg-olive-100 text-olive-800">
+                <span className="clay-chip text-xs bg-olive-100 text-olive-900">
                   Active
                 </span>
               </div>
@@ -437,7 +437,7 @@ export function SettingsPage() {
                 {INVOICE_PAYMENT_STATUSES.map((status) => (
                   <span
                     key={status}
-                    className="clay-chip text-xs bg-sand-200 text-ink-800 font-medium px-3 py-1"
+                    className="clay-chip text-xs bg-sand-200 text-ink-900 font-medium px-3 py-1"
                   >
                     {status}
                   </span>
@@ -451,7 +451,7 @@ export function SettingsPage() {
                 {EXPENSE_CATEGORIES.map((category) => (
                   <span
                     key={category}
-                    className="clay-chip text-xs bg-olive-100 text-olive-800 font-medium px-3 py-1"
+                    className="clay-chip text-xs bg-olive-100 text-olive-900 font-medium px-3 py-1"
                   >
                     {category}
                   </span>
@@ -475,7 +475,7 @@ export function SettingsPage() {
           <Card className="space-y-4">
             <div className="flex items-center justify-between border-b border-[rgba(120,110,90,0.12)] pb-3">
               <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-olive-100 text-olive-800 shadow-clay-sm border border-white/90">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-olive-100 text-olive-900 shadow-clay-sm border border-white/90">
                   <Server className="h-5 w-5" />
                 </div>
                 <div>
@@ -497,8 +497,8 @@ export function SettingsPage() {
             <dl className="space-y-3 font-body text-sm pt-1">
               <div className="flex justify-between border-b border-[rgba(120,110,90,0.1)] py-2">
                 <dt className="text-ink-500">API Health Status</dt>
-                <dd className="inline-flex items-center gap-1.5 font-semibold text-olive-800">
-                  <span className="h-2 w-2 rounded-full bg-olive-600 animate-pulse" />
+                <dd className="inline-flex items-center gap-1.5 font-semibold text-olive-900">
+                  <span className="h-2 w-2 rounded-full bg-olive-700 animate-pulse" />
                   {healthQuery.data?.status === 'ok' ? 'Healthy (OK)' : 'Connecting...'}
                 </dd>
               </div>
@@ -516,7 +516,7 @@ export function SettingsPage() {
               </div>
               <div className="flex justify-between py-2">
                 <dt className="text-ink-500">Client Build Mode</dt>
-                <dd className="font-mono text-xs text-ink-600 uppercase">{import.meta.env.MODE}</dd>
+                <dd className="font-mono text-xs text-ink-700 uppercase">{import.meta.env.MODE}</dd>
               </div>
             </dl>
           </Card>
@@ -581,7 +581,7 @@ function TabButton({
       className={`inline-flex items-center gap-2 rounded-pill px-4 py-2 font-body text-xs sm:text-sm font-medium transition-all duration-200 ${
         active
           ? 'bg-ink-900 text-white shadow-clay-pressed'
-          : 'text-ink-600 hover:text-ink-900 hover:bg-surface-soft'
+          : 'text-ink-700 hover:text-ink-900 hover:bg-surface-soft'
       }`}
     >
       {icon}

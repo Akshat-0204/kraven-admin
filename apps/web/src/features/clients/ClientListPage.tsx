@@ -94,7 +94,7 @@ export function ClientListPage() {
               <div>
                 <Link to={`/clients/${client.id}`} className="block">
                   <div className="flex items-start gap-3.5 mb-4">
-                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-olive-100 text-olive-800 font-bold text-sm shadow-clay-sm border border-white/90">
+                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-olive-100 text-olive-900 font-bold text-sm shadow-clay-sm border border-white/90">
                       {clientInitials(client.companyName)}
                     </div>
                     <div className="min-w-0 flex-1">
@@ -107,7 +107,7 @@ export function ClientListPage() {
                     </div>
                   </div>
 
-                  <div className="space-y-1.5 pt-3 border-t border-[rgba(120,110,90,0.1)] font-body text-xs text-ink-600">
+                  <div className="space-y-1.5 pt-3 border-t border-[rgba(120,110,90,0.1)] font-body text-xs text-ink-700">
                     <div className="flex items-center gap-2 truncate">
                       <Mail className="h-3.5 w-3.5 text-olive-700 shrink-0" />
                       <span className="truncate">{client.email || 'No email registered'}</span>

@@ -12,13 +12,7 @@ const config: Config = {
         ink: { 900: '#1C1F21', 700: '#3A3F42', 500: '#7A7F82', 300: '#B4B7B8' },
         success: { bg: '#E3EEE6', fg: '#4A7A5A' },
         danger: { bg: '#F9E1E1', fg: '#C0504D' },
-        warning: { bg: '#F7EBCB', fg: '#9A7420' },
-        // Compatibility aliases for existing components
-        background: '#EBE9E3',
-        foreground: '#1C1F21',
-        border: 'rgba(120, 110, 90, 0.16)',
-        muted: '#7A7F82',
-        panel: '#FFFFFF'
+        warning: { bg: '#F7EBCB', fg: '#9A7420' }
       },
       fontFamily: {
         display: ['"Space Grotesk"', 'system-ui', 'sans-serif'],
@@ -32,6 +26,10 @@ const config: Config = {
         lg: '24px',
         xl: '32px',
         pill: '999px'
+      },
+      backgroundImage: {
+        'grad-olive': 'var(--grad-olive)',
+        'grad-olive-soft': 'var(--grad-olive-soft)'
       },
       boxShadow: {
         clay: 'var(--clay-raised)',

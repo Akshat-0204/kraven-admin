@@ -3,8 +3,8 @@ import { cn } from '../../lib/utils';
 
 const documentStatusClassName: Record<DocumentStatus, string> = {
   Draft: 'bg-sand-200 text-ink-700',
-  Sent: 'bg-sky-100 text-sky-800',
-  Viewed: 'bg-violet-100 text-violet-800',
+  Sent: 'bg-olive-100 text-olive-700',
+  Viewed: 'bg-canvas-deep text-ink-900',
   Signed: 'bg-olive-100 text-olive-900'
 };
 

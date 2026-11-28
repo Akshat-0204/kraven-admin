@@ -58,7 +58,7 @@ export function PaymentFormModal({ invoice, isOpen, onClose, onSubmit }: Payment
           <span className="text-xs font-body text-ink-500">
             Invoice: <strong className="text-ink-900">{invoice.invoiceNumber}</strong>
           </span>
-          <span className="clay-chip inline-flex items-center rounded-pill border border-amber-200/60 bg-warning-bg px-2 py-0.5 text-xs font-body font-medium text-warning-fg shadow-clay-sm">
+          <span className="clay-chip inline-flex items-center rounded-pill border bg-warning-bg px-2 py-0.5 text-xs font-body font-medium text-warning-fg shadow-clay-sm">
             Due: {formatCurrency(invoice.remainingAmount)}
           </span>
         </span>
@@ -68,7 +68,7 @@ export function PaymentFormModal({ invoice, isOpen, onClose, onSubmit }: Payment
           <label className="block space-y-1.5">
             <span className="font-body text-xs font-semibold uppercase tracking-wider text-ink-700">Payment Amount</span>
             <Input type="number" min="1" max={invoice.remainingAmount} step="any" {...register('amount')} />
-            {errors.amount ? <span className="block text-xs font-body text-red-600">{errors.amount.message}</span> : null}
+            {errors.amount ? <span className="block text-xs font-body text-danger-fg">{errors.amount.message}</span> : null}
           </label>
 
           <label className="block space-y-1.5">

@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { type FormEvent, type PointerEvent, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { Button } from '../../components/ui/button';
+import { Card } from '../../components/ui/card';
 import { Input } from '../../components/ui/input';
 import { PortalShell } from './PortalPage';
 import { portalApi, portalDocumentPdfUrl, portalQueryKeys } from './portalApi';
@@ -66,8 +67,8 @@ export function PortalSignPage() {
   if (sign.isSuccess) {
     return (
       <PortalShell>
-        <p className="rounded border border-border bg-panel p-4 text-sm">Thank you. The document has been signed and sealed.</p>
-        <Link to={back} className="mt-4 inline-block text-sm underline">
+        <Card className="font-body text-sm text-ink-900">Thank you. The document has been signed and sealed.</Card>
+        <Link to={back} className="mt-4 inline-block font-body text-sm text-olive-700 underline">
           Back to portal
         </Link>
       </PortalShell>
@@ -76,16 +77,16 @@ export function PortalSignPage() {
 
   return (
     <PortalShell>
-      <Link to={back} className="text-sm text-muted hover:text-white">
+      <Link to={back} className="font-body text-sm text-ink-500 hover:text-ink-900">
         Back to portal
       </Link>
-      <form onSubmit={submit} className="mx-auto mt-6 max-w-md space-y-4 rounded border border-border bg-panel p-6">
-        <h1 className="text-xl font-semibold">Sign document</h1>
-        <a href={portalDocumentPdfUrl(documentId)} target="_blank" rel="noopener noreferrer" className="text-sm underline">
+      <form onSubmit={submit} className="clay-card mx-auto mt-6 max-w-md space-y-4">
+        <h1 className="font-display text-xl font-bold text-ink-900">Sign document</h1>
+        <a href={portalDocumentPdfUrl(documentId)} target="_blank" rel="noopener noreferrer" className="font-body text-sm text-olive-700 underline">
           Review the document (PDF)
         </a>
         <Input aria-label="Full name" placeholder="Full name" value={name} onChange={(e) => setName(e.target.value)} />
-        <div className="flex gap-4 text-sm">
+        <div className="flex gap-4 font-body text-sm text-ink-700">
           {(['typed', 'drawn'] as const).map((value) => (
             <label key={value} className="flex items-center gap-1">
               <input type="radio" name="method" checked={method === value} onChange={() => setMethod(value)} />
@@ -94,7 +95,7 @@ export function PortalSignPage() {
           ))}
         </div>
         {method === 'typed' ? (
-          <p className="rounded bg-white px-3 py-4 text-center font-serif text-3xl italic text-black">{name || 'Your name'}</p>
+          <p className="rounded-lg bg-surface-soft px-3 py-4 text-center font-serif text-3xl italic text-ink-900 shadow-clay-inset">{name || 'Your name'}</p>
         ) : (
           <div>
             <canvas
@@ -102,23 +103,23 @@ export function PortalSignPage() {
               width={400}
               height={150}
               aria-label="Signature pad"
-              className="w-full touch-none rounded bg-white"
+              className="w-full touch-none rounded-lg bg-surface-soft shadow-clay-inset"
               onPointerDown={start}
               onPointerMove={move}
               onPointerUp={() => (drawing.current = false)}
               onPointerLeave={() => (drawing.current = false)}
             />
-            <button type="button" className="mt-1 text-xs underline" onClick={clear}>
+            <button type="button" className="mt-1 text-xs text-ink-500 underline" onClick={clear}>
               Clear
             </button>
           </div>
         )}
-        <label className="flex items-start gap-2 text-sm">
+        <label className="flex items-start gap-2 font-body text-sm text-ink-700">
           <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} className="mt-1" />
           I agree to sign this document electronically and understand my signature, name, time, IP address and device will be recorded.
         </label>
         {sign.error ? (
-          <p role="alert" className="text-sm text-red-400">
+          <p role="alert" className="text-sm text-danger-fg">
             {sign.error.message}
           </p>
         ) : null}

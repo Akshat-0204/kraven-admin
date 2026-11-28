@@ -24,12 +24,12 @@ export function LeadsDashboardPage() {
             <DashboardHeader eyebrow="Leads workspace" title="Leads dashboard" />
 
             <div className="grid gap-4 md:grid-cols-3 xl:grid-cols-6">
-              <Metric label="Leads" value={dashboard.leads.total} colorClass="text-sky-600" />
-              <Metric label="New" value={dashboard.leads.new} colorClass="text-slate-600" />
-              <Metric label="In progress" value={dashboard.leads.inProgress} colorClass="text-blue-600" />
-              <Metric label="Won" value={dashboard.leads.won} colorClass="text-emerald-600" />
-              <Metric label="Lost" value={dashboard.leads.lost} colorClass="text-red-600" />
-              <Metric label="Conversion" value={`${dashboard.leads.conversionRate}%`} colorClass="text-emerald-600" />
+              <Metric label="Leads" value={dashboard.leads.total} colorClass="text-olive-700" />
+              <Metric label="New" value={dashboard.leads.new} colorClass="text-ink-700" />
+              <Metric label="In progress" value={dashboard.leads.inProgress} colorClass="text-olive-700" />
+              <Metric label="Won" value={dashboard.leads.won} colorClass="text-success-fg" />
+              <Metric label="Lost" value={dashboard.leads.lost} colorClass="text-danger-fg" />
+              <Metric label="Conversion" value={`${dashboard.leads.conversionRate}%`} colorClass="text-success-fg" />
             </div>
 
             <AlertsPanel title="Follow-ups" alerts={followUps} emptyText="No leads need a follow-up right now." />
