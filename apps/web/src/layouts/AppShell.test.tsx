@@ -47,7 +47,7 @@ describe('AppShell', () => {
 
     expect(view.getAllByText('Kraven').length).toBeGreaterThan(0);
     expect(primary().getByRole('link', { name: 'Dashboard' })).toHaveAttribute('href', '/dashboard/leads');
-    expect(primary().getByRole('link', { name: 'Leads' })).toHaveClass('bg-white');
+    expect(primary().getByRole('link', { name: 'Leads' })).toHaveAttribute('aria-current', 'page');
     expect(primary().queryByRole('link', { name: 'Clients' })).not.toBeInTheDocument();
     expect(view.getByRole('navigation', { name: 'Shared navigation' })).toHaveTextContent('Settings');
     expect(view.getAllByRole('button', { name: 'Leads' })[0]).toHaveAttribute('aria-pressed', 'true');
