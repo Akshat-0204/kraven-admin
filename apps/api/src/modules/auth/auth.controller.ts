@@ -1,5 +1,7 @@
 import { changePasswordSchema, loginSchema } from '@kraven/validation';
-import type { Request, Response } from 'express';
+import type { NextFunction, Request, Response } from 'express';
+import { HttpError } from '../../shared/errors/httpError.js';
+import { logger } from '../../shared/logger/logger.js';
 import { changeUserPassword, getSessionUser, verifyLogin } from './auth.service.js';
 
 export async function login(req: Request, res: Response) {
@@ -11,8 +13,14 @@ export async function login(req: Request, res: Response) {
   res.json({ user });
 }
 
-export async function logout(req: Request, res: Response) {
-  req.session.destroy(() => {
+export async function logout(req: Request, res: Response, next: NextFunction) {
+  req.session.destroy((error) => {
+    if (error) {
+      logger.error({ err: error }, 'session destroy failed');
+      next(new HttpError(500, 'Could not log out. Please try again.'));
+      return;
+    }
+
     res.clearCookie('kraven.sid');
     res.status(204).send();
   });

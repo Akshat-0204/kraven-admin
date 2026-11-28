@@ -18,12 +18,12 @@ export default defineConfig({
   testDir: './e2e',
   webServer: [
     {
-      command: `PORT=${apiPort} npm run seed:users --workspace @kraven/api && PORT=${apiPort} npm run dev --workspace @kraven/api`,
+      command: `PORT=${apiPort} pnpm --filter @kraven/api seed:users && PORT=${apiPort} pnpm --filter @kraven/api dev`,
       url: `${apiBaseUrl}/health`,
       reuseExistingServer: true
     },
     {
-      command: `VITE_API_BASE_URL=${apiBaseUrl} npm run dev --workspace @kraven/web`,
+      command: `VITE_API_BASE_URL=${apiBaseUrl} pnpm --filter @kraven/web dev`,
       url: 'http://127.0.0.1:5173',
       reuseExistingServer: true
     }

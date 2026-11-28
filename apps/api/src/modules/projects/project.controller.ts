@@ -1,4 +1,5 @@
 import type { Request, Response } from 'express';
+import { parseIndex } from '../../shared/utils/objectId.js';
 import {
   addProjectLink,
   attachProjectDocument,
@@ -62,7 +63,7 @@ export async function addProjectLinkController(req: Request, res: Response) {
 }
 
 export async function removeProjectLinkController(req: Request, res: Response) {
-  const project = await removeProjectLink(req.params.id, Number(req.params.linkIndex));
+  const project = await removeProjectLink(req.params.id, parseIndex(req.params.linkIndex, 'link'));
 
   res.json({ project: serializeProject(project) });
 }

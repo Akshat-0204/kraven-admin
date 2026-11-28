@@ -1,11 +1,15 @@
-import { ACTIVITY_ENTITY_TYPES } from '@kraven/config';
+import { ACTIVITY_ENTITY_TYPES, DOCUMENT_CATEGORIES } from '@kraven/config';
 import { Schema, model } from 'mongoose';
 
 export interface FileMetadataDocument {
-  gridFsId: Schema.Types.ObjectId;
+  bucketKey: string;
   filename: string;
   contentType?: string;
   length: number;
+  clientVisible: boolean;
+  category?: (typeof DOCUMENT_CATEGORIES)[number];
+  sourceDocument?: Schema.Types.ObjectId;
+  sourceRevisionId?: string;
   associatedEntityType?: (typeof ACTIVITY_ENTITY_TYPES)[number];
   associatedEntityId?: Schema.Types.ObjectId;
   uploadedBy?: Schema.Types.ObjectId;
@@ -15,10 +19,14 @@ export interface FileMetadataDocument {
 
 const fileMetadataSchema = new Schema<FileMetadataDocument>(
   {
-    gridFsId: { type: Schema.Types.ObjectId, required: true },
+    bucketKey: { type: String, required: true },
     filename: { type: String, required: true, trim: true },
     contentType: { type: String, trim: true },
     length: { type: Number, required: true, min: 0 },
+    clientVisible: { type: Boolean, default: false },
+    category: { type: String, enum: DOCUMENT_CATEGORIES },
+    sourceDocument: { type: Schema.Types.ObjectId, ref: 'Document' },
+    sourceRevisionId: String,
     associatedEntityType: { type: String, enum: ACTIVITY_ENTITY_TYPES },
     associatedEntityId: { type: Schema.Types.ObjectId },
     uploadedBy: { type: Schema.Types.ObjectId, ref: 'User' }
@@ -26,7 +34,11 @@ const fileMetadataSchema = new Schema<FileMetadataDocument>(
   { timestamps: true }
 );
 
+// Partial so legacy GridFS-era docs without a bucketKey do not block the index build.
+fileMetadataSchema.index(
+  { bucketKey: 1 },
+  { unique: true, partialFilterExpression: { bucketKey: { $exists: true } } }
+);
 fileMetadataSchema.index({ associatedEntityType: 1, associatedEntityId: 1 });
-fileMetadataSchema.index({ gridFsId: 1 });
 
 export const FileMetadataModel = model<FileMetadataDocument>('FileMetadata', fileMetadataSchema);

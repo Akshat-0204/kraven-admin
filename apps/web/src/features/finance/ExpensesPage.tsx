@@ -1,16 +1,24 @@
 import { EXPENSE_CATEGORIES } from '@kraven/config';
 import type { ExpenseFilterInput, ExpenseInput } from '@kraven/validation';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Plus, Search, Trash2 } from 'lucide-react';
+import { Plus, Search, Tag, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
+import { errorMessage } from '../../lib/api';
+import { toastError } from '../../lib/formErrors';
 import { Button } from '../../components/ui/button';
+import { Card } from '../../components/ui/card';
+import { Table, Td, Th } from '../../components/ui/dataTable';
+import { EmptyState } from '../../components/ui/emptyState';
 import { Input } from '../../components/ui/input';
+import { LoadingState } from '../../components/ui/loadingState';
+import { PageHeader } from '../../components/ui/pageHeader';
 import { Select } from '../../components/ui/select';
 import { listProjects, projectQueryKeys } from '../projects/projectApi';
-import { createExpense, deleteExpense, financeQueryKeys, listExpenses } from './financeApi';
-import { formatCurrency, formatDate } from './financeFormat';
 import { ExpenseFormModal } from './ExpenseFormModal';
+import { createExpense, deleteExpense, financeQueryKeys, listExpenses } from './financeApi';
+import { FinanceSubNav } from './FinanceSubNav';
+import { formatCurrency, formatDate } from './financeFormat';
 
 export function ExpensesPage() {
   const queryClient = useQueryClient();
@@ -30,9 +38,9 @@ export function ExpensesPage() {
     mutationFn: createExpense,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['finance'] });
-      toast.success('Expense created');
-    },
-    onError: (error) => toast.error(error.message)
+      toast.success('Expense recorded');
+    }
+    // Errors are surfaced by ExpenseFormModal (inline field errors + toast).
   });
 
   const deleteMutation = useMutation({
@@ -41,7 +49,7 @@ export function ExpensesPage() {
       queryClient.invalidateQueries({ queryKey: ['finance'] });
       toast.success('Expense deleted');
     },
-    onError: (error) => toast.error(error.message)
+    onError: toastError('Could not delete expense')
   });
 
   const expenses = expensesQuery.data?.expenses ?? [];
@@ -55,80 +63,135 @@ export function ExpensesPage() {
   }
 
   return (
-    <section className="space-y-5">
-      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-        <div>
-          <p className="text-xs uppercase tracking-widest text-muted">Finance</p>
-          <h1 className="mt-2 text-2xl font-semibold">Expenses</h1>
+    <section className="space-y-6 sm:space-y-8">
+      <PageHeader
+        eyebrow="Financial Management"
+        title="Expenses"
+        actions={
+          <Button className="clay-btn--primary px-4 py-2 text-white" onClick={() => setIsCreateOpen(true)}>
+            <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
+            New expense
+          </Button>
+        }
+      />
+
+      <FinanceSubNav active="expenses" />
+
+      {/* Filter Toolbar */}
+      <Card className="p-4">
+        <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-5">
+          <div className="sm:col-span-2">
+            <Input
+              startIcon={<Search className="h-4 w-4 text-ink-500" aria-hidden="true" />}
+              placeholder="Search expense description or vendor..."
+              value={filters.search ?? ''}
+              onChange={(event) => updateFilter('search', event.target.value)}
+            />
+          </div>
+          <Select
+            aria-label="Filter by expense category"
+            value={filters.category ?? ''}
+            onChange={(event) => updateFilter('category', event.target.value)}
+          >
+            <option value="">All categories</option>
+            {EXPENSE_CATEGORIES.map((category) => (
+              <option key={category} value={category}>
+                {category}
+              </option>
+            ))}
+          </Select>
+          <Select
+            aria-label="Filter by project"
+            value={filters.associatedProject ?? ''}
+            onChange={(event) => updateFilter('associatedProject', event.target.value)}
+          >
+            <option value="">All projects</option>
+            {(projectsQuery.data?.projects ?? []).map((project) => (
+              <option key={project.id} value={project.id}>
+                {project.projectName}
+              </option>
+            ))}
+          </Select>
+          <div className="flex gap-2">
+            <Input
+              type="date"
+              aria-label="Filter from date"
+              value={filters.dateFrom ? String(filters.dateFrom).slice(0, 10) : ''}
+              onChange={(event) => updateFilter('dateFrom', event.target.value)}
+            />
+          </div>
         </div>
-        <Button onClick={() => setIsCreateOpen(true)}>
-          <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
-          New expense
-        </Button>
-      </div>
+      </Card>
 
-      <div className="grid gap-3 rounded border border-border bg-panel p-3 md:grid-cols-5">
-        <label className="relative md:col-span-2">
-          <Search className="pointer-events-none absolute left-3 top-3 h-4 w-4 text-muted" aria-hidden="true" />
-          <Input className="pl-9" placeholder="Search expense/vendor" value={filters.search ?? ''} onChange={(event) => updateFilter('search', event.target.value)} />
-        </label>
-        <Select value={filters.category ?? ''} onChange={(event) => updateFilter('category', event.target.value)}>
-          <option value="">All categories</option>
-          {EXPENSE_CATEGORIES.map((category) => <option key={category} value={category}>{category}</option>)}
-        </Select>
-        <Select value={filters.associatedProject ?? ''} onChange={(event) => updateFilter('associatedProject', event.target.value)}>
-          <option value="">All projects</option>
-          {(projectsQuery.data?.projects ?? []).map((project) => <option key={project.id} value={project.id}>{project.projectName}</option>)}
-        </Select>
-        <Input type="date" value={filters.dateFrom ? String(filters.dateFrom).slice(0, 10) : ''} onChange={(event) => updateFilter('dateFrom', event.target.value)} />
-        <Input type="date" value={filters.dateTo ? String(filters.dateTo).slice(0, 10) : ''} onChange={(event) => updateFilter('dateTo', event.target.value)} />
-      </div>
-
+      {/* Expenses Table */}
       {expensesQuery.isLoading ? (
-        <div className="rounded border border-border bg-panel p-5 text-sm text-muted">Loading expenses...</div>
+        <Card>
+          <LoadingState label="Loading expenses..." />
+        </Card>
       ) : expensesQuery.isError ? (
-        <div className="rounded border border-red-400/40 bg-panel p-5 text-sm text-red-200">Unable to load expenses.</div>
+        <Card className="bg-danger-bg p-6 font-body text-sm text-danger-fg">
+          Unable to load expenses: {errorMessage(expensesQuery.error, 'Unknown error')}
+        </Card>
       ) : expenses.length === 0 ? (
-        <div className="rounded border border-dashed border-border bg-panel p-8 text-center text-sm text-muted">No expenses match the current filters.</div>
+        <Card>
+          <EmptyState title="No expenses recorded matching the current filters." />
+        </Card>
       ) : (
-        <div className="overflow-hidden rounded border border-border bg-panel">
-          <table className="w-full border-collapse text-left text-sm">
-            <thead className="border-b border-border text-xs uppercase text-muted">
-              <tr>
-                <th className="px-3 py-3 font-medium">Expense</th>
-                <th className="px-3 py-3 font-medium">Category</th>
-                <th className="px-3 py-3 font-medium">Amount</th>
-                <th className="px-3 py-3 font-medium">Vendor</th>
-                <th className="px-3 py-3 font-medium">Date</th>
-                <th className="px-3 py-3 font-medium">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border">
-              {expenses.map((expense) => (
-                <tr key={expense.id} className="hover:bg-white/5">
-                  <td className="px-3 py-3 font-medium">{expense.name}</td>
-                  <td className="px-3 py-3 text-muted">{expense.category}</td>
-                  <td className="px-3 py-3 text-muted">{formatCurrency(expense.amount)}</td>
-                  <td className="px-3 py-3 text-muted">{expense.vendor || '-'}</td>
-                  <td className="px-3 py-3 text-muted">{formatDate(expense.date)}</td>
-                  <td className="px-3 py-3">
-                    <Button
-                      className="h-8 w-8 bg-transparent p-0 text-white hover:bg-white/10"
-                      onClick={() => {
-                        if (window.confirm(`Delete expense ${expense.name}?`)) deleteMutation.mutate(expense.id);
-                      }}
-                    >
-                      <Trash2 className="h-4 w-4" aria-hidden="true" />
-                    </Button>
-                  </td>
+        <Card padded={false}>
+            <Table>
+              <thead className="border-b border-sand-200/40 bg-sand-200/50">
+                <tr>
+                  <Th>Expense</Th>
+                  <Th>Category</Th>
+                  <Th>Amount</Th>
+                  <Th>Vendor</Th>
+                  <Th>Date</Th>
+                  <Th className="text-right">Actions</Th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody className="divide-y divide-sand-200/60">
+                {expenses.map((expense) => (
+                  <tr key={expense.id} className="transition-colors hover:bg-surface-soft/60">
+                    <Td className="font-semibold text-ink-900">
+                      {expense.name}
+                    </Td>
+                    <Td>
+                      <span className="clay-chip inline-flex items-center rounded-pill border border-[rgba(120,110,90,0.18)] bg-sand-200 px-2.5 py-0.5 text-xs font-body font-medium text-ink-900 shadow-clay-sm">
+                        <Tag className="mr-1 h-3 w-3 text-ink-500" aria-hidden="true" />
+                        {expense.category}
+                      </span>
+                    </Td>
+                    <Td className="font-display font-semibold text-ink-900">
+                      {formatCurrency(expense.amount)}
+                    </Td>
+                    <Td className="text-ink-700">
+                      {expense.vendor || '—'}
+                    </Td>
+                    <Td className="text-ink-500">
+                      {formatDate(expense.date)}
+                    </Td>
+                    <Td className="text-right">
+                      <Button
+                        className="clay-btn h-8 w-8 rounded-pill p-0 text-ink-500 hover:bg-danger-bg hover:text-danger-fg"
+                        aria-label={`Delete expense ${expense.name}`}
+                        onClick={() => {
+                          if (window.confirm(`Delete expense ${expense.name}?`)) {
+                            deleteMutation.mutate(expense.id);
+                          }
+                        }}
+                      >
+                        <Trash2 className="h-4 w-4" aria-hidden="true" />
+                      </Button>
+                    </Td>
+                  </tr>
+                ))}
+              </tbody>
+            </Table>
+        </Card>
       )}
 
       <ExpenseFormModal isOpen={isCreateOpen} onClose={() => setIsCreateOpen(false)} onSubmit={handleCreateExpense} />
     </section>
   );
 }
+

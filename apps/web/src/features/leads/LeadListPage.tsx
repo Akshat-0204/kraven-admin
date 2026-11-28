@@ -1,14 +1,24 @@
 import { LEAD_STATUSES } from '@kraven/config';
+import { errorMessage } from '../../lib/api';
+import { toastError } from '../../lib/formErrors';
+import type { LeadRecord } from '@kraven/types';
 import type { LeadFilterInput, LeadInput } from '@kraven/validation';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Plus, Search, Trash2 } from 'lucide-react';
+import { Columns3, Plus, Search, Table as TableIcon, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
-import { Button } from '../../components/ui/button';
-import { Input } from '../../components/ui/input';
-import { Select } from '../../components/ui/select';
-import { LeadStatusBadge } from '../../components/ui/statusBadge';
+import {
+  Card,
+  DataTable,
+  type DataTableColumn,
+  EmptyState,
+  Input,
+  LeadStatusBadge,
+  LoadingState,
+  PageHeader,
+  Select
+} from '../../components/ui';
 import { cn } from '../../lib/utils';
 import {
   createLead,
@@ -40,7 +50,6 @@ export function LeadListPage() {
       queryClient.invalidateQueries({ queryKey: leadQueryKeys.all });
       toast.success('Lead created');
     },
-    onError: (error) => toast.error(error.message)
   });
 
   const statusMutation = useMutation({
@@ -50,7 +59,7 @@ export function LeadListPage() {
       queryClient.invalidateQueries({ queryKey: leadQueryKeys.all });
       toast.success('Lead status updated');
     },
-    onError: (error) => toast.error(error.message)
+    onError: toastError('Could not update lead status')
   });
 
   const deleteMutation = useMutation({
@@ -59,7 +68,7 @@ export function LeadListPage() {
       queryClient.invalidateQueries({ queryKey: leadQueryKeys.all });
       toast.success('Lead deleted');
     },
-    onError: (error) => toast.error(error.message)
+    onError: toastError('Could not delete lead')
   });
 
   const leads = leadsQuery.data?.leads ?? [];
@@ -75,29 +84,88 @@ export function LeadListPage() {
     await createMutation.mutateAsync(input);
   }
 
-  return (
-    <section className="space-y-5">
-      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-        <div>
-          <p className="text-xs uppercase tracking-widest text-muted">Pipeline</p>
-          <h1 className="mt-2 text-2xl font-semibold">Leads</h1>
-        </div>
-        <Button onClick={() => setIsCreateOpen(true)}>
-          <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
-          New lead
-        </Button>
-      </div>
+  const columns: DataTableColumn<LeadRecord>[] = [
+    {
+      key: 'company',
+      header: 'Company & Contact',
+      render: (lead) => (
+        <Link to={`/leads/${lead.id}`} className="block">
+          <div className="font-semibold text-ink-900 transition-colors hover:text-olive-700">
+            {lead.companyName}
+          </div>
+          <div className="text-xs font-normal text-ink-500">{lead.name}</div>
+        </Link>
+      )
+    },
+    { key: 'status', header: 'Status', render: (lead) => <LeadStatusBadge status={lead.status} /> },
+    {
+      key: 'value',
+      header: 'Est. Value',
+      className: 'font-medium text-ink-900',
+      render: (lead) => formatCurrency(lead.estimatedValue)
+    },
+    {
+      key: 'assigned',
+      header: 'Assigned',
+      className: 'text-xs text-ink-700',
+      render: (lead) => lead.assignedPerson || '-'
+    },
+    {
+      key: 'followUp',
+      header: 'Next Follow-Up',
+      className: 'text-xs text-ink-700',
+      render: (lead) => formatDate(lead.nextFollowUpDate)
+    },
+    {
+      key: 'actions',
+      header: 'Actions',
+      align: 'right',
+      render: (lead) => (
+        <button
+          type="button"
+          aria-label={`Delete lead for ${lead.companyName}`}
+          title="Delete lead"
+          className="inline-flex h-8 w-8 items-center justify-center rounded-sm bg-surface shadow-clay-sm border border-white/80 text-ink-500 hover:text-danger-fg hover:shadow-clay-hover transition-all active:scale-[0.96]"
+          onClick={() => {
+            if (window.confirm(`Delete lead for ${lead.companyName}?`)) {
+              deleteMutation.mutate(lead.id);
+            }
+          }}
+        >
+          <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
+        </button>
+      )
+    }
+  ];
 
-      <div className="grid gap-3 rounded border border-border bg-panel p-3 md:grid-cols-6">
-        <label className="relative md:col-span-2">
-          <Search className="pointer-events-none absolute left-3 top-3 h-4 w-4 text-muted" aria-hidden="true" />
+  return (
+    <section className="space-y-6 sm:space-y-8">
+      <PageHeader
+        eyebrow="Pipeline & CRM"
+        title="Leads"
+        subtitle="Track inquiries, active negotiations, and conversion pipeline progress."
+        actions={
+          <button
+            type="button"
+            onClick={() => setIsCreateOpen(true)}
+            className="clay-btn clay-btn--primary inline-flex h-11 items-center justify-center gap-2 rounded-pill px-5 text-sm font-body font-medium shadow-clay-green transition-transform hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98]"
+          >
+            <Plus className="h-4 w-4" aria-hidden="true" />
+            <span>New lead</span>
+          </button>
+        }
+      />
+
+      {/* Filter Toolbar Card */}
+      <Card className="grid gap-3 p-4 sm:gap-4 md:grid-cols-6">
+        <div className="md:col-span-2">
           <Input
-            className="pl-9"
-            placeholder="Search company, contact, email"
+            startIcon={<Search className="h-4 w-4 text-ink-500" aria-hidden="true" />}
+            placeholder="Search company, contact, email..."
             value={filters.search ?? ''}
             onChange={(event) => updateFilter('search', event.target.value)}
           />
-        </label>
+        </div>
         <Select
           value={filters.status ?? ''}
           onChange={(event) => updateFilter('status', event.target.value)}
@@ -110,99 +178,71 @@ export function LeadListPage() {
           ))}
         </Select>
         <Input
-          placeholder="Source"
+          placeholder="Lead source"
           value={filters.leadSource ?? ''}
           onChange={(event) => updateFilter('leadSource', event.target.value)}
         />
         <Input
-          placeholder="Assigned"
+          placeholder="Assigned person"
           value={filters.assignedPerson ?? ''}
           onChange={(event) => updateFilter('assignedPerson', event.target.value)}
         />
-        <div className="flex rounded border border-border bg-black p-1">
+        {/* Table / Kanban View Toggle */}
+        <div className="flex h-11 items-center rounded-pill bg-surface-soft p-1 border border-[rgba(120,110,90,0.16)] shadow-clay-inset-sm">
           <button
             className={cn(
-              'h-8 flex-1 rounded text-xs text-muted',
-              viewMode === 'table' && 'bg-white text-black'
+              'h-full flex-1 rounded-pill inline-flex items-center justify-center gap-1.5 text-xs font-body font-medium transition-all duration-200',
+              viewMode === 'table'
+                ? 'bg-white text-ink-900 shadow-clay-sm'
+                : 'text-ink-500 hover:text-ink-900'
             )}
             type="button"
             onClick={() => setViewMode('table')}
           >
-            Table
+            <TableIcon className="h-3.5 w-3.5" />
+            <span>Table</span>
           </button>
           <button
             className={cn(
-              'h-8 flex-1 rounded text-xs text-muted',
-              viewMode === 'kanban' && 'bg-white text-black'
+              'h-full flex-1 rounded-pill inline-flex items-center justify-center gap-1.5 text-xs font-body font-medium transition-all duration-200',
+              viewMode === 'kanban'
+                ? 'bg-white text-ink-900 shadow-clay-sm'
+                : 'text-ink-500 hover:text-ink-900'
             )}
             type="button"
             onClick={() => setViewMode('kanban')}
           >
-            Board
+            <Columns3 className="h-3.5 w-3.5" />
+            <span>Board</span>
           </button>
         </div>
-      </div>
+      </Card>
 
+      {/* Main Content Area */}
       {leadsQuery.isLoading ? (
-        <div className="rounded border border-border bg-panel p-5 text-sm text-muted">Loading leads...</div>
+        <Card className="p-12">
+          <LoadingState label="Loading leads..." />
+        </Card>
       ) : leadsQuery.isError ? (
-        <div className="rounded border border-red-400/40 bg-panel p-5 text-sm text-red-200">
-          Unable to load leads.
-        </div>
+        <Card className="p-8 text-center font-body text-sm text-danger-fg">
+          Unable to load leads: {errorMessage(leadsQuery.error)}
+          <button type="button" className="ml-3 underline" onClick={() => leadsQuery.refetch()}>
+            Retry
+          </button>
+        </Card>
       ) : leads.length === 0 ? (
-        <div className="rounded border border-dashed border-border bg-panel p-8 text-center text-sm text-muted">
-          No leads match the current view.
-        </div>
+        <Card>
+          <EmptyState title="No leads match the current view. Try adjusting filters or create a new lead." />
+        </Card>
       ) : viewMode === 'kanban' ? (
         <LeadKanbanBoard
           leads={leads}
           onStatusChange={(id, status) => statusMutation.mutate({ id, status })}
         />
       ) : (
-        <div className="overflow-hidden rounded border border-border bg-panel">
-          <table className="w-full border-collapse text-left text-sm">
-            <thead className="border-b border-border text-xs uppercase text-muted">
-              <tr>
-                <th className="px-3 py-3 font-medium">Lead</th>
-                <th className="px-3 py-3 font-medium">Status</th>
-                <th className="px-3 py-3 font-medium">Value</th>
-                <th className="px-3 py-3 font-medium">Assigned</th>
-                <th className="px-3 py-3 font-medium">Next follow-up</th>
-                <th className="px-3 py-3 font-medium">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border">
-              {leads.map((lead) => (
-                <tr key={lead.id} className="hover:bg-white/5">
-                  <td className="px-3 py-3">
-                    <Link to={`/leads/${lead.id}`} className="block">
-                      <div className="font-medium">{lead.companyName}</div>
-                      <div className="text-xs text-muted">{lead.name}</div>
-                    </Link>
-                  </td>
-                  <td className="px-3 py-3">
-                    <LeadStatusBadge status={lead.status} />
-                  </td>
-                  <td className="px-3 py-3 text-muted">{formatCurrency(lead.estimatedValue)}</td>
-                  <td className="px-3 py-3 text-muted">{lead.assignedPerson || '-'}</td>
-                  <td className="px-3 py-3 text-muted">{formatDate(lead.nextFollowUpDate)}</td>
-                  <td className="px-3 py-3">
-                    <Button
-                      className="h-8 w-8 bg-transparent p-0 text-white hover:bg-white/10"
-                      onClick={() => {
-                        if (window.confirm(`Delete lead for ${lead.companyName}?`)) {
-                          deleteMutation.mutate(lead.id);
-                        }
-                      }}
-                    >
-                      <Trash2 className="h-4 w-4" aria-hidden="true" />
-                    </Button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <Card padded={false}>
+          <DataTable columns={columns} rows={leads} rowKey={(lead) => lead.id} />
+        </Card>
       )}
 
       <LeadFormModal

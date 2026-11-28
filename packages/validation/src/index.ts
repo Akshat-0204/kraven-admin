@@ -1,15 +1,71 @@
 import {
   ACTIVITY_ENTITY_TYPES,
+  DOCUMENT_STATUSES,
+  DOCUMENT_ACCESS_ROLES,
+  DOCUMENT_CATEGORIES,
+  DOCUMENT_TEMPLATE_TYPES,
   EXPENSE_CATEGORIES,
   INVOICE_PAYMENT_STATUSES,
   LEAD_STATUSES,
+  PACK_ITEM_KINDS,
+  PACK_PAYMENT_STATUSES,
+  PORTAL_RESERVED_SLUGS,
+  SIGNATURE_IMAGE_MAX_BYTES,
+  PORTAL_SLUG_MAX_LENGTH,
+  PORTAL_SLUG_MIN_LENGTH,
+  PORTAL_SLUG_PATTERN,
   PROJECT_STATUSES
 } from '@kraven/config';
 import { z } from 'zod';
 
+/**
+ * Friendly default messages for every schema built from this zod instance. Messages are
+ * field-agnostic ("Required", "Enter a valid email") because forms render them next to the
+ * field label; the API error handler prefixes the field name for toasts.
+ */
+const friendlyErrorMap: z.ZodErrorMap = (issue, ctx) => {
+  switch (issue.code) {
+    case z.ZodIssueCode.invalid_type:
+      if (issue.received === 'undefined' || issue.received === 'null') return { message: 'Required' };
+      if (issue.expected === 'number' && issue.received === 'nan') return { message: 'Enter a number' };
+      if (issue.expected === 'date') return { message: 'Enter a valid date' };
+      return { message: `Expected ${issue.expected}` };
+    case z.ZodIssueCode.invalid_date:
+      return { message: 'Enter a valid date' };
+    case z.ZodIssueCode.invalid_string:
+      if (issue.validation === 'email') return { message: 'Enter a valid email address' };
+      if (issue.validation === 'url') return { message: 'Enter a valid URL (including https://)' };
+      return { message: 'Invalid format' };
+    case z.ZodIssueCode.too_small:
+      if (issue.type === 'string') {
+        return { message: Number(issue.minimum) <= 1 ? 'Required' : `Must be at least ${issue.minimum} characters` };
+      }
+      if (issue.type === 'number') {
+        if (issue.minimum === 0) return { message: issue.inclusive ? 'Must be 0 or more' : 'Must be greater than 0' };
+        return { message: `Must be ${issue.inclusive ? 'at least' : 'greater than'} ${issue.minimum}` };
+      }
+      if (issue.type === 'array') return { message: Number(issue.minimum) <= 1 ? 'Add at least one item' : `Add at least ${issue.minimum} items` };
+      break;
+    case z.ZodIssueCode.too_big:
+      if (issue.type === 'string') return { message: `Must be at most ${issue.maximum} characters` };
+      if (issue.type === 'number') return { message: `Must be at most ${issue.maximum}` };
+      if (issue.type === 'array') return { message: `At most ${issue.maximum} items allowed` };
+      break;
+    case z.ZodIssueCode.invalid_enum_value:
+      return { message: `Choose one of: ${issue.options.join(', ')}` };
+    case z.ZodIssueCode.unrecognized_keys:
+      return { message: `Unknown field(s): ${issue.keys.join(', ')}` };
+  }
+  return { message: ctx.defaultError };
+};
+
+z.setErrorMap(friendlyErrorMap);
+
 const optionalDate = z.preprocess((value) => (value === '' ? undefined : value), z.coerce.date().optional());
-const objectId = z.string().min(1, 'Required id');
+const objectId = z.string().min(1, 'Required');
 const optionalObjectId = z.preprocess((value) => (value === '' ? undefined : value), objectId.optional());
+/** Strict 24-hex ObjectId, so bad ids are a 400 rather than a cast error. */
+const hexObjectId = z.string().regex(/^[a-f0-9]{24}$/i, 'Invalid id');
 
 export const healthResponseSchema = z.object({
   app: z.string(),
@@ -153,11 +209,23 @@ export const attachProjectDocumentSchema = fileReferenceSchema;
 
 export type AttachProjectDocumentInput = z.infer<typeof attachProjectDocumentSchema>;
 
+export const invoiceLineItemSchema = z.object({
+  description: z.string().trim().min(1),
+  quantity: z.coerce.number().positive(),
+  unitPrice: z.coerce.number().nonnegative()
+});
+
+export type InvoiceLineItemInput = z.infer<typeof invoiceLineItemSchema>;
+
 export const invoiceSchema = z.object({
   client: objectId,
   project: optionalObjectId,
   invoiceNumber: z.string().min(1),
+  /** Ignored (recomputed as the total) when `lineItems` is non-empty. */
   amount: z.coerce.number().nonnegative(),
+  lineItems: z.array(invoiceLineItemSchema).max(100).default([]),
+  /** Tax percentage applied to the line items subtotal. */
+  taxRate: z.coerce.number().min(0).max(100).default(0),
   invoiceDate: z.coerce.date(),
   dueDate: z.coerce.date(),
   paymentStatus: z.enum(INVOICE_PAYMENT_STATUSES).default('Pending'),
@@ -165,7 +233,9 @@ export const invoiceSchema = z.object({
   paymentDate: optionalDate,
   paymentMethod: z.string().optional(),
   transactionReferenceId: z.string().optional(),
-  notes: z.string().optional()
+  notes: z.string().optional(),
+  /** `null`/empty clears it, falling back to the default payee. */
+  payeeProfile: z.preprocess((value) => (value === '' ? null : value), hexObjectId.nullable().optional())
 });
 
 export type InvoiceInput = z.infer<typeof invoiceSchema>;
@@ -248,8 +318,218 @@ export const fileUploadMetadataSchema = z.object({
 
 export type FileUploadMetadataInput = z.infer<typeof fileUploadMetadataSchema>;
 
+const nullableObjectId = z.preprocess((value) => (value === '' ? null : value), objectId.nullable().optional());
+
+export const documentTemplateSchema = z.object({
+  name: z.string().trim().default(''),
+  type: z.enum(DOCUMENT_TEMPLATE_TYPES),
+  googleDocUrl: z.string().trim().min(1, 'Google Doc link is required').max(2000)
+});
+
+export type DocumentTemplateInput = z.infer<typeof documentTemplateSchema>;
+
+export const updateDocumentTemplateSchema = documentTemplateSchema.partial();
+
+export type UpdateDocumentTemplateInput = z.infer<typeof updateDocumentTemplateSchema>;
+
+export const documentContextSchema = z.object({
+  client: objectId,
+  project: optionalObjectId
+});
+
+export type DocumentContextInput = z.infer<typeof documentContextSchema>;
+
+export const documentAccessEntrySchema = z.object({
+  email: z.string().trim().toLowerCase().email('Enter a valid email'),
+  role: z.enum(DOCUMENT_ACCESS_ROLES).default('writer')
+});
+
+export type DocumentAccessEntryInput = z.infer<typeof documentAccessEntrySchema>;
+
+export const documentAccessSchema = z
+  .array(documentAccessEntrySchema)
+  .max(50)
+  .transform((entries) => [...new Map(entries.map((entry) => [entry.email, entry])).values()]);
+
+/** Template and client are optional: a blank document can be started and assigned later (client is required to share). */
+export const createDocumentSchema = z.object({
+  template: optionalObjectId,
+  client: optionalObjectId,
+  project: optionalObjectId,
+  title: z.preprocess((value) => (value === '' ? undefined : value), z.string().trim().min(1).optional()),
+  access: documentAccessSchema.default([])
+});
+
+export type CreateDocumentInput = z.input<typeof createDocumentSchema>;
+
+/** `client`/`project` accept `null` to unassign. */
+export const updateDocumentSchema = z
+  .object({
+    title: z.string().trim().min(1, 'Title is required').optional(),
+    client: nullableObjectId,
+    project: nullableObjectId
+  })
+  .refine((value) => Object.values(value).some((field) => field !== undefined), 'Nothing to update');
+
+export type UpdateDocumentInput = z.infer<typeof updateDocumentSchema>;
+
+export const saveDocumentPdfSchema = z.object({
+  category: z.enum(DOCUMENT_CATEGORIES),
+  filename: z
+    .string()
+    .trim()
+    .min(1, 'Filename is required')
+    .max(200)
+    .refine((value) => !/[\\/]/.test(value), 'Filename cannot contain slashes'),
+  clientVisible: z.boolean().default(false)
+});
+
+export type SaveDocumentPdfInput = z.input<typeof saveDocumentPdfSchema>;
+
+export const DOCUMENT_LIST_MAX_LIMIT = 100;
+
+export const documentFilterSchema = z.object({
+  client: optionalObjectId,
+  project: optionalObjectId,
+  status: z.enum(DOCUMENT_STATUSES).optional(),
+  /** Case-insensitive title match. */
+  q: z.preprocess((value) => (value === '' ? undefined : value), z.string().trim().max(200).optional()),
+  page: z.coerce.number().int().min(1).default(1),
+  limit: z.coerce.number().int().min(1).max(DOCUMENT_LIST_MAX_LIMIT).default(50)
+});
+
+export type DocumentFilterInput = z.input<typeof documentFilterSchema>;
+
 export const globalSearchSchema = z.object({
   q: z.string().trim().min(1)
 });
 
 export type GlobalSearchInput = z.infer<typeof globalSearchSchema>;
+
+export const fileVisibilitySchema = z
+  .object({
+    clientVisible: z.boolean().optional(),
+    filename: z
+      .string()
+      .trim()
+      .min(1, 'Filename is required')
+      .max(200)
+      .refine((value) => !/[\\/]/.test(value), 'Filename cannot contain slashes')
+      .optional(),
+    category: z.enum(DOCUMENT_CATEGORIES).optional()
+  })
+  .refine((value) => Object.values(value).some((field) => field !== undefined), 'Nothing to update');
+
+export type FileVisibilityInput = z.infer<typeof fileVisibilitySchema>;
+
+export const fileListFilterSchema = z.object({
+  associatedEntityType: z.enum(ACTIVITY_ENTITY_TYPES),
+  associatedEntityId: hexObjectId
+});
+
+export type FileListFilterInput = z.infer<typeof fileListFilterSchema>;
+
+const reservedSlugs = new Set<string>(PORTAL_RESERVED_SLUGS);
+
+export const portalSlugSchema = z
+  .string()
+  .trim()
+  .toLowerCase()
+  .min(PORTAL_SLUG_MIN_LENGTH, `Slug must be at least ${PORTAL_SLUG_MIN_LENGTH} characters`)
+  .max(PORTAL_SLUG_MAX_LENGTH, `Slug must be at most ${PORTAL_SLUG_MAX_LENGTH} characters`)
+  .regex(PORTAL_SLUG_PATTERN, 'Use lowercase letters, numbers and single hyphens')
+  .refine((slug) => !reservedSlugs.has(slug), 'This slug is reserved');
+
+export const portalSettingsSchema = z.object({
+  slug: portalSlugSchema,
+  enabled: z.boolean(),
+  expiresAt: z.preprocess((value) => (value === '' ? null : value), z.coerce.date().nullable().optional())
+});
+
+export type PortalSettingsInput = z.infer<typeof portalSettingsSchema>;
+
+/** Omit `code` to have the server generate one. */
+export const portalCodeSchema = z.object({
+  code: z.preprocess(
+    (value) => (typeof value === 'string' && value.trim() === '' ? undefined : value),
+    z.string().trim().min(8, 'Code must be at least 8 characters').max(64).optional()
+  )
+});
+
+export type PortalCodeInput = z.infer<typeof portalCodeSchema>;
+
+export const portalVerifySchema = z.object({
+  code: z.string().max(128)
+});
+
+export type PortalVerifyInput = z.infer<typeof portalVerifySchema>;
+
+export const projectUpdateSchema = z.object({
+  project: hexObjectId,
+  title: z.string().trim().min(1, 'Title is required').max(200),
+  body: z.string().max(20_000).default(''),
+  clientVisible: z.boolean().default(false),
+  attachments: z.array(hexObjectId).max(20).default([]),
+  postedAt: z.coerce.date().optional()
+});
+
+export type ProjectUpdateInput = z.input<typeof projectUpdateSchema>;
+
+export const updateProjectUpdateSchema = projectUpdateSchema.omit({ project: true }).partial();
+
+export type UpdateProjectUpdateInput = z.input<typeof updateProjectUpdateSchema>;
+
+export const payeeProfileSchema = z.object({
+  name: z.string().trim().min(1, 'Name is required').max(100),
+  vpa: z
+    .string()
+    .trim()
+    .regex(/^[a-zA-Z0-9._-]{2,256}@[a-zA-Z][a-zA-Z0-9.-]{1,63}$/, 'Enter a valid UPI ID (name@bank)'),
+  isDefault: z.boolean().default(false)
+});
+
+export type PayeeProfileInput = z.input<typeof payeeProfileSchema>;
+
+export const updatePayeeProfileSchema = payeeProfileSchema.partial();
+
+export type UpdatePayeeProfileInput = z.input<typeof updatePayeeProfileSchema>;
+
+export const packItemSchema = z.discriminatedUnion('kind', [
+  z.object({ kind: z.literal('document'), document: objectId }),
+  z.object({ kind: z.literal('file'), file: objectId }),
+  z.object({
+    kind: z.literal('payment'),
+    label: z.string().trim().min(1).max(200),
+    amount: z.coerce.number().positive(),
+    reference: z.string().trim().max(100).optional()
+  })
+]);
+
+export const packSchema = z.object({
+  client: objectId,
+  project: objectId.optional(),
+  title: z.string().trim().min(1).max(200),
+  items: z.array(packItemSchema).max(50).default([]),
+  expiresAt: z.coerce.date().nullable().optional()
+});
+export type PackInput = z.infer<typeof packSchema>;
+
+export const updatePackSchema = packSchema.omit({ client: true }).partial();
+export type UpdatePackInput = z.infer<typeof updatePackSchema>;
+
+export const packPaymentStatusSchema = z.object({ status: z.enum(PACK_PAYMENT_STATUSES) });
+
+const SIGNATURE_DATA_URL = /^data:image\/png;base64,[A-Za-z0-9+/]+={0,2}$/;
+
+export const signDocumentSchema = z
+  .object({
+    signerName: z.string().trim().min(2).max(120),
+    method: z.enum(['typed', 'drawn']),
+    signatureImage: z.string().max(Math.ceil((SIGNATURE_IMAGE_MAX_BYTES * 4) / 3) + 64).regex(SIGNATURE_DATA_URL).optional(),
+    consent: z.literal(true, { errorMap: () => ({ message: 'Consent is required' }) })
+  })
+  .refine((value) => value.method === 'typed' || Boolean(value.signatureImage), {
+    message: 'A drawn signature is required',
+    path: ['signatureImage']
+  });
+export type SignDocumentInput = z.infer<typeof signDocumentSchema>;

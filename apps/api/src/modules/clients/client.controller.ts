@@ -1,4 +1,5 @@
 import type { Request, Response } from 'express';
+import { parseIndex } from '../../shared/utils/objectId.js';
 import {
   addClientLink,
   attachClientDocument,
@@ -53,7 +54,7 @@ export async function addClientLinkController(req: Request, res: Response) {
 }
 
 export async function removeClientLinkController(req: Request, res: Response) {
-  const client = await removeClientLink(req.params.id, Number(req.params.linkIndex));
+  const client = await removeClientLink(req.params.id, parseIndex(req.params.linkIndex, 'link'));
 
   res.json({ client: serializeClient(client) });
 }

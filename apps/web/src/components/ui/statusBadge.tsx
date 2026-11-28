@@ -1,21 +1,21 @@
-import type { LeadStatus, ProjectStatus } from '@kraven/types';
+import type { InvoicePaymentStatus, LeadStatus, ProjectStatus } from '@kraven/types';
 import { cn } from '../../lib/utils';
 
 const leadStatusClassName: Record<LeadStatus, string> = {
-  New: 'border-white/20 text-white',
-  Contacted: 'border-sky-300/40 text-sky-200',
-  Meeting: 'border-amber-300/40 text-amber-200',
-  'Proposal Sent': 'border-violet-300/40 text-violet-200',
-  Negotiation: 'border-orange-300/40 text-orange-200',
-  Won: 'border-emerald-300/40 text-emerald-200',
-  Lost: 'border-red-300/40 text-red-200'
+  New: 'bg-sand-200 text-ink-900 border-[rgba(120,110,90,0.18)]',
+  Contacted: 'bg-olive-100 text-olive-700',
+  Meeting: 'bg-warning-bg text-warning-fg',
+  'Proposal Sent': 'bg-[#EDE9FE] text-[#5B21B6]',
+  Negotiation: 'bg-[#FFEDD5] text-[#9A3412]',
+  Won: 'bg-success-bg text-success-fg font-semibold',
+  Lost: 'bg-danger-bg text-danger-fg'
 };
 
 export function LeadStatusBadge({ status, className }: { status: LeadStatus; className?: string }) {
   return (
     <span
       className={cn(
-        'inline-flex h-6 items-center rounded border bg-black px-2 text-xs font-medium',
+        'clay-chip inline-flex items-center rounded-pill px-2.5 py-0.5 text-xs font-body font-medium shadow-clay-sm border',
         leadStatusClassName[status],
         className
       )}
@@ -26,19 +26,19 @@ export function LeadStatusBadge({ status, className }: { status: LeadStatus; cla
 }
 
 const projectStatusClassName: Record<ProjectStatus, string> = {
-  'Not Started': 'border-white/20 text-white',
-  'In Progress': 'border-sky-300/40 text-sky-200',
-  'On Hold': 'border-amber-300/40 text-amber-200',
-  'Client Review': 'border-violet-300/40 text-violet-200',
-  Completed: 'border-emerald-300/40 text-emerald-200',
-  Cancelled: 'border-red-300/40 text-red-200'
+  'Not Started': 'bg-sand-200 text-ink-900 border-[rgba(120,110,90,0.18)]',
+  'In Progress': 'bg-olive-100 text-olive-700',
+  'On Hold': 'bg-warning-bg text-warning-fg',
+  'Client Review': 'bg-[#EDE9FE] text-[#5B21B6]',
+  Completed: 'bg-success-bg text-success-fg font-semibold',
+  Cancelled: 'bg-danger-bg text-danger-fg'
 };
 
 export function ProjectStatusBadge({ status, className }: { status: ProjectStatus; className?: string }) {
   return (
     <span
       className={cn(
-        'inline-flex h-6 items-center rounded border bg-black px-2 text-xs font-medium',
+        'clay-chip inline-flex items-center rounded-pill px-2.5 py-0.5 text-xs font-body font-medium shadow-clay-sm border',
         projectStatusClassName[status],
         className
       )}
@@ -47,3 +47,25 @@ export function ProjectStatusBadge({ status, className }: { status: ProjectStatu
     </span>
   );
 }
+
+const invoiceStatusClassName: Record<InvoicePaymentStatus, string> = {
+  Pending: 'bg-warning-bg text-warning-fg',
+  'Partially Paid': 'bg-olive-100 text-olive-700',
+  Paid: 'bg-success-bg text-success-fg font-semibold',
+  Overdue: 'bg-danger-bg text-danger-fg font-semibold'
+};
+
+export function InvoiceStatusBadge({ status, className }: { status: InvoicePaymentStatus; className?: string }) {
+  return (
+    <span
+      className={cn(
+        'clay-chip inline-flex items-center rounded-pill px-2.5 py-0.5 text-xs font-body font-medium shadow-clay-sm border',
+        invoiceStatusClassName[status] || 'bg-sand-200 text-ink-900 border-[rgba(120,110,90,0.18)]',
+        className
+      )}
+    >
+      {status}
+    </span>
+  );
+}
+

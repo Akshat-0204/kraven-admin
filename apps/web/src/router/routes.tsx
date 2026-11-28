@@ -1,4 +1,5 @@
-import { createBrowserRouter } from 'react-router-dom';
+import { WORKSPACE_DASHBOARD_PATHS } from '@kraven/config';
+import { createBrowserRouter, Navigate } from 'react-router-dom';
 import { LoginPage } from '../features/auth/LoginPage';
 import { ProtectedRoute } from '../features/auth/ProtectedRoute';
 import { ClientDetailPage } from '../features/clients/ClientDetailPage';
@@ -6,29 +7,77 @@ import { ClientListPage } from '../features/clients/ClientListPage';
 import { ExpensesPage } from '../features/finance/ExpensesPage';
 import { FinanceOverviewPage } from '../features/finance/FinanceOverviewPage';
 import { InvoicesPaymentsPage } from '../features/finance/InvoicesPaymentsPage';
-import { DashboardPage } from '../features/dashboard/DashboardPage';
+import { DocumentsPage } from '../features/documents/DocumentsPage';
+import { CrmDashboardPage } from '../features/dashboard/CrmDashboardPage';
+import { LeadsDashboardPage } from '../features/dashboard/LeadsDashboardPage';
 import { LeadDetailPage } from '../features/leads/LeadDetailPage';
 import { LeadListPage } from '../features/leads/LeadListPage';
+import { PortalPage } from '../features/portal/PortalPage';
+import { PortalSignPage } from '../features/portal/PortalSignPage';
+import { PortalPayPage } from '../features/portal/PortalPayPage';
 import { ProjectDetailPage } from '../features/projects/ProjectDetailPage';
 import { ProjectListPage } from '../features/projects/ProjectListPage';
 import { SettingsPage } from '../features/settings/SettingsPage';
+import { RouteError } from '../components/RouteError';
 import { AppShell } from '../layouts/AppShell';
+import { readStoredWorkspace } from '../layouts/workspace';
+
+/** `/` and `/dashboard` land on the last-used workspace's dashboard (Leads by default). */
+function WorkspaceRedirect() {
+  return <Navigate to={WORKSPACE_DASHBOARD_PATHS[readStoredWorkspace()]} replace />;
+}
 
 export const router = createBrowserRouter([
+  // Catch-all error boundary: render crashes and unknown URLs show a message instead of a white screen.
   {
     path: '/login',
-    element: <LoginPage />
+    element: <LoginPage />,
+    errorElement: <RouteError />
+  },
+  // Client portal: public, outside the admin session and layout.
+  {
+    path: '/c/:slug',
+    element: <PortalPage />,
+    errorElement: <RouteError />
+  },
+  {
+    path: '/c/:slug/pay/:invoiceId',
+    element: <PortalPayPage />,
+    errorElement: <RouteError />
+  },
+  {
+    path: '/c/:slug/pay-item/:packId/:itemId',
+    element: <PortalPayPage />,
+    errorElement: <RouteError />
+  },
+  {
+    path: '/c/:slug/sign/:documentId',
+    element: <PortalSignPage />,
+    errorElement: <RouteError />
   },
   {
     path: '/',
     element: <ProtectedRoute />,
+    errorElement: <RouteError />,
     children: [
       {
         element: <AppShell />,
         children: [
           {
             index: true,
-            element: <DashboardPage />
+            element: <WorkspaceRedirect />
+          },
+          {
+            path: 'dashboard',
+            element: <WorkspaceRedirect />
+          },
+          {
+            path: 'dashboard/leads',
+            element: <LeadsDashboardPage />
+          },
+          {
+            path: 'dashboard/crm',
+            element: <CrmDashboardPage />
           },
           {
             path: 'leads',
@@ -55,6 +104,14 @@ export const router = createBrowserRouter([
             element: <ClientDetailPage />
           },
           {
+            path: 'documents',
+            element: <DocumentsPage />
+          },
+          {
+            path: 'templates',
+            element: <Navigate to="/documents?tab=templates" replace />
+          },
+          {
             path: 'finance',
             element: <FinanceOverviewPage />
           },
@@ -73,5 +130,6 @@ export const router = createBrowserRouter([
         ]
       }
     ]
-  }
+  },
+  { path: '*', element: <RouteError /> }
 ]);

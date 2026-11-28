@@ -5,6 +5,7 @@ import { LeadModel } from './lead.model.js';
 import { logActivity } from '../../shared/activity/activity.service.js';
 import { HttpError } from '../../shared/errors/httpError.js';
 import { getEntityActivity } from '../../shared/activity/activity.service.js';
+import { assertObjectId, escapeRegExp } from '../../shared/utils/objectId.js';
 
 export async function listLeads(filters: LeadFilterInput) {
   const parsedFilters = leadFilterSchema.parse(filters);
@@ -38,9 +39,9 @@ export async function listLeads(filters: LeadFilterInput) {
 
   if (parsedFilters.search) {
     query.$or = [
-      { name: new RegExp(parsedFilters.search, 'i') },
-      { companyName: new RegExp(parsedFilters.search, 'i') },
-      { email: new RegExp(parsedFilters.search, 'i') }
+      { name: new RegExp(escapeRegExp(parsedFilters.search), 'i') },
+      { companyName: new RegExp(escapeRegExp(parsedFilters.search), 'i') },
+      { email: new RegExp(escapeRegExp(parsedFilters.search), 'i') }
     ];
   }
 
@@ -48,6 +49,7 @@ export async function listLeads(filters: LeadFilterInput) {
 }
 
 export async function getLeadById(leadId: string) {
+  assertObjectId(leadId, 'lead');
   const lead = await LeadModel.findById(leadId);
 
   if (!lead) {
@@ -118,14 +120,16 @@ export async function deleteLead(leadId: string) {
 }
 
 export async function convertLeadToClient(leadId: string) {
-  const lead = await LeadModel.findById(leadId);
-
-  if (!lead) {
-    throw new HttpError(404, 'Lead not found');
-  }
+  const lead = await getLeadById(leadId);
 
   if (lead.convertedClient) {
-    return ClientModel.findById(lead.convertedClient);
+    const existing = await ClientModel.findById(lead.convertedClient);
+
+    if (!existing) {
+      throw new HttpError(409, 'This lead was already converted, but its client no longer exists');
+    }
+
+    return existing;
   }
 
   const client = await ClientModel.create({

@@ -4,8 +4,9 @@ import { logActivity } from '../../shared/activity/activity.service.js';
 import { HttpError } from '../../shared/errors/httpError.js';
 import { ClientModel } from '../clients/client.model.js';
 import { ProjectModel } from '../projects/project.model.js';
-import { derivePaymentStatus } from './finance.calculations.js';
+import { computeInvoiceTotals, derivePaymentStatus } from './finance.calculations.js';
 import { InvoiceModel, type InvoiceHydratedDocument } from './invoice.model.js';
+import { assertObjectId, escapeRegExp } from '../../shared/utils/objectId.js';
 
 export async function listInvoices(filters: InvoiceFilterInput) {
   const parsedFilters = invoiceFilterSchema.parse(filters);
@@ -26,21 +27,22 @@ export async function listInvoices(filters: InvoiceFilterInput) {
     };
   }
   if (parsedFilters.search) {
-    query.invoiceNumber = new RegExp(parsedFilters.search, 'i');
+    query.invoiceNumber = new RegExp(escapeRegExp(parsedFilters.search), 'i');
   }
 
-  const invoices = await InvoiceModel.find(query).sort({ invoiceDate: -1, createdAt: -1 });
-  return Promise.all(invoices.map(syncInvoicePaymentStatus));
+  // Read-only: payment status is persisted by the write paths (create/update/payments).
+  return InvoiceModel.find(query).sort({ invoiceDate: -1, createdAt: -1 });
 }
 
 export async function getInvoiceById(invoiceId: string) {
+  assertObjectId(invoiceId, 'invoice');
   const invoice = await InvoiceModel.findById(invoiceId);
 
   if (!invoice) {
     throw new HttpError(404, 'Invoice not found');
   }
 
-  return syncInvoicePaymentStatus(invoice);
+  return invoice;
 }
 
 export async function syncInvoicePaymentStatus(invoice: InvoiceHydratedDocument | null) {
@@ -60,25 +62,50 @@ export async function syncInvoicePaymentStatus(invoice: InvoiceHydratedDocument 
   return invoice;
 }
 
-export async function createInvoice(input: InvoiceInput) {
+/** With line items, amount is the computed total; without, the given amount is the total (no tax). */
+function applyTotals(
+  target: { amount: number; subtotal: number; taxAmount: number; taxRate: number },
+  lineItems: { quantity: number; unitPrice: number }[]
+) {
+  if (lineItems.length > 0) {
+    const totals = computeInvoiceTotals(lineItems, target.taxRate);
+    target.subtotal = totals.subtotal;
+    target.taxAmount = totals.taxAmount;
+    target.amount = totals.total;
+  } else {
+    target.subtotal = target.amount;
+    target.taxAmount = 0;
+    target.taxRate = 0;
+  }
+}
+
+type CreateInvoiceInput = Omit<InvoiceInput, 'lineItems' | 'taxRate'> & Partial<Pick<InvoiceInput, 'lineItems' | 'taxRate'>>;
+
+export async function createInvoice(input: CreateInvoiceInput) {
   const payload = invoiceSchema.parse(input);
+  const totals = { amount: payload.amount, subtotal: 0, taxAmount: 0, taxRate: payload.taxRate };
+  applyTotals(totals, payload.lineItems);
+  payload.amount = totals.amount;
   const client = await ClientModel.findById(payload.client);
 
   if (!client) {
-    throw new HttpError(404, 'Client not found');
+    throw new HttpError(404, 'Client not found', { client: 'Selected client no longer exists' });
   }
 
   if (payload.project) {
     const project = await ProjectModel.findById(payload.project);
 
     if (!project) {
-      throw new HttpError(404, 'Project not found');
+      throw new HttpError(404, 'Project not found', { project: 'Selected project no longer exists' });
     }
   }
 
   const remainingAmount = Math.max(payload.amount - payload.amountPaid, 0);
   const invoice = await InvoiceModel.create({
     ...payload,
+    subtotal: totals.subtotal,
+    taxAmount: totals.taxAmount,
+    taxRate: totals.taxRate,
     remainingAmount,
     paymentStatus: derivePaymentStatus(payload.amount, payload.amountPaid, payload.dueDate)
   });
@@ -97,7 +124,10 @@ export async function updateInvoice(invoiceId: string, input: UpdateInvoiceInput
   const payload = updateInvoiceSchema.parse(input);
   const invoice = await getInvoiceById(invoiceId);
 
-  Object.assign(invoice, payload);
+  const { lineItems, ...rest } = payload;
+  Object.assign(invoice, rest);
+  if (lineItems) invoice.lineItems = lineItems;
+  applyTotals(invoice, invoice.lineItems);
   invoice.remainingAmount = Math.max(invoice.amount - invoice.amountPaid, 0);
   invoice.paymentStatus = derivePaymentStatus(invoice.amount, invoice.amountPaid, invoice.dueDate);
   await invoice.save();

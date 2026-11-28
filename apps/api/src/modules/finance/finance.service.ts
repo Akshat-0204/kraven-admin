@@ -4,6 +4,9 @@ import { calculateAgencyFinancialSummary, calculateProjectFinancialSummary } fro
 import { serializeExpense, serializeInvoice } from './finance.serializer.js';
 import { InvoiceModel } from './invoice.model.js';
 import { syncInvoicePaymentStatus } from './invoice.service.js';
+import { assertObjectId } from '../../shared/utils/objectId.js';
+import { HttpError } from '../../shared/errors/httpError.js';
+import { ProjectModel } from '../projects/project.model.js';
 
 export async function getAgencyFinancialSummary(): Promise<AgencyFinancialSummary> {
   const [invoiceDocsRaw, expenseDocs] = await Promise.all([
@@ -18,6 +21,11 @@ export async function getAgencyFinancialSummary(): Promise<AgencyFinancialSummar
 }
 
 export async function getProjectFinancialSummary(projectId: string): Promise<ProjectFinancialSummary> {
+  assertObjectId(projectId, 'project');
+  if (!(await ProjectModel.exists({ _id: projectId }))) {
+    throw new HttpError(404, 'Project not found');
+  }
+
   const [invoiceDocsRaw, expenseDocs] = await Promise.all([
     InvoiceModel.find({ project: projectId }),
     ExpenseModel.find({ associatedProject: projectId })

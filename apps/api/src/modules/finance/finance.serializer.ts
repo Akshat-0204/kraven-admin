@@ -14,6 +14,10 @@ export function serializeInvoice(invoice: InvoiceDocument & { _id: unknown }): I
     project: invoice.project ? String(invoice.project) : undefined,
     invoiceNumber: invoice.invoiceNumber,
     amount: invoice.amount,
+    lineItems: (invoice.lineItems ?? []).map(({ description, quantity, unitPrice }) => ({ description, quantity, unitPrice })),
+    taxRate: invoice.taxRate ?? 0,
+    subtotal: invoice.subtotal ?? invoice.amount,
+    taxAmount: invoice.taxAmount ?? 0,
     invoiceDate: invoice.invoiceDate.toISOString(),
     dueDate: invoice.dueDate.toISOString(),
     paymentStatus: invoice.paymentStatus,
@@ -23,6 +27,7 @@ export function serializeInvoice(invoice: InvoiceDocument & { _id: unknown }): I
     paymentMethod: invoice.paymentMethod,
     transactionReferenceId: invoice.transactionReferenceId,
     notes: invoice.notes,
+    payeeProfile: invoice.payeeProfile ? String(invoice.payeeProfile) : undefined,
     createdAt: invoice.createdAt.toISOString(),
     updatedAt: invoice.updatedAt.toISOString()
   };

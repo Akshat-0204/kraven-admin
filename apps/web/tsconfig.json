@@ -3,7 +3,7 @@
   "compilerOptions": {
     "composite": true,
     "jsx": "react-jsx",
-    "types": ["vitest/globals", "@testing-library/jest-dom", "vite/client"]
+    "types": ["vitest/globals", "@testing-library/jest-dom", "vite/client", "@remix-run/router"]
   },
   "include": ["src", "e2e", "vite.config.ts", "playwright.config.ts"]
 }

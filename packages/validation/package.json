@@ -17,7 +17,7 @@
     "lint": "eslint src --ext .ts"
   },
   "dependencies": {
-    "@kraven/config": "*",
+    "@kraven/config": "workspace:*",
     "zod": "^3.23.8"
   }
 }

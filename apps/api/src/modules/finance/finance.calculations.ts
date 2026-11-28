@@ -60,3 +60,15 @@ export function calculateAgencyFinancialSummary(input: {
     invoiced: projectSummary.revenue
   };
 }
+
+const round2 = (value: number) => Math.round((value + Number.EPSILON) * 100) / 100;
+
+/** Subtotal from line items, tax from `taxRate` percent, and the grand total (all rounded to 2 dp). */
+export function computeInvoiceTotals(
+  lineItems: { quantity: number; unitPrice: number }[],
+  taxRate: number
+) {
+  const subtotal = round2(lineItems.reduce((sum, item) => sum + item.quantity * item.unitPrice, 0));
+  const taxAmount = round2((subtotal * taxRate) / 100);
+  return { subtotal, taxAmount, total: round2(subtotal + taxAmount) };
+}

@@ -5,6 +5,7 @@ import { HttpError } from '../../shared/errors/httpError.js';
 import { derivePaymentStatus } from './finance.calculations.js';
 import { InvoiceModel } from './invoice.model.js';
 import { PaymentModel } from './payment.model.js';
+import { assertObjectId, escapeRegExp } from '../../shared/utils/objectId.js';
 
 export async function listPayments(filters: PaymentFilterInput) {
   const parsedFilters = paymentFilterSchema.parse(filters);
@@ -22,6 +23,7 @@ export async function listPayments(filters: PaymentFilterInput) {
 }
 
 export async function getPaymentById(paymentId: string) {
+  assertObjectId(paymentId, 'payment');
   const payment = await PaymentModel.findById(paymentId);
 
   if (!payment) {
@@ -36,11 +38,15 @@ export async function recordPayment(input: PaymentInput) {
   const invoice = await InvoiceModel.findById(payload.invoice);
 
   if (!invoice) {
-    throw new HttpError(404, 'Invoice not found');
+    throw new HttpError(404, 'Invoice not found', { invoice: 'Selected invoice no longer exists' });
   }
 
   if (payload.amount > invoice.remainingAmount) {
-    throw new HttpError(400, 'Payment cannot exceed remaining invoice amount');
+    throw new HttpError(
+      400,
+      `Payment of ${payload.amount} exceeds the remaining invoice balance of ${invoice.remainingAmount}`,
+      { amount: `Cannot exceed the remaining balance of ${invoice.remainingAmount}` }
+    );
   }
 
   const payment = await PaymentModel.create(payload);

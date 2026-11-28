@@ -1,198 +1,313 @@
 import { LEAD_STATUSES, PROJECT_STATUSES } from '@kraven/config';
 import type {
+  AgencyFinancialSummary,
   DashboardAlert,
   DashboardSummary,
   LeadDashboardStats,
+  LeadStatus,
   ProjectDashboardStats,
-  RevenuePoint
+  ProjectStatus,
+  RevenuePoint,
+  WaitingOnClient,
+  WaitingOnClientItem
 } from '@kraven/types';
+import { ClientModel } from '../clients/client.model.js';
+import { DocumentModel } from '../documents/document.model.js';
+import { PackModel } from '../packs/pack.model.js';
 import { ExpenseModel } from '../finance/expense.model.js';
-import { calculateAgencyFinancialSummary } from '../finance/finance.calculations.js';
-import { serializeExpense, serializeInvoice } from '../finance/finance.serializer.js';
 import { InvoiceModel } from '../finance/invoice.model.js';
-import { syncInvoicePaymentStatus } from '../finance/invoice.service.js';
-import { LeadModel, type LeadDocument } from '../leads/lead.model.js';
-import { ProjectModel, type ProjectDocument } from '../projects/project.model.js';
+import { LeadModel } from '../leads/lead.model.js';
+import { ProjectModel } from '../projects/project.model.js';
+
+// Read-only by design: every query here is an aggregation or a lean find. Invoice payment status is
+// persisted on invoice/payment writes; "overdue" depends on the clock, so it is derived at read time.
 
 const DAY_MS = 24 * 60 * 60 * 1000;
+const MAX_ALERTS = 12;
+const MAX_POINTS = 12;
+const CLOSED_LEAD_STATUSES: LeadStatus[] = ['Won', 'Lost'];
+const INACTIVE_PROJECT_STATUSES: ProjectStatus[] = ['Completed', 'Cancelled'];
+
+interface DashboardClock {
+  now: Date;
+  /** Invoices due before this instant are overdue (matches derivePaymentStatus: due date's end of day). */
+  startOfToday: Date;
+  deadlineHorizon: Date;
+}
+
+function createClock(now = new Date()): DashboardClock {
+  const startOfToday = new Date(now);
+  startOfToday.setHours(0, 0, 0, 0);
+
+  return { now, startOfToday, deadlineHorizon: new Date(now.getTime() + 7 * DAY_MS) };
+}
 
 export async function getDashboardSummary(): Promise<DashboardSummary> {
-  const [leads, projects, invoiceDocsRaw, expenseDocs] = await Promise.all([
-    LeadModel.find(),
-    ProjectModel.find(),
-    InvoiceModel.find(),
-    ExpenseModel.find()
+  const clock = createClock();
+  const [leads, projects, finance, alerts, revenueOverTime, waitingOnClient] = await Promise.all([
+    getLeadStats(),
+    getProjectStats(clock),
+    getFinanceSummary(clock),
+    getAlerts(clock),
+    getRevenueOverTime(),
+    getWaitingOnClient(clock)
   ]);
-  const invoiceDocs = await Promise.all(invoiceDocsRaw.map(syncInvoicePaymentStatus));
-  const invoices = invoiceDocs.map(serializeInvoice);
-  const expenses = expenseDocs.map(serializeExpense);
 
-  return {
-    leads: buildLeadStats(leads),
-    projects: buildProjectStats(projects),
-    finance: calculateAgencyFinancialSummary({ invoices, expenses }),
-    alerts: buildAlerts({ leads, projects, invoices }),
-    revenueOverTime: buildRevenueOverTime({ invoices, expenses })
-  };
+  return { leads, projects, finance, alerts, revenueOverTime, waitingOnClient };
 }
 
 export async function getDashboardRevenue() {
-  const [invoiceDocsRaw, expenseDocs] = await Promise.all([InvoiceModel.find(), ExpenseModel.find()]);
-  const invoiceDocs = await Promise.all(invoiceDocsRaw.map(syncInvoicePaymentStatus));
-
-  return {
-    revenueOverTime: buildRevenueOverTime({
-      invoices: invoiceDocs.map(serializeInvoice),
-      expenses: expenseDocs.map(serializeExpense)
-    })
-  };
+  return { revenueOverTime: await getRevenueOverTime() };
 }
 
 export async function getDashboardProjects() {
-  const projects = await ProjectModel.find();
-  return { projects: buildProjectStats(projects) };
+  return { projects: await getProjectStats(createClock()) };
 }
 
 export async function getDashboardLeads() {
-  const leads = await LeadModel.find();
-  return { leads: buildLeadStats(leads) };
+  return { leads: await getLeadStats() };
 }
 
-type LeadWithId = LeadDocument & { _id: unknown };
-type ProjectWithId = ProjectDocument & { _id: unknown };
-
-function buildLeadStats(leads: LeadWithId[]): LeadDashboardStats {
-  const total = leads.length;
-  const won = leads.filter((lead) => lead.status === 'Won').length;
-  const lost = leads.filter((lead) => lead.status === 'Lost').length;
-  const byStatus = LEAD_STATUSES.map((status) => ({
-    status,
-    count: leads.filter((lead) => lead.status === status).length
-  }));
+async function getLeadStats(): Promise<LeadDashboardStats> {
+  const [statusCounts, overTime] = await Promise.all([
+    LeadModel.aggregate<{ _id: LeadStatus; count: number }>([{ $group: { _id: '$status', count: { $sum: 1 } } }]),
+    LeadModel.aggregate<{ _id: string; count: number }>([
+      {
+        $group: {
+          _id: { $dateToString: { format: '%Y-%m-%d', date: { $ifNull: ['$dateCreated', '$createdAt'] } } },
+          count: { $sum: 1 }
+        }
+      },
+      { $sort: { _id: -1 } },
+      { $limit: MAX_POINTS }
+    ])
+  ]);
+  const countFor = (status: LeadStatus) => statusCounts.find((entry) => entry._id === status)?.count ?? 0;
+  const total = statusCounts.reduce((sum, entry) => sum + entry.count, 0);
+  const won = countFor('Won');
 
   return {
     total,
-    new: leads.filter((lead) => lead.status === 'New').length,
-    inProgress: leads.filter((lead) => !['New', 'Won', 'Lost'].includes(lead.status)).length,
+    new: countFor('New'),
+    inProgress: total - countFor('New') - won - countFor('Lost'),
     won,
-    lost,
+    lost: countFor('Lost'),
     conversionRate: total === 0 ? 0 : Math.round((won / total) * 100),
-    byStatus,
-    overTime: groupCountsByDate(leads.map((lead) => lead.dateCreated ?? lead.createdAt))
+    byStatus: LEAD_STATUSES.map((status) => ({ status, count: countFor(status) })),
+    overTime: overTime.map((entry) => ({ date: entry._id, count: entry.count })).reverse()
   };
 }
 
-function buildProjectStats(projects: ProjectWithId[]): ProjectDashboardStats {
-  const activeProjects = projects.filter((project) => !['Completed', 'Cancelled'].includes(project.status));
+async function getProjectStats(clock: DashboardClock): Promise<ProjectDashboardStats> {
+  const [statusGroups, approachingDeadline] = await Promise.all([
+    ProjectModel.aggregate<{ _id: ProjectStatus; count: number; progressSum: number }>([
+      { $group: { _id: '$status', count: { $sum: 1 }, progressSum: { $sum: '$progressPercentage' } } }
+    ]),
+    ProjectModel.countDocuments(approachingDeadlineFilter(clock))
+  ]);
+  const countFor = (status: ProjectStatus) => statusGroups.find((entry) => entry._id === status)?.count ?? 0;
+  const active = statusGroups.filter((entry) => !INACTIVE_PROJECT_STATUSES.includes(entry._id));
+  const activeCount = active.reduce((sum, entry) => sum + entry.count, 0);
+  const activeProgress = active.reduce((sum, entry) => sum + entry.progressSum, 0);
 
   return {
-    totalActive: activeProjects.length,
-    inProgress: projects.filter((project) => project.status === 'In Progress').length,
-    onHold: projects.filter((project) => project.status === 'On Hold').length,
-    completed: projects.filter((project) => project.status === 'Completed').length,
-    approachingDeadline: projects.filter((project) => isApproaching(project.expectedCompletionDate)).length,
-    overallProgress:
-      activeProjects.length === 0
-        ? 0
-        : Math.round(
-            activeProjects.reduce((sum, project) => sum + project.progressPercentage, 0) /
-              activeProjects.length
-          ),
-    byStatus: PROJECT_STATUSES.map((status) => ({
-      status,
-      count: projects.filter((project) => project.status === status).length
-    }))
+    totalActive: activeCount,
+    inProgress: countFor('In Progress'),
+    onHold: countFor('On Hold'),
+    completed: countFor('Completed'),
+    approachingDeadline,
+    overallProgress: activeCount === 0 ? 0 : Math.round(activeProgress / activeCount),
+    byStatus: PROJECT_STATUSES.map((status) => ({ status, count: countFor(status) }))
   };
 }
 
-function buildAlerts(input: {
-  leads: LeadWithId[];
-  projects: ProjectWithId[];
-  invoices: ReturnType<typeof serializeInvoice>[];
-}): DashboardAlert[] {
-  const now = new Date();
-  const overduePayments = input.invoices
-    .filter((invoice) => invoice.paymentStatus === 'Overdue' && invoice.remainingAmount > 0)
-    .map((invoice) => ({
-      id: `invoice-${invoice.id}`,
+async function getFinanceSummary(clock: DashboardClock): Promise<AgencyFinancialSummary> {
+  const [[invoiceTotals], [expenseTotals]] = await Promise.all([
+    InvoiceModel.aggregate<{ invoiced: number; received: number; pending: number; overdue: number }>([
+      {
+        $group: {
+          _id: null,
+          invoiced: { $sum: '$amount' },
+          received: { $sum: '$amountPaid' },
+          pending: { $sum: '$remainingAmount' },
+          overdue: {
+            $sum: {
+              $cond: [
+                { $and: [{ $gt: ['$remainingAmount', 0] }, { $lt: ['$dueDate', clock.startOfToday] }] },
+                '$remainingAmount',
+                0
+              ]
+            }
+          }
+        }
+      }
+    ]),
+    ExpenseModel.aggregate<{ total: number }>([{ $group: { _id: null, total: { $sum: '$amount' } } }])
+  ]);
+  const invoiced = invoiceTotals?.invoiced ?? 0;
+  const expenses = expenseTotals?.total ?? 0;
+
+  return {
+    revenue: invoiced,
+    invoiced,
+    received: invoiceTotals?.received ?? 0,
+    pending: invoiceTotals?.pending ?? 0,
+    overdue: invoiceTotals?.overdue ?? 0,
+    expenses,
+    profit: invoiced - expenses
+  };
+}
+
+async function getAlerts(clock: DashboardClock): Promise<DashboardAlert[]> {
+  const [overdueInvoices, approachingProjects, followUpLeads, onHoldProjects] = await Promise.all([
+    InvoiceModel.find({ remainingAmount: { $gt: 0 }, dueDate: { $lt: clock.startOfToday } })
+      .sort({ dueDate: 1 })
+      .limit(MAX_ALERTS)
+      .select('invoiceNumber remainingAmount dueDate')
+      .lean(),
+    ProjectModel.find(approachingDeadlineFilter(clock))
+      .sort({ expectedCompletionDate: 1 })
+      .limit(MAX_ALERTS)
+      .select('projectName progressPercentage expectedCompletionDate')
+      .lean(),
+    LeadModel.find({ nextFollowUpDate: { $lte: clock.now }, status: { $nin: CLOSED_LEAD_STATUSES } })
+      .sort({ nextFollowUpDate: 1 })
+      .limit(MAX_ALERTS)
+      .select('name companyName nextFollowUpDate')
+      .lean(),
+    ProjectModel.find({ status: 'On Hold' })
+      .sort({ updatedAt: -1 })
+      .limit(MAX_ALERTS)
+      .select('projectName notes updatedAt')
+      .lean()
+  ]);
+
+  const alerts: DashboardAlert[] = [
+    ...overdueInvoices.map((invoice) => ({
+      id: `invoice-${invoice._id}`,
       type: 'overdue-payment' as const,
       title: `Invoice ${invoice.invoiceNumber} overdue`,
       description: `Outstanding balance ${invoice.remainingAmount}`,
       href: '/finance/invoices',
-      date: invoice.dueDate
-    }));
-  const approachingProjects = input.projects
-    .filter((project) => isApproaching(project.expectedCompletionDate))
-    .map((project) => ({
+      date: invoice.dueDate?.toISOString()
+    })),
+    ...approachingProjects.map((project) => ({
       id: `project-${project._id}`,
       type: 'project-deadline' as const,
       title: `${project.projectName} deadline approaching`,
       description: `${project.progressPercentage}% complete`,
       href: `/projects/${project._id}`,
       date: project.expectedCompletionDate?.toISOString()
-    }));
-  const followUps = input.leads
-    .filter((lead) => lead.nextFollowUpDate && lead.nextFollowUpDate <= now && !['Won', 'Lost'].includes(lead.status))
-    .map((lead) => ({
+    })),
+    ...followUpLeads.map((lead) => ({
       id: `lead-${lead._id}`,
       type: 'lead-follow-up' as const,
       title: `${lead.companyName} needs follow-up`,
       description: lead.name,
       href: `/leads/${lead._id}`,
       date: lead.nextFollowUpDate?.toISOString()
-    }));
-  const onHoldProjects = input.projects
-    .filter((project) => project.status === 'On Hold')
-    .map((project) => ({
+    })),
+    ...onHoldProjects.map((project) => ({
       id: `project-hold-${project._id}`,
       type: 'project-on-hold' as const,
       title: `${project.projectName} is on hold`,
       description: project.notes ?? 'Project is paused',
       href: `/projects/${project._id}`,
       date: project.updatedAt?.toISOString()
-    }));
+    }))
+  ];
 
-  return [...overduePayments, ...approachingProjects, ...followUps, ...onHoldProjects].slice(0, 12);
+  return alerts.slice(0, MAX_ALERTS);
 }
 
-function buildRevenueOverTime(input: {
-  invoices: ReturnType<typeof serializeInvoice>[];
-  expenses: ReturnType<typeof serializeExpense>[];
-}): RevenuePoint[] {
+/** Last 12 months that have invoices or expenses, keyed `YYYY-MM` (UTC), oldest first. */
+async function getRevenueOverTime(): Promise<RevenuePoint[]> {
+  const monthOf = (field: string) => ({ $dateToString: { format: '%Y-%m', date: field } });
+  const [invoiceMonths, expenseMonths] = await Promise.all([
+    InvoiceModel.aggregate<{ _id: string; invoiced: number; received: number }>([
+      { $group: { _id: monthOf('$invoiceDate'), invoiced: { $sum: '$amount' }, received: { $sum: '$amountPaid' } } }
+    ]),
+    ExpenseModel.aggregate<{ _id: string; expenses: number }>([
+      { $group: { _id: monthOf('$date'), expenses: { $sum: '$amount' } } }
+    ])
+  ]);
   const points = new Map<string, RevenuePoint>();
+  const pointFor = (month: string) => {
+    const point = points.get(month) ?? { date: month, invoiced: 0, received: 0, expenses: 0 };
+    points.set(month, point);
+    return point;
+  };
 
-  for (const invoice of input.invoices) {
-    const key = invoice.invoiceDate.slice(0, 10);
-    const point = points.get(key) ?? { date: key, invoiced: 0, received: 0, expenses: 0 };
-    point.invoiced += invoice.amount;
-    point.received += invoice.amountPaid;
-    points.set(key, point);
+  for (const entry of invoiceMonths) {
+    const point = pointFor(entry._id);
+    point.invoiced += entry.invoiced;
+    point.received += entry.received;
   }
 
-  for (const expense of input.expenses) {
-    const key = expense.date.slice(0, 10);
-    const point = points.get(key) ?? { date: key, invoiced: 0, received: 0, expenses: 0 };
-    point.expenses += expense.amount;
-    points.set(key, point);
+  for (const entry of expenseMonths) {
+    pointFor(entry._id).expenses += entry.expenses;
   }
 
-  return [...points.values()].sort((a, b) => a.date.localeCompare(b.date)).slice(-12);
+  return [...points.values()].sort((a, b) => a.date.localeCompare(b.date)).slice(-MAX_POINTS);
 }
 
-function groupCountsByDate(dates: Date[]) {
-  const points = new Map<string, { date: string; count: number }>();
-
-  for (const date of dates) {
-    const key = date.toISOString().slice(0, 10);
-    points.set(key, { date: key, count: (points.get(key)?.count ?? 0) + 1 });
-  }
-
-  return [...points.values()].sort((a, b) => a.date.localeCompare(b.date)).slice(-12);
+function approachingDeadlineFilter(clock: DashboardClock) {
+  return { expectedCompletionDate: { $gte: clock.now, $lte: clock.deadlineHorizon } };
 }
 
-function isApproaching(value?: Date) {
-  if (!value) return false;
-  const now = new Date();
-  const diff = value.getTime() - now.getTime();
-  return diff >= 0 && diff <= 7 * DAY_MS;
+const MAX_WAITING = 10;
+
+/** What clients still owe us: unsigned documents and unpaid items in sent packs, plus overdue invoices. */
+export async function getWaitingOnClient(clock: DashboardClock): Promise<WaitingOnClient> {
+  const [packs, overdueInvoices] = await Promise.all([
+    PackModel.find({ status: 'Sent' }).sort({ sentAt: -1 }).limit(50).lean(),
+    InvoiceModel.find({ remainingAmount: { $gt: 0 }, dueDate: { $lt: clock.startOfToday } })
+      .sort({ dueDate: 1 })
+      .limit(MAX_WAITING)
+      .select('client invoiceNumber remainingAmount dueDate')
+      .lean()
+  ]);
+  const live = packs.filter((pack) => !(pack.expiresAt && new Date(pack.expiresAt) <= clock.now));
+  const docIds = live.flatMap((pack) => pack.items.filter((item) => item.document).map((item) => item.document));
+  const docs = docIds.length ? await DocumentModel.find({ _id: { $in: docIds } }).select('title status').lean() : [];
+  const docById = new Map(docs.map((doc) => [String(doc._id), doc]));
+  const clientIds = [...live.map((pack) => pack.client), ...overdueInvoices.map((invoice) => invoice.client)];
+  const clients = clientIds.length ? await ClientModel.find({ _id: { $in: clientIds } }).select('companyName').lean() : [];
+  const nameOf = new Map(clients.map((client) => [String(client._id), client.companyName]));
+
+  const unsignedDocuments: WaitingOnClientItem[] = [];
+  const unpaidItems: WaitingOnClientItem[] = [];
+  for (const pack of live) {
+    const client = String(pack.client);
+    const base = { client, clientName: nameOf.get(client) ?? 'Client', href: `/clients/${client}`, date: pack.sentAt?.toISOString() };
+    for (const item of pack.items) {
+      if (item.kind === 'document') {
+        const doc = item.document ? docById.get(String(item.document)) : undefined;
+        if (doc && doc.status !== 'Signed') {
+          unsignedDocuments.push({ ...base, id: `doc-${item._id}`, title: doc.title, detail: pack.title });
+        }
+      } else if (item.kind === 'payment' && item.paymentStatus !== 'Paid') {
+        unpaidItems.push({
+          ...base,
+          id: `pay-${item._id}`,
+          title: item.label ?? 'Payment',
+          detail: `${item.amount ?? 0} - ${pack.title}`
+        });
+      }
+    }
+  }
+
+  return {
+    unsignedDocuments: unsignedDocuments.slice(0, MAX_WAITING),
+    unpaidItems: unpaidItems.slice(0, MAX_WAITING),
+    overdueInvoices: overdueInvoices.map((invoice) => ({
+      id: `invoice-${invoice._id}`,
+      client: String(invoice.client),
+      clientName: nameOf.get(String(invoice.client)) ?? 'Client',
+      title: `Invoice ${invoice.invoiceNumber}`,
+      detail: `Outstanding ${invoice.remainingAmount}`,
+      href: '/finance/invoices',
+      date: invoice.dueDate?.toISOString()
+    }))
+  };
 }
