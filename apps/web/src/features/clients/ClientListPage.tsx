@@ -1,4 +1,6 @@
 import type { ClientInput } from '@kraven/validation';
+import { errorMessage } from '../../lib/api';
+import { toastError } from '../../lib/formErrors';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Mail, Phone, Plus, Search, Trash2 } from 'lucide-react';
 import { useState } from 'react';
@@ -25,7 +27,6 @@ export function ClientListPage() {
       queryClient.invalidateQueries({ queryKey: clientQueryKeys.all });
       toast.success('Client created');
     },
-    onError: (error) => toast.error(error.message)
   });
 
   const deleteMutation = useMutation({
@@ -34,7 +35,7 @@ export function ClientListPage() {
       queryClient.invalidateQueries({ queryKey: clientQueryKeys.all });
       toast.success('Client deleted');
     },
-    onError: (error) => toast.error(error.message)
+    onError: toastError('Could not delete client')
   });
 
   const clients = clientsQuery.data?.clients ?? [];
@@ -78,7 +79,10 @@ export function ClientListPage() {
         </Card>
       ) : clientsQuery.isError ? (
         <Card className="p-8 text-center font-body text-sm text-danger-fg">
-          Unable to load clients. Please refresh the page.
+          Unable to load clients: {errorMessage(clientsQuery.error)}
+          <button type="button" className="ml-3 underline" onClick={() => clientsQuery.refetch()}>
+            Retry
+          </button>
         </Card>
       ) : clients.length === 0 ? (
         <Card>

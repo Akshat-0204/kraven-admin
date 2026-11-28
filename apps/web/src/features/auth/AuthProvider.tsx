@@ -1,4 +1,5 @@
 import type { AuthUser } from '@kraven/types';
+import { toastError } from '../../lib/formErrors';
 import type { LoginInput } from '@kraven/validation';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { createContext, type ReactNode, useContext } from 'react';
@@ -31,9 +32,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       queryClient.invalidateQueries();
       toast.success('Logged in');
     },
-    onError: (error) => {
-      toast.error(error.message);
-    }
   });
 
   const logoutMutation = useMutation({
@@ -43,9 +41,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       queryClient.removeQueries({ queryKey: ['auth'] });
       toast.success('Logged out');
     },
-    onError: (error) => {
-      toast.error(error.message);
-    }
+    onError: toastError('Could not log out')
   });
 
   return (

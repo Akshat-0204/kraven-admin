@@ -1,4 +1,6 @@
 import { LEAD_STATUSES } from '@kraven/config';
+import { errorMessage } from '../../lib/api';
+import { toastError } from '../../lib/formErrors';
 import type { LeadRecord } from '@kraven/types';
 import type { LeadFilterInput, LeadInput } from '@kraven/validation';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -48,7 +50,6 @@ export function LeadListPage() {
       queryClient.invalidateQueries({ queryKey: leadQueryKeys.all });
       toast.success('Lead created');
     },
-    onError: (error) => toast.error(error.message)
   });
 
   const statusMutation = useMutation({
@@ -58,7 +59,7 @@ export function LeadListPage() {
       queryClient.invalidateQueries({ queryKey: leadQueryKeys.all });
       toast.success('Lead status updated');
     },
-    onError: (error) => toast.error(error.message)
+    onError: toastError('Could not update lead status')
   });
 
   const deleteMutation = useMutation({
@@ -67,7 +68,7 @@ export function LeadListPage() {
       queryClient.invalidateQueries({ queryKey: leadQueryKeys.all });
       toast.success('Lead deleted');
     },
-    onError: (error) => toast.error(error.message)
+    onError: toastError('Could not delete lead')
   });
 
   const leads = leadsQuery.data?.leads ?? [];
@@ -224,7 +225,10 @@ export function LeadListPage() {
         </Card>
       ) : leadsQuery.isError ? (
         <Card className="p-8 text-center font-body text-sm text-danger-fg">
-          Unable to load leads. Please refresh the page.
+          Unable to load leads: {errorMessage(leadsQuery.error)}
+          <button type="button" className="ml-3 underline" onClick={() => leadsQuery.refetch()}>
+            Retry
+          </button>
         </Card>
       ) : leads.length === 0 ? (
         <Card>

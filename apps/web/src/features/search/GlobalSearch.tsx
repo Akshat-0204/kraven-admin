@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import { errorMessage } from '../../lib/api';
 import { Search } from 'lucide-react';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
@@ -27,6 +28,8 @@ export function GlobalSearch() {
         <div className="absolute left-0 right-0 top-12 z-40 overflow-hidden rounded-md border border-white/80 bg-surface shadow-clay-hover">
           {searchQuery.isLoading ? (
             <div className="p-3 text-sm text-ink-500">Searching...</div>
+          ) : searchQuery.isError ? (
+            <div className="p-3 text-sm text-danger-fg">Search failed: {errorMessage(searchQuery.error)}</div>
           ) : results.length === 0 ? (
             <div className="p-3 text-sm text-ink-500">No results found</div>
           ) : (

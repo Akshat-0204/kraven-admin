@@ -5,6 +5,8 @@ import {
   LEAD_STATUSES,
   PROJECT_STATUSES
 } from '@kraven/config';
+import { errorMessage } from '../../lib/api';
+import { applyServerErrors } from '../../lib/formErrors';
 import { changePasswordSchema, type ChangePasswordInput } from '@kraven/validation';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
@@ -66,6 +68,7 @@ export function SettingsPage() {
     register,
     handleSubmit,
     reset,
+    setError,
     formState: { errors, isSubmitting }
   } = useForm<ChangePasswordInput>();
 
@@ -75,18 +78,24 @@ export function SettingsPage() {
       toast.success(data.message || 'Password updated successfully');
       reset();
     },
-    onError: (error) => {
-      toast.error(error.message || 'Failed to update password');
-    }
   });
 
   async function handlePasswordSubmit(values: ChangePasswordInput) {
     const parsed = changePasswordSchema.safeParse(values);
     if (!parsed.success) {
-      toast.error(parsed.error.errors[0]?.message ?? 'Invalid input');
+      for (const issue of parsed.error.issues) {
+        const field = issue.path[0];
+        if (field === 'currentPassword' || field === 'newPassword') {
+          setError(field, { type: 'validation', message: issue.message });
+        }
+      }
       return;
     }
-    await passwordMutation.mutateAsync(parsed.data);
+    try {
+      await passwordMutation.mutateAsync(parsed.data);
+    } catch (error) {
+      applyServerErrors(error, setError, 'Failed to update password');
+    }
   }
 
   function handleSavePreferences() {
@@ -99,12 +108,13 @@ export function SettingsPage() {
     setIsPinging(true);
     const start = performance.now();
     try {
-      await healthQuery.refetch();
+      const result = await healthQuery.refetch();
+      if (result.error) throw result.error;
       const end = performance.now();
       setLatency(Math.round(end - start));
       toast.success('API ping successful');
-    } catch {
-      toast.error('Failed to ping API');
+    } catch (error) {
+      toast.error(errorMessage(error, 'Failed to ping API'));
     } finally {
       setIsPinging(false);
     }
@@ -114,10 +124,10 @@ export function SettingsPage() {
     setIsExporting(true);
     try {
       const [leadsData, clientsData, projectsData, invoicesData] = await Promise.all([
-        listLeads().catch(() => ({ leads: [] })),
-        listClients().catch(() => ({ clients: [] })),
-        listProjects().catch(() => ({ projects: [] })),
-        listInvoices().catch(() => ({ invoices: [] }))
+        listLeads(),
+        listClients(),
+        listProjects(),
+        listInvoices()
       ]);
 
       const exportPayload = {
@@ -142,7 +152,7 @@ export function SettingsPage() {
       URL.revokeObjectURL(url);
       toast.success('Workspace data exported');
     } catch (error) {
-      toast.error((error as Error).message || 'Export failed');
+      toast.error(errorMessage(error, 'Export failed'));
     } finally {
       setIsExporting(false);
     }
@@ -268,7 +278,7 @@ export function SettingsPage() {
             <form className="space-y-4 pt-1" onSubmit={handleSubmit(handlePasswordSubmit)}>
               <div>
                 <label className="block font-body text-sm font-medium text-ink-700 mb-1.5">
-                  Current Password
+                  Current Password <span className="text-olive-700">*</span>
                 </label>
                 <Input
                   type="password"
@@ -283,7 +293,7 @@ export function SettingsPage() {
 
               <div>
                 <label className="block font-body text-sm font-medium text-ink-700 mb-1.5">
-                  New Password
+                  New Password <span className="text-olive-700">*</span>
                 </label>
                 <Input
                   type="password"
@@ -499,7 +509,11 @@ export function SettingsPage() {
                 <dt className="text-ink-500">API Health Status</dt>
                 <dd className="inline-flex items-center gap-1.5 font-semibold text-olive-900">
                   <span className="h-2 w-2 rounded-full bg-olive-700 animate-pulse" />
-                  {healthQuery.data?.status === 'ok' ? 'Healthy (OK)' : 'Connecting...'}
+                  {healthQuery.data?.status === 'ok'
+                    ? 'Healthy (OK)'
+                    : healthQuery.isError
+                      ? `Unreachable: ${errorMessage(healthQuery.error)}`
+                      : 'Connecting...'}
                 </dd>
               </div>
               <div className="flex justify-between border-b border-[rgba(120,110,90,0.1)] py-2">

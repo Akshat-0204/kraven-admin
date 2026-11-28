@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import { errorMessage } from '../../lib/api';
 import type { DashboardAlert, DashboardSummary, WaitingOnClient } from '@kraven/types';
 import type React from 'react';
 import { Link } from 'react-router-dom';
@@ -57,7 +58,10 @@ export function DashboardSummaryGate({ children }: { children: (dashboard: Dashb
   if (dashboardQuery.isError || !dashboardQuery.data) {
     return (
       <Card className="bg-danger-bg text-sm text-danger-fg">
-        Unable to load dashboard.
+        Unable to load dashboard: {errorMessage(dashboardQuery.error)}
+        <button type="button" className="ml-3 underline" onClick={() => dashboardQuery.refetch()}>
+          Retry
+        </button>
       </Card>
     );
   }

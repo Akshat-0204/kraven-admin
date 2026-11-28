@@ -1,4 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod';
+import { applyServerErrors } from '../../lib/formErrors';
 import { loginSchema, type LoginInput } from '@kraven/validation';
 import { ArrowRight, Eye, EyeOff, Lock, Mail, ShieldCheck } from 'lucide-react';
 import { useState } from 'react';
@@ -25,6 +26,7 @@ export function LoginPage() {
   const {
     register,
     handleSubmit,
+    setError,
     formState: { errors, isSubmitting }
   } = useForm<LoginInput>({
     resolver: zodResolver(loginSchema),
@@ -35,7 +37,12 @@ export function LoginPage() {
   });
 
   async function onSubmit(values: LoginInput) {
-    await login(values);
+    try {
+      await login(values);
+    } catch (error) {
+      applyServerErrors(error, setError, 'Could not sign in');
+      return;
+    }
     navigate(redirectTo, { replace: true });
   }
 
@@ -104,7 +111,7 @@ export function LoginPage() {
           <form className="mt-6 space-y-4" onSubmit={handleSubmit(onSubmit)}>
             <div className="space-y-1.5">
               <label className="block font-body text-xs font-semibold uppercase tracking-wider text-ink-700">
-                Email address
+                Email address <span className="text-olive-700">*</span>
               </label>
               <Input
                 startIcon={<Mail className="h-4 w-4" aria-hidden="true" />}
@@ -120,7 +127,7 @@ export function LoginPage() {
 
             <div className="space-y-1.5">
               <label className="block font-body text-xs font-semibold uppercase tracking-wider text-ink-700">
-                Password
+                Password <span className="text-olive-700">*</span>
               </label>
               <div className="relative flex items-center">
                 <Input

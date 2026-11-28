@@ -1,4 +1,6 @@
 import type { LeadInput } from '@kraven/validation';
+import { errorMessage } from '../../lib/api';
+import { toastError } from '../../lib/formErrors';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, Clock, Pencil, RefreshCcw, UserCheck } from 'lucide-react';
 import { useState } from 'react';
@@ -29,8 +31,7 @@ export function LeadDetailPage() {
       queryClient.invalidateQueries({ queryKey: leadQueryKeys.all });
       queryClient.invalidateQueries({ queryKey: leadQueryKeys.detail(leadId) });
       toast.success('Lead updated');
-    },
-    onError: (error) => toast.error(error.message)
+    }
   });
 
   const convertMutation = useMutation({
@@ -45,7 +46,7 @@ export function LeadDetailPage() {
         navigate(`/clients/${result.client.id}`);
       }
     },
-    onError: (error) => toast.error(error.message)
+    onError: toastError('Could not convert lead')
   });
 
   if (leadQuery.isLoading) {
@@ -66,7 +67,7 @@ export function LeadDetailPage() {
           </Link>
         </Button>
         <Card className="p-8 text-center font-body text-sm text-danger-fg">
-          Unable to load lead. Please check the URL or return to leads list.
+          Unable to load lead: {errorMessage(leadQuery.error, 'Lead not found')}
         </Card>
       </div>
     );

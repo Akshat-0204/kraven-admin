@@ -2,7 +2,9 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { LEAD_STATUSES } from '@kraven/config';
 import type { LeadRecord } from '@kraven/types';
 import { leadSchema, type LeadInput } from '@kraven/validation';
-import { useForm } from 'react-hook-form';
+import { type FieldErrors, useForm } from 'react-hook-form';
+import { toast } from 'sonner';
+import { applyServerErrors } from '../../lib/formErrors';
 import { Button, Input, Modal, Select, Textarea } from '../../components/ui';
 
 interface LeadFormModalProps {
@@ -25,6 +27,7 @@ export function LeadFormModal({ lead, isOpen, onClose, onSubmit }: LeadFormModal
     register,
     handleSubmit,
     reset,
+    setError,
     formState: { errors, isSubmitting }
   } = useForm<LeadInput>({
     resolver: zodResolver(leadSchema),
@@ -50,9 +53,18 @@ export function LeadFormModal({ lead, isOpen, onClose, onSubmit }: LeadFormModal
   }
 
   async function submit(values: LeadInput) {
-    await onSubmit(values);
+    try {
+      await onSubmit(values);
+    } catch (error) {
+      applyServerErrors(error, setError, 'Could not save lead');
+      return;
+    }
     reset();
     onClose();
+  }
+
+  function onInvalid(invalid: FieldErrors<LeadInput>) {
+    if (Object.keys(invalid).length > 0) toast.error('Please fix the highlighted fields');
   }
 
   return (
@@ -64,7 +76,7 @@ export function LeadFormModal({ lead, isOpen, onClose, onSubmit }: LeadFormModal
       description={lead ? 'Update lead information and status' : 'Enter lead contact and opportunity details'}
     >
         {/* Modal Form */}
-        <form className="space-y-6" onSubmit={handleSubmit(submit)}>
+        <form className="space-y-6" onSubmit={handleSubmit(submit, onInvalid)}>
           <div className="grid gap-6 md:grid-cols-2">
             <div>
               <label className="block font-body text-sm font-medium text-ink-700 mb-2">
@@ -114,6 +126,9 @@ export function LeadFormModal({ lead, isOpen, onClose, onSubmit }: LeadFormModal
                 Phone Number
               </label>
               <Input {...register('phone')} placeholder="+91 98765 43210" />
+              {errors.phone ? (
+                <span className="block mt-1 font-body text-xs text-danger-fg">{errors.phone.message}</span>
+              ) : null}
             </div>
 
             <div>
@@ -121,6 +136,9 @@ export function LeadFormModal({ lead, isOpen, onClose, onSubmit }: LeadFormModal
                 Lead Source
               </label>
               <Input {...register('leadSource')} placeholder="e.g. Referral, Inbound, LinkedIn" />
+              {errors.leadSource ? (
+                <span className="block mt-1 font-body text-xs text-danger-fg">{errors.leadSource.message}</span>
+              ) : null}
             </div>
 
             <div>
@@ -128,13 +146,19 @@ export function LeadFormModal({ lead, isOpen, onClose, onSubmit }: LeadFormModal
                 Service Interested
               </label>
               <Input {...register('serviceInterested')} placeholder="e.g. Website Redesign" />
+              {errors.serviceInterested ? (
+                <span className="block mt-1 font-body text-xs text-danger-fg">{errors.serviceInterested.message}</span>
+              ) : null}
             </div>
 
             <div>
               <label className="block font-body text-sm font-medium text-ink-700 mb-2">
                 Estimated Value (INR)
               </label>
-              <Input type="number" min="0" {...register('estimatedValue')} placeholder="250000" />
+              <Input type="number" min="0" {...register('estimatedValue')} placeholder="250000" className={errors.estimatedValue ? 'outline-2 outline-danger-fg' : ''} />
+              {errors.estimatedValue ? (
+                <span className="block mt-1 font-body text-xs text-danger-fg">{errors.estimatedValue.message}</span>
+              ) : null}
             </div>
 
             <div>
@@ -142,6 +166,9 @@ export function LeadFormModal({ lead, isOpen, onClose, onSubmit }: LeadFormModal
                 Assigned Person
               </label>
               <Input {...register('assignedPerson')} placeholder="e.g. Akshat" />
+              {errors.assignedPerson ? (
+                <span className="block mt-1 font-body text-xs text-danger-fg">{errors.assignedPerson.message}</span>
+              ) : null}
             </div>
 
             <div>
@@ -153,6 +180,9 @@ export function LeadFormModal({ lead, isOpen, onClose, onSubmit }: LeadFormModal
                 {...register('lastContactedDate')}
                 defaultValue={toDateInput(lead?.lastContactedDate)}
               />
+              {errors.lastContactedDate ? (
+                <span className="block mt-1 font-body text-xs text-danger-fg">{errors.lastContactedDate.message}</span>
+              ) : null}
             </div>
 
             <div>
@@ -164,6 +194,9 @@ export function LeadFormModal({ lead, isOpen, onClose, onSubmit }: LeadFormModal
                 {...register('nextFollowUpDate')}
                 defaultValue={toDateInput(lead?.nextFollowUpDate)}
               />
+              {errors.nextFollowUpDate ? (
+                <span className="block mt-1 font-body text-xs text-danger-fg">{errors.nextFollowUpDate.message}</span>
+              ) : null}
             </div>
 
             <div className="md:col-span-2">
@@ -177,6 +210,9 @@ export function LeadFormModal({ lead, isOpen, onClose, onSubmit }: LeadFormModal
                   </option>
                 ))}
               </Select>
+              {errors.status ? (
+                <span className="block mt-1 font-body text-xs text-danger-fg">{errors.status.message}</span>
+              ) : null}
             </div>
 
             <div className="md:col-span-2">
@@ -184,6 +220,9 @@ export function LeadFormModal({ lead, isOpen, onClose, onSubmit }: LeadFormModal
                 Notes & Context
               </label>
               <Textarea {...register('notes')} placeholder="Project scope, timeline, client expectations..." />
+              {errors.notes ? (
+                <span className="block mt-1 font-body text-xs text-danger-fg">{errors.notes.message}</span>
+              ) : null}
             </div>
           </div>
 

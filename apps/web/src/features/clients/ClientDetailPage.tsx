@@ -1,4 +1,6 @@
 import type { ActivityRecord, ClientRecord, EntityLink, ProjectSummaryRecord } from '@kraven/types';
+import { errorMessage } from '../../lib/api';
+import { toastError } from '../../lib/formErrors';
 import type { ClientInput } from '@kraven/validation';
 import { linkSchema } from '@kraven/validation';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -104,8 +106,7 @@ export function ClientDetailPage() {
     onSuccess: () => {
       refreshClient();
       toast.success('Client updated');
-    },
-    onError: (error) => toast.error(error.message)
+    }
   });
 
   if (clientQuery.isLoading) {
@@ -120,7 +121,7 @@ export function ClientDetailPage() {
           Back to clients
         </Button>
         <div className="clay-card font-body text-sm text-danger-fg">
-          Unable to load client.
+          Unable to load client: {errorMessage(clientQuery.error, 'Client not found')}
         </div>
       </div>
     );
@@ -456,7 +457,7 @@ function UploadsCard({ client, onRefresh }: { client: ClientRecord; onRefresh: (
       onRefresh();
       toast.success('Document uploaded');
     },
-    onError: (error) => toast.error(error.message)
+    onError: toastError('Could not upload document')
   });
 
   const removeMutation = useMutation({
@@ -465,7 +466,7 @@ function UploadsCard({ client, onRefresh }: { client: ClientRecord; onRefresh: (
       onRefresh();
       toast.success('Document removed');
     },
-    onError: (error) => toast.error(error.message)
+    onError: toastError('Could not remove document')
   });
 
   return (
@@ -532,7 +533,7 @@ function LinksCard({ client, onRefresh }: { client: ClientRecord; onRefresh: () 
       onRefresh();
       toast.success('Link added');
     },
-    onError: (error) => toast.error(error.message)
+    onError: toastError('Could not add link')
   });
 
   const removeMutation = useMutation({
@@ -541,7 +542,7 @@ function LinksCard({ client, onRefresh }: { client: ClientRecord; onRefresh: () 
       onRefresh();
       toast.success('Link removed');
     },
-    onError: (error) => toast.error(error.message)
+    onError: toastError('Could not remove link')
   });
 
   function submit() {
