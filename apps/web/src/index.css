@@ -1,29 +1,235 @@
-@import url('https://fonts.googleapis.com/css2?family=Alien+Block&family=Open+Sans:ital,wght@0,300..800;1,300..800&family=Valley+Sans:ital,wght@0,100..900;1,100..900&display=swap');
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-  color-scheme: dark;
-  background: #030303;
-  color: #f8f8f8;
-  font-family: "Open Sans", "Valley Sans", "Alien Block", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  color-scheme: light;
+
+  /* Canvas & surfaces */
+  --bg-canvas: #EBE9E3;
+  --bg-canvas-deep: #E2DFD7;
+  --surface: #FFFFFF;
+  --surface-soft: #F6F5F1;
+
+  /* Olive scale */
+  --olive-900: #2F4A3A;
+  --olive-700: #4A6B57;
+  --olive-500: #6F8F7B;
+  --olive-300: #A9BFB0;
+  --olive-100: #E4EDE7;
+  --sand-200: #F1E7D3;
+
+  /* Ink */
+  --ink-900: #1C1F21;
+  --ink-700: #3A3F42;
+  --ink-500: #7A7F82;
+  --ink-300: #B4B7B8;
+
+  /* Status */
+  --success-bg: #E3EEE6; --success-fg: #4A7A5A;
+  --danger-bg:  #F9E1E1; --danger-fg:  #C0504D;
+  --warning-bg: #F7EBCB; --warning-fg: #9A7420;
+
+  /* Gradients */
+  --grad-olive: linear-gradient(145deg, #86A292 0%, #4A6B57 100%);
+  --grad-olive-soft: linear-gradient(145deg, #E4EDE7 0%, #CFDDD4 100%);
+  --grad-fade-chart: linear-gradient(180deg, rgba(74, 107, 87, 0.18) 0%, rgba(74, 107, 87, 0) 100%);
+
+  /* Radius */
+  --r-xs: 8px;  --r-sm: 12px; --r-md: 16px;
+  --r-lg: 24px; --r-xl: 32px; --r-pill: 999px;
+
+  /* Spacing (8px base) */
+  --s-1: 4px;  --s-2: 8px;  --s-3: 12px; --s-4: 16px;
+  --s-5: 24px; --s-6: 32px; --s-7: 48px; --s-8: 64px; --s-9: 96px;
+
+  /* Fonts */
+  --font-display: 'Space Grotesk', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-body: 'Poppins', system-ui, -apple-system, 'Segoe UI', sans-serif;
+
+  /* Clay shadows */
+  --clay-raised:
+    10px 10px 24px rgba(120, 110, 90, 0.18),
+    -8px -8px 20px rgba(255, 255, 255, 0.95),
+    inset 2px 2px 4px rgba(255, 255, 255, 0.9),
+    inset -3px -3px 8px rgba(160, 150, 130, 0.12);
+  --clay-raised-sm:
+    6px 6px 14px rgba(120, 110, 90, 0.16),
+    -5px -5px 12px rgba(255, 255, 255, 0.95),
+    inset 1px 1px 3px rgba(255, 255, 255, 0.9),
+    inset -2px -2px 5px rgba(160, 150, 130, 0.10);
+  --clay-hover:
+    14px 14px 30px rgba(120, 110, 90, 0.22),
+    -10px -10px 24px rgba(255, 255, 255, 1),
+    inset 2px 2px 4px rgba(255, 255, 255, 0.95),
+    inset -3px -3px 8px rgba(160, 150, 130, 0.14);
+  --clay-pressed:
+    inset 6px 6px 12px rgba(120, 110, 90, 0.20),
+    inset -6px -6px 12px rgba(255, 255, 255, 0.90);
+  --clay-inset:
+    inset 4px 4px 9px rgba(120, 110, 90, 0.16),
+    inset -4px -4px 9px rgba(255, 255, 255, 0.95);
+  --clay-green:
+    10px 12px 24px rgba(74, 107, 87, 0.35),
+    -6px -6px 16px rgba(255, 255, 255, 0.7),
+    inset 3px 3px 6px rgba(255, 255, 255, 0.35),
+    inset -4px -4px 10px rgba(30, 55, 40, 0.25);
 }
 
-* {
-  box-sizing: border-box;
+html {
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
 body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
-  background: #030303;
-  font-family: "Open Sans", "Valley Sans", "Alien Block", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-family: var(--font-body);
+  color: var(--ink-700);
+  background: var(--bg-canvas);
+}
+
+* {
+  box-sizing: border-box;
 }
 
 a {
   color: inherit;
   text-decoration: none;
+}
+
+/* Claymorphism Base Classes inside @layer components */
+@layer components {
+  .clay-card {
+    background: var(--surface);
+    border-radius: var(--r-lg);
+    padding: var(--s-5);
+    box-shadow: var(--clay-raised);
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    transition: box-shadow 0.25s ease, transform 0.25s ease;
+  }
+
+  .clay-card:hover {
+    box-shadow: var(--clay-hover);
+    transform: translateY(-2px);
+  }
+
+  .clay-card--hero {
+    background: var(--grad-olive);
+    color: #ffffff;
+    box-shadow: var(--clay-green);
+    border: 1px solid rgba(255, 255, 255, 0.25);
+  }
+
+  .clay-btn {
+    font-family: var(--font-body);
+    font-weight: 600;
+    font-size: 15px;
+    padding: 14px var(--s-5);
+    border: none;
+    border-radius: var(--r-pill);
+    cursor: pointer;
+    background: var(--surface);
+    color: var(--ink-900);
+    box-shadow: var(--clay-raised-sm);
+    transition: box-shadow 0.2s ease, transform 0.2s ease, filter 0.2s ease;
+  }
+
+  .clay-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--clay-hover);
+  }
+
+  .clay-btn:active {
+    transform: translateY(0) scale(0.98);
+    box-shadow: var(--clay-pressed);
+  }
+
+  .clay-btn:focus-visible {
+    outline: 3px solid var(--olive-300);
+    outline-offset: 3px;
+  }
+
+  .clay-btn--primary {
+    background: var(--grad-olive);
+    color: #ffffff;
+    box-shadow: var(--clay-green);
+  }
+
+  .clay-btn--primary:hover {
+    filter: brightness(1.05);
+  }
+
+  .clay-btn--dark {
+    background: var(--ink-900);
+    color: #ffffff;
+  }
+
+  .clay-input {
+    font-family: var(--font-body);
+    width: 100%;
+    padding: 10px 14px;
+    border: none;
+    border-radius: var(--r-md);
+    background: var(--surface-soft);
+    color: var(--ink-900);
+    box-shadow: var(--clay-inset);
+    transition: background-color 0.2s ease, outline 0.2s ease;
+  }
+
+  .clay-input::placeholder {
+    color: var(--ink-500);
+  }
+
+  .clay-input:focus {
+    outline: 2px solid var(--olive-300);
+    outline-offset: 2px;
+    background: var(--surface);
+  }
+
+  .clay-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--s-2);
+    padding: 4px 12px;
+    border-radius: var(--r-pill);
+    font: 500 12px/1.4 var(--font-body);
+    background: var(--olive-100);
+    color: var(--olive-700);
+  }
+
+  .clay-chip--up {
+    background: var(--success-bg);
+    color: var(--success-fg);
+  }
+
+  .clay-chip--down {
+    background: var(--danger-bg);
+    color: var(--danger-fg);
+  }
+
+  .clay-icon-circle {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+  }
+
+  select {
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+  }
+
+  select option {
+    background-color: var(--surface);
+    color: var(--ink-900);
+    font-family: var(--font-body);
+    padding: 8px 12px;
+  }
+  .clay-icon-circle--sand {
+    background: var(--sand-200);
+  }
 }
