@@ -2,17 +2,17 @@ import type { DocumentStatus } from '@kraven/types';
 import { cn } from '../../lib/utils';
 
 const documentStatusClassName: Record<DocumentStatus, string> = {
-  Draft: 'border-white/20 text-white',
-  Sent: 'border-sky-300/40 text-sky-200',
-  Viewed: 'border-violet-300/40 text-violet-200',
-  Signed: 'border-emerald-300/40 text-emerald-200'
+  Draft: 'bg-sand-200 text-ink-700',
+  Sent: 'bg-sky-100 text-sky-800',
+  Viewed: 'bg-violet-100 text-violet-800',
+  Signed: 'bg-olive-100 text-olive-900'
 };
 
 export function DocumentStatusBadge({ status, className }: { status: DocumentStatus; className?: string }) {
   return (
     <span
       className={cn(
-        'inline-flex h-6 items-center rounded border bg-black px-2 text-xs font-medium',
+        'inline-flex h-6 items-center rounded-pill px-2.5 font-body text-xs font-medium',
         documentStatusClassName[status],
         className
       )}

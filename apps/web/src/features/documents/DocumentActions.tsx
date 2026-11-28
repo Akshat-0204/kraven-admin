@@ -2,10 +2,11 @@ import { DOCUMENT_CATEGORIES } from '@kraven/config';
 import type { DocumentCategory, DocumentAccessEntry } from '@kraven/types';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ExternalLink, FileDown, Lock, LockOpen, RefreshCw, Share2, Trash2, Users, Pencil } from 'lucide-react';
-import { type ReactNode, useState } from 'react';
+import { useState } from 'react';
 import { toast } from 'sonner';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
+import { Modal } from '../../components/ui/modal';
 import { Select } from '../../components/ui/select';
 import { googleQueryKeys, listAdmins, useGoogleStatus } from '../google/googleApi';
 import { AccessPicker } from './AccessPicker';
@@ -20,23 +21,6 @@ import {
   updateDocument
 } from './documentApi';
 import type { DocumentListItem } from '@kraven/types';
-
-export function Modal({ title, onClose, children }: { title: string; onClose: () => void; children: ReactNode }) {
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 px-4" onClick={onClose}>
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-label={title}
-        className="w-full max-w-md space-y-4 rounded border border-border bg-panel p-5"
-        onClick={(event) => event.stopPropagation()}
-      >
-        <h2 className="text-base font-semibold">{title}</h2>
-        {children}
-      </div>
-    </div>
-  );
-}
 
 const TYPE_CATEGORY: Record<string, DocumentCategory> = {
   Proposal: 'Proposal',
@@ -69,30 +53,39 @@ function SavePdfDialog({ document, onClose }: { document: DocumentListItem; onCl
     onError: (error) => toast.error(error.message)
   });
   return (
-    <Modal title="Save as PDF" onClose={onClose}>
-      <label className="block space-y-1 text-sm">
-        <span className="text-muted">Category</span>
+    <Modal
+      open
+      size="sm"
+      title="Save as PDF"
+      onClose={onClose}
+      footer={
+        <>
+          <Button className="bg-transparent shadow-none" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button disabled={mutation.isPending || !filename.trim()} onClick={() => mutation.mutate()}>
+            {mutation.isPending ? 'Saving...' : 'Save PDF'}
+          </Button>
+        </>
+      }
+    >
+      <div className="space-y-4">
+      <label className="block space-y-1 font-body text-sm">
+        <span className="text-ink-500">Category</span>
         <Select aria-label="Category" value={category} onChange={(event) => setCategory(event.target.value as DocumentCategory)}>
           {DOCUMENT_CATEGORIES.map((value) => (
             <option key={value}>{value}</option>
           ))}
         </Select>
       </label>
-      <label className="block space-y-1 text-sm">
-        <span className="text-muted">Filename</span>
+      <label className="block space-y-1 font-body text-sm">
+        <span className="text-ink-500">Filename</span>
         <Input aria-label="Filename" value={filename} onChange={(event) => setFilename(event.target.value)} />
       </label>
-      <label className="flex items-center gap-2 text-sm">
-        <input type="checkbox" checked={clientVisible} onChange={(event) => setClientVisible(event.target.checked)} />
+      <label className="flex items-center gap-2 font-body text-sm text-ink-700">
+        <input type="checkbox" className="accent-olive-700" checked={clientVisible} onChange={(event) => setClientVisible(event.target.checked)} />
         Visible to client in portal Downloads
       </label>
-      <div className="flex justify-end gap-2">
-        <Button className="bg-transparent text-white hover:bg-white/10" onClick={onClose}>
-          Cancel
-        </Button>
-        <Button disabled={mutation.isPending || !filename.trim()} onClick={() => mutation.mutate()}>
-          {mutation.isPending ? 'Saving...' : 'Save PDF'}
-        </Button>
       </div>
     </Modal>
   );
@@ -110,16 +103,23 @@ function RenameDialog({ document, onClose }: { document: DocumentListItem; onClo
     onError: (error) => toast.error(error.message)
   });
   return (
-    <Modal title="Rename document" onClose={onClose}>
+    <Modal
+      open
+      size="sm"
+      title="Rename document"
+      onClose={onClose}
+      footer={
+        <>
+          <Button className="bg-transparent shadow-none" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button disabled={mutation.isPending || !title.trim()} onClick={() => mutation.mutate()}>
+            Rename
+          </Button>
+        </>
+      }
+    >
       <Input aria-label="Title" value={title} onChange={(event) => setTitle(event.target.value)} />
-      <div className="flex justify-end gap-2">
-        <Button className="bg-transparent text-white hover:bg-white/10" onClick={onClose}>
-          Cancel
-        </Button>
-        <Button disabled={mutation.isPending || !title.trim()} onClick={() => mutation.mutate()}>
-          Rename
-        </Button>
-      </div>
     </Modal>
   );
 }
@@ -137,21 +137,28 @@ function AccessDialog({ document, onClose }: { document: DocumentListItem; onClo
     onError: (error) => toast.error(error.message)
   });
   return (
-    <Modal title="Manage access" onClose={onClose}>
+    <Modal
+      open
+      size="sm"
+      title="Manage access"
+      onClose={onClose}
+      footer={
+        <>
+          <Button className="bg-transparent shadow-none" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button disabled={mutation.isPending} onClick={() => mutation.mutate()}>
+            Save access
+          </Button>
+        </>
+      }
+    >
       <AccessPicker value={access} onChange={setAccess} admins={adminsQuery.data?.admins} />
-      <div className="flex justify-end gap-2">
-        <Button className="bg-transparent text-white hover:bg-white/10" onClick={onClose}>
-          Cancel
-        </Button>
-        <Button disabled={mutation.isPending} onClick={() => mutation.mutate()}>
-          Save access
-        </Button>
-      </div>
     </Modal>
   );
 }
 
-const iconButton = 'h-7 w-7 bg-transparent p-0 text-white hover:bg-white/10';
+const iconButton = 'h-8 w-8 p-0 text-ink-700';
 
 /** Per-document actions. Google actions are disabled (with a tooltip) while Google is not connected. */
 export function DocumentActions({ document }: { document: DocumentListItem }) {
@@ -202,7 +209,7 @@ export function DocumentActions({ document }: { document: DocumentListItem }) {
           </Button>
         </>
       ) : document.status === 'Signed' ? (
-        <Lock className="mx-1 h-3 w-3 text-muted" aria-label="Signed" />
+        <Lock className="mx-1 h-3 w-3 text-ink-500" aria-label="Signed" />
       ) : (
         <Button className={iconButton} aria-label={`Revise ${name}`} title={gate('Revise (unlock and return to Draft)')} disabled={!google.ready || revise.isPending} onClick={() => revise.mutate()}>
           <LockOpen className="h-3 w-3" aria-hidden="true" />
@@ -234,7 +241,7 @@ export function DocumentActions({ document }: { document: DocumentListItem }) {
 export function StalePdfBadge({ document }: { document: DocumentListItem }) {
   if (!document.pdfStale) return null;
   return (
-    <span className="ml-2 inline-flex h-5 items-center rounded border border-amber-300/40 px-1.5 text-[10px] text-amber-200" title="The Google Doc changed after the PDF was saved">
+    <span className="ml-2 inline-flex h-5 items-center rounded-pill bg-sand-200 px-2 font-body text-[10px] font-medium text-ink-700" title="The Google Doc changed after the PDF was saved">
       PDF out of date
     </span>
   );

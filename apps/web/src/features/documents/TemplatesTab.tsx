@@ -5,8 +5,13 @@ import { ExternalLink } from 'lucide-react';
 import { type FormEvent, useState } from 'react';
 import { toast } from 'sonner';
 import { Button } from '../../components/ui/button';
+import { Card } from '../../components/ui/card';
+import { EmptyState } from '../../components/ui/emptyState';
+import { LoadingState } from '../../components/ui/loadingState';
 import { Input } from '../../components/ui/input';
+import { Modal } from '../../components/ui/modal';
 import { Select } from '../../components/ui/select';
+import { Table, Td, Th } from '../../components/ui/dataTable';
 import { createDocumentTemplate, deleteDocumentTemplate, documentQueryKeys, listDocumentTemplates, updateDocumentTemplate } from './documentApi';
 
 /** Templates tab: templates are links to Google Docs, edited in Google. */
@@ -21,65 +26,71 @@ export function TemplatesTab({ onEdit }: { onEdit: (template: DocumentTemplateRe
   });
 
   if (templatesQuery.isLoading) {
-    return <div className="rounded border border-border bg-panel p-5 text-sm text-muted">Loading templates...</div>;
+    return (
+      <Card>
+        <LoadingState label="Loading templates..." />
+      </Card>
+    );
   }
   if (templatesQuery.isError) {
-    return <div className="rounded border border-red-400/40 bg-panel p-5 text-sm text-red-200">Unable to load templates.</div>;
+    return (
+      <Card className="font-body text-sm text-red-600">Unable to load templates.</Card>
+    );
   }
   if (templates.length === 0) {
     return (
-      <div className="rounded border border-dashed border-border bg-panel p-8 text-center text-sm text-muted">
-        No templates yet. Add a link to a Google Doc with "New template".
-      </div>
+      <Card>
+        <EmptyState title={'No templates yet. Add a link to a Google Doc with "New template".'} />
+      </Card>
     );
   }
 
   return (
-    <div className="overflow-x-auto rounded border border-border bg-panel">
-      <table className="w-full min-w-[560px] text-left text-sm">
-        <thead className="border-b border-border text-xs uppercase tracking-wider text-muted">
+    <Card padded={false}>
+      <Table className="min-w-[560px]">
+        <thead className="border-b border-sand-300/40 bg-sand-100/50">
           <tr>
-            <th className="p-3 font-medium">Name</th>
-            <th className="p-3 font-medium">Type</th>
-            <th className="p-3 font-medium">Google Doc</th>
-            <th className="p-3 font-medium" />
+            <Th>Name</Th>
+            <Th>Type</Th>
+            <Th>Google Doc</Th>
+            <Th />
           </tr>
         </thead>
-        <tbody>
+        <tbody className="divide-y divide-sand-300/30">
           {templates.map((template) => (
-            <tr key={template.id} className="border-b border-border last:border-0">
-              <td className="p-3 font-medium">{template.name}</td>
-              <td className="p-3 text-muted">{template.type}</td>
-              <td className="p-3">
+            <tr key={template.id} className="transition-colors hover:bg-sand-50/60">
+              <Td className="font-medium text-ink-900">{template.name}</Td>
+              <Td className="text-ink-500">{template.type}</Td>
+              <Td>
                 <a
                   href={template.googleDocUrl}
                   target="_blank"
                   rel="noreferrer"
-                  className="inline-flex items-center gap-1 hover:text-muted"
+                  className="inline-flex items-center gap-1 text-olive-700 hover:text-olive-900"
                 >
                   Open in Google Docs
                   <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
                 </a>
-              </td>
-              <td className="p-3 text-right">
-                <button type="button" className="mr-4 text-muted hover:text-white" onClick={() => onEdit(template)}>
+              </Td>
+              <Td className="text-right">
+                <button type="button" className="mr-4 text-ink-500 hover:text-ink-900" onClick={() => onEdit(template)}>
                   Edit link
                 </button>
                 <button
                   type="button"
-                  className="text-muted hover:text-red-300"
+                  className="text-ink-500 hover:text-red-600"
                   onClick={() => {
                     if (window.confirm(`Delete template "${template.name}"?`)) remove.mutate(template.id);
                   }}
                 >
                   Delete
                 </button>
-              </td>
+              </Td>
             </tr>
           ))}
         </tbody>
-      </table>
-    </div>
+      </Table>
+    </Card>
   );
 }
 
@@ -108,15 +119,14 @@ export function TemplateDialog({ template, onClose }: { template?: DocumentTempl
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4" role="dialog" aria-modal="true" aria-label={template ? 'Edit template' : 'New template'}>
-      <form onSubmit={submit} className="w-full max-w-md space-y-4 rounded border border-border bg-panel p-5">
-        <h2 className="text-lg font-semibold">{template ? 'Edit template' : 'New template'}</h2>
-        <label className="block space-y-1 text-sm">
-          <span className="text-muted">Name (optional, defaults to the Google Doc title)</span>
+    <Modal open size="sm" title={template ? 'Edit template' : 'New template'} onClose={onClose}>
+      <form onSubmit={submit} className="space-y-4">
+        <label className="block space-y-1 font-body text-sm">
+          <span className="text-ink-500">Name (optional, defaults to the Google Doc title)</span>
           <Input value={name} onChange={(event) => setName(event.target.value)} />
         </label>
-        <label className="block space-y-1 text-sm">
-          <span className="text-muted">Type</span>
+        <label className="block space-y-1 font-body text-sm">
+          <span className="text-ink-500">Type</span>
           <Select value={type} onChange={(event) => setType(event.target.value as DocumentTemplateType)}>
             {DOCUMENT_TEMPLATE_TYPES.map((value) => (
               <option key={value} value={value}>
@@ -125,8 +135,8 @@ export function TemplateDialog({ template, onClose }: { template?: DocumentTempl
             ))}
           </Select>
         </label>
-        <label className="block space-y-1 text-sm">
-          <span className="text-muted">Google Doc link</span>
+        <label className="block space-y-1 font-body text-sm">
+          <span className="text-ink-500">Google Doc link</span>
           <Input
             required
             placeholder="https://docs.google.com/document/d/..."
@@ -134,8 +144,8 @@ export function TemplateDialog({ template, onClose }: { template?: DocumentTempl
             onChange={(event) => setGoogleDocUrl(event.target.value)}
           />
         </label>
-        <div className="flex justify-end gap-2">
-          <Button type="button" className="bg-transparent text-white hover:bg-white/10" onClick={onClose}>
+        <div className="flex justify-end gap-2 border-t border-[rgba(120,110,90,0.12)] pt-4">
+          <Button type="button" className="bg-transparent shadow-none" onClick={onClose}>
             Cancel
           </Button>
           <Button type="submit" disabled={save.isPending || !googleDocUrl.trim()}>
@@ -143,6 +153,6 @@ export function TemplateDialog({ template, onClose }: { template?: DocumentTempl
           </Button>
         </div>
       </form>
-    </div>
+    </Modal>
   );
 }

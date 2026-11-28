@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { Button } from '../../components/ui/button';
+import { Card } from '../../components/ui/card';
 import { disconnectGoogle, getGoogleStatus, googleQueryKeys, startGoogleConnect } from './googleApi';
 
 /** Dashboard card: Google connection status with Connect / Reconnect / Disconnect. */
@@ -21,17 +22,17 @@ export function GoogleConnectCard() {
   else if (status) text = status.configured ? 'Not connected. Connect the agency Google account to create documents.' : 'Google OAuth is not configured on the server.';
 
   return (
-    <section className="flex flex-col gap-3 rounded border border-border bg-panel p-4 md:flex-row md:items-center md:justify-between" aria-label="Google connection">
+    <Card className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between" role="region" aria-label="Google connection">
       <div>
-        <h2 className="text-sm font-semibold">Google Docs</h2>
-        <p className="mt-1 text-sm text-muted">{text}</p>
+        <h2 className="font-display text-sm font-bold text-ink-900">Google Docs</h2>
+        <p className="mt-1 font-body text-sm text-ink-500">{text}</p>
       </div>
       {status ? (
         <div className="flex gap-2">
           {status.connected ? (
             <>
               <Button onClick={startGoogleConnect}>Reconnect</Button>
-              <Button className="bg-transparent text-white hover:bg-white/10" disabled={disconnect.isPending} onClick={() => disconnect.mutate()}>
+              <Button className="bg-transparent shadow-none" disabled={disconnect.isPending} onClick={() => disconnect.mutate()}>
                 Disconnect
               </Button>
             </>
@@ -42,6 +43,6 @@ export function GoogleConnectCard() {
           )}
         </div>
       ) : null}
-    </section>
+    </Card>
   );
 }

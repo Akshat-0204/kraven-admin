@@ -47,9 +47,9 @@ export function AccessPicker({
 
   function row(address: string, label: string, entry?: DocumentAccessEntry, admin?: AdminUserRecord) {
     return (
-      <li key={address} className="flex items-center gap-2 text-sm">
+      <li key={address} className="flex items-center gap-2 font-body text-sm text-ink-700">
         {admin ? (
-          <input type="checkbox" aria-label={`Share with ${admin.name}`} checked={Boolean(entry)} onChange={(event) => toggleAdmin(admin, event.target.checked)} />
+          <input type="checkbox" className="accent-olive-700" aria-label={`Share with ${admin.name}`} checked={Boolean(entry)} onChange={(event) => toggleAdmin(admin, event.target.checked)} />
         ) : null}
         <span className="min-w-0 flex-1 truncate">{label}</span>
         {entry ? (
@@ -62,7 +62,7 @@ export function AccessPicker({
           </Select>
         ) : null}
         {!admin && entry ? (
-          <Button className="h-7 w-7 bg-transparent p-0 text-white hover:bg-white/10" aria-label={`Remove ${address}`} onClick={() => onChange(value.filter((item) => item.email !== address))}>
+          <Button className="h-8 w-8 p-0 text-ink-700" aria-label={`Remove ${address}`} onClick={() => onChange(value.filter((item) => item.email !== address))}>
             <X className="h-3 w-3" aria-hidden="true" />
           </Button>
         ) : null}
@@ -93,7 +93,7 @@ export function AccessPicker({
           Add
         </Button>
       </div>
-      {error ? <p className="text-xs text-red-200">{error}</p> : null}
+      {error ? <p className="font-body text-xs text-red-600">{error}</p> : null}
     </div>
   );
 }
