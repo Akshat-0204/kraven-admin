@@ -7,6 +7,7 @@ import { Link, Navigate, useParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import { Button } from '../../components/ui/button';
 import { Card } from '../../components/ui/card';
+import { errorMessage } from '../../lib/api';
 import { PortalRequestError, portalApi, portalQueryKeys } from './portalApi';
 import { PortalShell, formatDate, formatInr, isPayable } from './PortalPage';
 import { UPI_APP_SCHEMES, buildUpiUri } from './upi';
@@ -60,6 +61,17 @@ export function PortalPayPage() {
     );
   }
 
+  if (payments.isError) {
+    return (
+      <PortalShell>
+        <BackLink to={backTo} />
+        <Card role="alert" className="mt-6 font-body text-sm text-danger-fg">
+          {errorMessage(payments.error, 'Could not load this payment.')}
+        </Card>
+      </PortalShell>
+    );
+  }
+
   if (!payment || !payment.payee || !isPayable(payment)) {
     return (
       <PortalShell>
@@ -84,7 +96,7 @@ export function PortalPayPage() {
       await navigator.clipboard.writeText(request.vpa);
       toast.success('UPI ID copied');
     } catch {
-      toast.error('Could not copy the UPI ID');
+      toast.error(`Could not copy the UPI ID. Please copy it manually: ${request.vpa}`);
     }
   }
 

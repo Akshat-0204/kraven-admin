@@ -2,10 +2,11 @@ import { DOCUMENT_CATEGORIES } from '@kraven/config';
 import type { DocumentCategory, FileMetadataRecord } from '@kraven/types';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
-import { toast } from 'sonner';
 import { Card } from '../../components/ui/card';
 import { Input } from '../../components/ui/input';
 import { Select } from '../../components/ui/select';
+import { errorMessage } from '../../lib/api';
+import { toastError } from '../../lib/formErrors';
 import { listEntityFiles, portalAdminQueryKeys, updateFile } from './portalApi';
 
 type FilePatch = { clientVisible?: boolean; filename?: string; category?: DocumentCategory };
@@ -57,11 +58,16 @@ export function SharedFilesPanel({ entityType, entityId }: { entityType: 'Client
   const queryClient = useQueryClient();
   const queryKey = portalAdminQueryKeys.files(entityType, entityId);
   const query = useQuery({ queryKey, queryFn: () => listEntityFiles(entityType, entityId) });
+  // Bumped on a failed update so rows drop unsaved local edits (e.g. a rejected rename).
+  const [version, setVersion] = useState(0);
 
   const patch = useMutation({
     mutationFn: ({ id, ...input }: FilePatch & { id: string }) => updateFile(id, input),
     onSuccess: () => queryClient.invalidateQueries({ queryKey }),
-    onError: (error) => toast.error(error.message)
+    onError: (error) => {
+      setVersion((value) => value + 1);
+      toastError('Could not update the file')(error);
+    }
   });
 
   const files = query.data?.files ?? [];
@@ -78,7 +84,12 @@ export function SharedFilesPanel({ entityType, entityId }: { entityType: 'Client
         <p className="font-body text-xs text-ink-500">Ticked files appear in the client portal&apos;s Downloads.</p>
       </div>
       {query.isLoading ? <p className="font-body text-xs text-ink-500">Loading files...</p> : null}
-      {!query.isLoading && files.length === 0 ? (
+      {query.isError ? (
+        <p role="alert" className="font-body text-sm text-danger-fg">
+          {errorMessage(query.error, 'Unable to load files.')}
+        </p>
+      ) : null}
+      {!query.isLoading && !query.isError && files.length === 0 ? (
         <div className="rounded-md border border-dashed border-[rgba(120,110,90,0.2)] p-4 text-center font-body text-xs text-ink-500">No files</div>
       ) : null}
       <div className="space-y-4">
@@ -87,7 +98,7 @@ export function SharedFilesPanel({ entityType, entityId }: { entityType: 'Client
             <h3 className="mb-2 font-display text-xs font-semibold uppercase tracking-wider text-ink-500">{category}</h3>
             <ul className="space-y-2">
               {group.map((file) => (
-                <FileRow key={`${file.id}-${file.filename}`} file={file} disabled={patch.isPending} onPatch={(p) => patch.mutate({ id: file.id, ...p })} />
+                <FileRow key={`${file.id}-${file.filename}-${version}`} file={file} disabled={patch.isPending} onPatch={(p) => patch.mutate({ id: file.id, ...p })} />
               ))}
             </ul>
           </div>

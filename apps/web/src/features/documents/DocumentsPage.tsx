@@ -4,6 +4,7 @@ import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { ChevronLeft, ChevronRight, FilePlus2, Plus, Search } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { errorMessage } from '../../lib/api';
 import { Button } from '../../components/ui/button';
 import { Card } from '../../components/ui/card';
 import { Table, Td, Th } from '../../components/ui/dataTable';
@@ -139,7 +140,7 @@ function DocumentsTab({ onNew }: { onNew: () => void }) {
           <LoadingState label="Loading documents..." />
         </Card>
       ) : documentsQuery.isError ? (
-        <Card className="font-body text-sm text-danger-fg">Unable to load documents.</Card>
+        <Card role="alert" className="font-body text-sm text-danger-fg">{errorMessage(documentsQuery.error, 'Unable to load documents.')}</Card>
       ) : documents.length === 0 ? (
         hasFilters ? (
           <Card>

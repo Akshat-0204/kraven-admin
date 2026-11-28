@@ -15,6 +15,8 @@ import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '../components/ui/button';
 import { useAuth } from '../features/auth/AuthProvider';
 import { GlobalSearch } from '../features/search/GlobalSearch';
+import { toast } from 'sonner';
+import { errorMessage } from '../lib/api';
 import { cn } from '../lib/utils';
 import { readStoredWorkspace, storeWorkspace, workspaceForPath } from './workspace';
 
@@ -102,8 +104,12 @@ export function AppShell() {
   const items = SIDEBAR_ITEMS[workspace];
 
   async function handleLogout() {
-    await logout();
-    navigate('/login', { replace: true });
+    try {
+      await logout();
+      navigate('/login', { replace: true });
+    } catch (error) {
+      toast.error(errorMessage(error, 'Could not log out. Please try again.'));
+    }
   }
 
   // Mobile gets one flat scrollable row: children inline, minus the one duplicating its parent path.

@@ -4,6 +4,8 @@ import { Copy, KeyRound, ShieldOff } from 'lucide-react';
 import { type FormEvent, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { Button, Card, CardHeader, Input } from '../../components/ui';
+import { ApiError, errorMessage } from '../../lib/api';
+import { toastError } from '../../lib/formErrors';
 import { getPortalSettings, portalAdminQueryKeys, revokePortal, savePortalSettings, setPortalCode } from './portalApi';
 
 /** Suggested slug for a client without one; the server still validates it. */
@@ -30,7 +32,7 @@ async function copy(text: string, label: string) {
     await navigator.clipboard.writeText(text);
     toast.success(`${label} copied`);
   } catch {
-    toast.error(`Could not copy the ${label.toLowerCase()}`);
+    toast.error(`Could not copy the ${label.toLowerCase()}. Select it and copy manually.`);
   }
 }
 
@@ -45,6 +47,7 @@ export function PortalPanel({ clientId, defaultSlug }: { clientId: string; defau
   const [enabled, setEnabled] = useState(false);
   const [expiresAt, setExpiresAt] = useState('');
   const [customCode, setCustomCode] = useState('');
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [revealedCode, setRevealedCode] = useState<string | null>(null);
 
   useEffect(() => {
@@ -60,9 +63,13 @@ export function PortalPanel({ clientId, defaultSlug }: { clientId: string; defau
     mutationFn: () => savePortalSettings(clientId, { slug, enabled, expiresAt: expiresAt || '' }),
     onSuccess: ({ portal: next }) => {
       applyPortal(next);
+      setFieldErrors({});
       toast.success('Portal settings saved');
     },
-    onError: (error) => toast.error(error.message)
+    onError: (error) => {
+      if (error instanceof ApiError && Object.keys(error.fieldErrors).length > 0) setFieldErrors(error.fieldErrors);
+      toast.error(errorMessage(error, 'Could not save portal settings'));
+    }
   });
 
   const code = useMutation({
@@ -72,7 +79,7 @@ export function PortalPanel({ clientId, defaultSlug }: { clientId: string; defau
       setRevealedCode(result.code);
       setCustomCode('');
     },
-    onError: (error) => toast.error(error.message)
+    onError: toastError('Could not set the access code')
   });
 
   const revoke = useMutation({
@@ -82,11 +89,16 @@ export function PortalPanel({ clientId, defaultSlug }: { clientId: string; defau
       setRevealedCode(null);
       toast.success('Portal access revoked');
     },
-    onError: (error) => toast.error(error.message)
+    onError: toastError('Could not revoke portal access')
   });
 
   function submit(event: FormEvent) {
     event.preventDefault();
+    if (!slug.trim()) {
+      setFieldErrors({ slug: 'Enter a portal URL slug' });
+      return;
+    }
+    setFieldErrors({});
     save.mutate();
   }
 
@@ -98,7 +110,7 @@ export function PortalPanel({ clientId, defaultSlug }: { clientId: string; defau
   if (!portal) {
     return (
       <Card className="border border-danger-fg/30 text-xs font-body text-danger-fg">
-        Could not load portal settings.
+        {errorMessage(query.error, 'Could not load portal settings.')}
       </Card>
     );
   }
@@ -125,14 +137,17 @@ export function PortalPanel({ clientId, defaultSlug }: { clientId: string; defau
       <form onSubmit={submit} className="space-y-3.5">
         <div>
           <label className="block font-body text-xs font-semibold uppercase tracking-wider text-ink-700 mb-1.5">
-            Portal URL Slug
+            Portal URL Slug <span className="text-danger-fg">*</span>
           </label>
           <Input
+            aria-label="Portal URL slug"
+            aria-invalid={Boolean(fieldErrors.slug)}
             value={slug}
             onChange={(event) => setSlug(event.target.value)}
             placeholder="acme-studio"
             className="w-full"
           />
+          {fieldErrors.slug ? <p className="mt-1 font-body text-xs text-danger-fg">{fieldErrors.slug}</p> : null}
         </div>
 
         <div>
@@ -145,6 +160,7 @@ export function PortalPanel({ clientId, defaultSlug }: { clientId: string; defau
             onChange={(event) => setExpiresAt(event.target.value)}
             className="w-full"
           />
+          {fieldErrors.expiresAt ? <p className="mt-1 font-body text-xs text-danger-fg">{fieldErrors.expiresAt}</p> : null}
         </div>
 
         <label className="flex items-center gap-2 font-body text-xs text-ink-900 cursor-pointer pt-1">
@@ -159,7 +175,7 @@ export function PortalPanel({ clientId, defaultSlug }: { clientId: string; defau
 
         <button
           type="submit"
-          disabled={save.isPending || !slug.trim()}
+          disabled={save.isPending}
           className="clay-btn clay-btn--primary h-9 px-4 rounded-pill font-body text-xs font-medium text-white shadow-clay-green disabled:opacity-50"
         >
           {save.isPending ? 'Saving...' : 'Save Settings'}

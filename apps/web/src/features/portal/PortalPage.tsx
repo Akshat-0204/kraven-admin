@@ -4,9 +4,11 @@ import { Download, FileText, LogOut } from 'lucide-react';
 import { type FormEvent, type ReactNode, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { toast } from 'sonner';
+import { toastError } from '../../lib/formErrors';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { ProgressBar } from '../../components/ui/progressBar';
+import { errorMessage } from '../../lib/api';
 import { PortalRequestError, portalApi, portalDocumentPdfUrl, portalQueryKeys, portalSignedPdfUrl } from './portalApi';
 
 type PortalTab = 'overview' | 'packs' | 'updates' | 'documents' | 'payments' | 'downloads';
@@ -45,6 +47,7 @@ export function PortalShell({ children }: { children: ReactNode }) {
 function CodeForm({ slug }: { slug: string }) {
   const queryClient = useQueryClient();
   const [code, setCode] = useState('');
+  const [missing, setMissing] = useState(false);
   const verify = useMutation({
     mutationFn: () => portalApi.verify(slug, code.trim()),
     onSuccess: async () => {
@@ -56,7 +59,12 @@ function CodeForm({ slug }: { slug: string }) {
 
   function submit(event: FormEvent) {
     event.preventDefault();
-    if (code.trim()) verify.mutate();
+    if (!code.trim()) {
+      setMissing(true);
+      return;
+    }
+    setMissing(false);
+    verify.mutate();
   }
 
   return (
@@ -66,7 +74,11 @@ function CodeForm({ slug }: { slug: string }) {
           <h1 className="font-display text-xl font-bold text-ink-900">Client portal</h1>
           <p className="mt-1 text-sm text-ink-500">Enter the access code you were given.</p>
         </div>
+        <label htmlFor="portal-access-code" className="block text-sm text-ink-700">
+          Access code <span className="text-danger-fg" aria-hidden="true">*</span>
+        </label>
         <Input
+          id="portal-access-code"
           aria-label="Access code"
           autoComplete="one-time-code"
           autoFocus
@@ -75,12 +87,21 @@ function CodeForm({ slug }: { slug: string }) {
           placeholder="Access code"
           className="font-mono uppercase tracking-widest"
         />
-        {verify.error ? (
+        {missing && !code.trim() ? (
           <p role="alert" className="text-sm text-danger-fg">
-            {locked ? 'Too many attempts. Try again in 15 minutes.' : 'That link or code is not valid.'}
+            Enter the access code.
           </p>
         ) : null}
-        <Button type="submit" className="w-full" disabled={verify.isPending || !code.trim()}>
+        {verify.error ? (
+          <p role="alert" className="text-sm text-danger-fg">
+            {locked
+              ? 'Too many attempts. Try again in 15 minutes.'
+              : statusOf(verify.error) === 401 || statusOf(verify.error) === 404
+                ? 'That link or code is not valid.'
+                : errorMessage(verify.error, 'Could not verify the code. Please try again.')}
+          </p>
+        ) : null}
+        <Button type="submit" className="w-full" disabled={verify.isPending}>
           {verify.isPending ? 'Checking…' : 'Open portal'}
         </Button>
       </form>
@@ -96,7 +117,8 @@ export function PortalPage() {
 
   const logout = useMutation({
     mutationFn: portalApi.logout,
-    onSettled: () => queryClient.resetQueries({ queryKey: portalQueryKeys.all })
+    onSuccess: () => queryClient.resetQueries({ queryKey: portalQueryKeys.all }),
+    onError: toastError('Could not log out. Please try again.')
   });
 
   if (me.isLoading) {
@@ -115,7 +137,9 @@ export function PortalPage() {
   if (me.error || !me.data) {
     return (
       <PortalShell>
-        <p className="text-sm text-danger-fg">The portal is unavailable right now. Please try again later.</p>
+        <p role="alert" className="text-sm text-danger-fg">
+          {me.error ? errorMessage(me.error, 'The portal is unavailable right now.') : 'The portal is unavailable right now.'} Please try again later.
+        </p>
       </PortalShell>
     );
   }
@@ -168,7 +192,7 @@ function Empty({ children }: { children: ReactNode }) {
 
 function SectionState({ isLoading, error }: { isLoading: boolean; error: unknown }) {
   if (isLoading) return <p className="text-sm text-ink-500">Loading…</p>;
-  if (error) return <p className="text-sm text-danger-fg">Could not load this section.</p>;
+  if (error) return <p role="alert" className="text-sm text-danger-fg">{errorMessage(error, 'Could not load this section.')}</p>;
   return null;
 }
 
@@ -304,9 +328,9 @@ function DownloadButton({ id, filename, packFile }: { id: string; filename: stri
       } else {
         window.location.href = url;
       }
-    } catch {
+    } catch (error) {
       tab?.close();
-      toast.error('Download failed');
+      toast.error(errorMessage(error, 'Download failed'));
     } finally {
       setPending(false);
     }

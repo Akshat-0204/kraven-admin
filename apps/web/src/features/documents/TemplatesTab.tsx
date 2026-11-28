@@ -4,6 +4,8 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ExternalLink } from 'lucide-react';
 import { type FormEvent, useState } from 'react';
 import { toast } from 'sonner';
+import { ApiError, errorMessage } from '../../lib/api';
+import { toastError } from '../../lib/formErrors';
 import { Button } from '../../components/ui/button';
 import { Card } from '../../components/ui/card';
 import { EmptyState } from '../../components/ui/emptyState';
@@ -22,7 +24,7 @@ export function TemplatesTab({ onEdit }: { onEdit: (template: DocumentTemplateRe
   const remove = useMutation({
     mutationFn: deleteDocumentTemplate,
     onSuccess: () => queryClient.invalidateQueries({ queryKey: documentQueryKeys.templates }),
-    onError: (error) => toast.error(error.message)
+    onError: toastError('Could not delete the template')
   });
 
   if (templatesQuery.isLoading) {
@@ -34,7 +36,7 @@ export function TemplatesTab({ onEdit }: { onEdit: (template: DocumentTemplateRe
   }
   if (templatesQuery.isError) {
     return (
-      <Card className="font-body text-sm text-danger-fg">Unable to load templates.</Card>
+      <Card role="alert" className="font-body text-sm text-danger-fg">{errorMessage(templatesQuery.error, 'Unable to load templates.')}</Card>
     );
   }
   if (templates.length === 0) {
@@ -100,6 +102,7 @@ export function TemplateDialog({ template, onClose }: { template?: DocumentTempl
   const [name, setName] = useState(template?.name ?? '');
   const [type, setType] = useState<DocumentTemplateType>(template?.type ?? 'Proposal');
   const [googleDocUrl, setGoogleDocUrl] = useState(template?.googleDocUrl ?? '');
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   const save = useMutation({
     mutationFn: () =>
@@ -110,20 +113,29 @@ export function TemplateDialog({ template, onClose }: { template?: DocumentTempl
       void queryClient.invalidateQueries({ queryKey: documentQueryKeys.templates });
       onClose();
     },
-    onError: (error) => toast.error(error.message)
+    onError: (error) => {
+      setErrors(error instanceof ApiError ? error.fieldErrors : {});
+      toast.error(errorMessage(error, 'Could not save the template'));
+    }
   });
 
   function submit(event: FormEvent) {
     event.preventDefault();
+    if (!googleDocUrl.trim()) {
+      setErrors({ googleDocUrl: 'Paste the link to the Google Doc' });
+      return;
+    }
+    setErrors({});
     save.mutate();
   }
 
   return (
     <Modal open size="sm" title={template ? 'Edit template' : 'New template'} onClose={onClose}>
-      <form onSubmit={submit} className="space-y-4">
+      <form onSubmit={submit} noValidate className="space-y-4">
         <label className="block space-y-1 font-body text-sm">
           <span className="text-ink-500">Name (optional, defaults to the Google Doc title)</span>
           <Input value={name} onChange={(event) => setName(event.target.value)} />
+          {errors.name ? <span className="block text-xs text-danger-fg">{errors.name}</span> : null}
         </label>
         <label className="block space-y-1 font-body text-sm">
           <span className="text-ink-500">Type</span>
@@ -136,19 +148,22 @@ export function TemplateDialog({ template, onClose }: { template?: DocumentTempl
           </Select>
         </label>
         <label className="block space-y-1 font-body text-sm">
-          <span className="text-ink-500">Google Doc link</span>
+          <span className="text-ink-500">
+            Google Doc link <span className="text-danger-fg">*</span>
+          </span>
           <Input
-            required
+            aria-invalid={Boolean(errors.googleDocUrl)}
             placeholder="https://docs.google.com/document/d/..."
             value={googleDocUrl}
             onChange={(event) => setGoogleDocUrl(event.target.value)}
           />
+          {errors.googleDocUrl ? <span className="block text-xs text-danger-fg">{errors.googleDocUrl}</span> : null}
         </label>
         <div className="flex justify-end gap-2 border-t border-[rgba(120,110,90,0.12)] pt-4">
           <Button type="button" className="bg-transparent shadow-none" onClick={onClose}>
             Cancel
           </Button>
-          <Button type="submit" disabled={save.isPending || !googleDocUrl.trim()}>
+          <Button type="submit" disabled={save.isPending}>
             {save.isPending ? 'Checking link...' : 'Save'}
           </Button>
         </div>

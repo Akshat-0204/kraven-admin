@@ -4,6 +4,8 @@ import { Plus, Star, Trash2 } from 'lucide-react';
 import { type FormEvent, useState } from 'react';
 import { toast } from 'sonner';
 import { Button, Card, CardHeader, EmptyState, Input, LoadingState } from '../../components/ui';
+import { ApiError, errorMessage } from '../../lib/api';
+import { toastError } from '../../lib/formErrors';
 import { createPayeeProfile, deletePayeeProfile, listPayeeProfiles, portalAdminQueryKeys, updatePayeeProfile } from './portalApi';
 
 /** Settings section: UPI payee profiles used by the client portal's Pay page. */
@@ -12,6 +14,7 @@ export function PayeeProfilesSection() {
   const query = useQuery({ queryKey: portalAdminQueryKeys.payees, queryFn: listPayeeProfiles });
   const [name, setName] = useState('');
   const [vpa, setVpa] = useState('');
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
   const refresh = () => queryClient.invalidateQueries({ queryKey: portalAdminQueryKeys.payees });
 
@@ -23,28 +26,36 @@ export function PayeeProfilesSection() {
       await refresh();
       toast.success('Payee added');
     },
-    onError: (error) => toast.error(error.message)
+    onError: (error) => {
+      if (error instanceof ApiError && Object.keys(error.fieldErrors).length > 0) setFieldErrors(error.fieldErrors);
+      toast.error(errorMessage(error, 'Could not add the payee'));
+    }
   });
 
   const makeDefault = useMutation({
     mutationFn: (id: string) => updatePayeeProfile(id, { isDefault: true }),
     onSuccess: refresh,
-    onError: (error) => toast.error(error.message)
+    onError: toastError('Could not set the default payee')
   });
 
   const remove = useMutation({
     mutationFn: deletePayeeProfile,
     onSuccess: refresh,
-    onError: (error) => toast.error(error.message)
+    onError: toastError('Could not delete the payee')
   });
 
   function submit(event: FormEvent) {
     event.preventDefault();
     const parsed = payeeProfileSchema.safeParse({ name, vpa, isDefault: (query.data?.payeeProfiles.length ?? 0) === 0 });
     if (!parsed.success) {
-      toast.error(parsed.error.issues[0]?.message ?? 'Enter a name and UPI ID');
+      const next: Record<string, string> = {};
+      for (const issue of parsed.error.issues) next[String(issue.path[0] ?? '_form')] ??= issue.message;
+      if (!name.trim()) next.name = 'Enter the account name';
+      if (!vpa.trim()) next.vpa = 'Enter the UPI ID';
+      setFieldErrors(next);
       return;
     }
+    setFieldErrors({});
     create.mutate(parsed.data);
   }
 
@@ -61,7 +72,12 @@ export function PayeeProfilesSection() {
         {query.isLoading ? <li>
             <LoadingState label="Loading payee accounts..." className="py-4" />
           </li> : null}
-        {!query.isLoading && payees.length === 0 ? (
+        {query.isError ? (
+          <li role="alert" className="font-body text-sm text-danger-fg">
+            {errorMessage(query.error, 'Unable to load payee accounts.')}
+          </li>
+        ) : null}
+        {!query.isLoading && !query.isError && payees.length === 0 ? (
           <li>
             <EmptyState title="No payees configured yet. Add one below to enable UPI payments." className="py-6" />
           </li>
@@ -119,33 +135,37 @@ export function PayeeProfilesSection() {
         <div className="grid gap-3 sm:grid-cols-2">
           <div>
             <label className="block font-body text-xs font-semibold uppercase tracking-wider text-ink-700 mb-1.5">
-              Account / Business Name
+              Account / Business Name <span className="text-danger-fg">*</span>
             </label>
             <Input
               aria-label="Payee name"
+              aria-invalid={Boolean(fieldErrors.name)}
               placeholder="e.g. Kraven Agency"
               value={name}
               onChange={(event) => setName(event.target.value)}
               className="w-full"
             />
+            {fieldErrors.name ? <p className="mt-1 font-body text-xs text-danger-fg">{fieldErrors.name}</p> : null}
           </div>
           <div>
             <label className="block font-body text-xs font-semibold uppercase tracking-wider text-ink-700 mb-1.5">
-              UPI VPA Identifier
+              UPI VPA Identifier <span className="text-danger-fg">*</span>
             </label>
             <Input
               aria-label="UPI ID"
+              aria-invalid={Boolean(fieldErrors.vpa)}
               placeholder="e.g. kraven@icici"
               value={vpa}
               onChange={(event) => setVpa(event.target.value)}
               className="w-full"
             />
+            {fieldErrors.vpa ? <p className="mt-1 font-body text-xs text-danger-fg">{fieldErrors.vpa}</p> : null}
           </div>
         </div>
 
         <button
           type="submit"
-          disabled={create.isPending || !name.trim() || !vpa.trim()}
+          disabled={create.isPending}
           className="clay-btn clay-btn--primary h-10 px-5 rounded-pill font-body text-xs font-medium text-white shadow-clay-green disabled:opacity-50 inline-flex items-center gap-1.5"
         >
           <Plus className="h-3.5 w-3.5" />

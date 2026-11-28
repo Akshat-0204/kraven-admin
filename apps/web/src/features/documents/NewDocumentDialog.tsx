@@ -3,6 +3,8 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { FilePlus2, FileText } from 'lucide-react';
 import { type ReactNode, useEffect, useState } from 'react';
 import { toast } from 'sonner';
+import { errorMessage } from '../../lib/api';
+import { toastError } from '../../lib/formErrors';
 import { Modal } from '../../components/ui/modal';
 import { Select } from '../../components/ui/select';
 import { clientQueryKeys, listClients } from '../clients/clientApi';
@@ -56,9 +58,11 @@ export function NewDocumentDialog({ open, onClose, defaultClientId, defaultProje
     onSuccess: ({ document }) => {
       void queryClient.invalidateQueries({ queryKey: documentQueryKeys.documents });
       onClose();
-      window.open(document.webViewLink, '_blank', 'noopener');
+      if (!window.open(document.webViewLink, '_blank', 'noopener')) {
+        toast.message('Document created. Your browser blocked the new tab; open it from the Documents list.');
+      }
     },
-    onError: (error) => toast.error(error.message)
+    onError: toastError('Could not create the document')
   });
 
   if (!open) return null;
@@ -124,7 +128,21 @@ export function NewDocumentDialog({ open, onClose, defaultClientId, defaultProje
             ))}
           </div>
           {templatesQuery.isLoading ? <p className="mt-4 font-body text-sm text-ink-500">Loading templates...</p> : null}
-          {templatesQuery.isError ? <p className="mt-4 font-body text-sm text-danger-fg">Unable to load templates.</p> : null}
+          {templatesQuery.isError ? (
+            <p role="alert" className="mt-4 font-body text-sm text-danger-fg">
+              {errorMessage(templatesQuery.error, 'Unable to load templates.')}
+            </p>
+          ) : null}
+          {clientsQuery.isError ? (
+            <p role="alert" className="mt-2 font-body text-sm text-danger-fg">
+              {errorMessage(clientsQuery.error, 'Unable to load clients.')}
+            </p>
+          ) : null}
+          {adminsQuery.isError ? (
+            <p role="alert" className="mt-2 font-body text-sm text-danger-fg">
+              {errorMessage(adminsQuery.error, 'Unable to load admins for access.')}
+            </p>
+          ) : null}
         </div>
       </div>
     </Modal>

@@ -17,28 +17,38 @@ import type {
   ProjectUpdateRecord
 } from '@kraven/types';
 import type { PayeeProfileInput, ProjectUpdateInput, UpdateProjectUpdateInput } from '@kraven/validation';
-import { apiUrl, requestJson } from '../../lib/api';
+import { ApiError, type FieldErrors, apiUrl, requestJson } from '../../lib/api';
 
 /** Error with the HTTP status, so the portal can tell "needs code" (401) from "locked" (429). */
-export class PortalRequestError extends Error {
-  constructor(
-    message: string,
-    readonly status: number
-  ) {
-    super(message);
+export class PortalRequestError extends ApiError {
+  constructor(message: string, status: number, fieldErrors: FieldErrors = {}) {
+    super(message, status, fieldErrors);
+    this.name = 'PortalRequestError';
   }
 }
 
 async function portalRequest<T>(path: string, options: RequestInit = {}): Promise<T> {
-  const response = await fetch(apiUrl(`/public/portal${path}`), {
-    credentials: 'include',
-    ...options,
-    headers: { 'Content-Type': 'application/json', ...options.headers }
-  });
+  let response: Response;
+  try {
+    response = await fetch(apiUrl(`/public/portal${path}`), {
+      credentials: 'include',
+      ...options,
+      headers: { 'Content-Type': 'application/json', ...options.headers }
+    });
+  } catch {
+    throw new PortalRequestError('Cannot reach the server. Check your connection and try again', 0);
+  }
 
   if (!response.ok) {
-    const body = await response.json().catch(() => ({ message: 'Request failed' }));
-    throw new PortalRequestError(body.message ?? 'Request failed', response.status);
+    const body = (await response.json().catch(() => null)) as { message?: unknown; fieldErrors?: unknown } | null;
+    const message =
+      typeof body?.message === 'string' && body.message.trim()
+        ? body.message
+        : response.status >= 500
+          ? 'Something went wrong on the server. Please try again'
+          : `Request failed (HTTP ${response.status})`;
+    const fieldErrors = body?.fieldErrors && typeof body.fieldErrors === 'object' ? (body.fieldErrors as FieldErrors) : {};
+    throw new PortalRequestError(message, response.status, fieldErrors);
   }
   if (response.status === 204) return undefined as T;
   return response.json() as Promise<T>;

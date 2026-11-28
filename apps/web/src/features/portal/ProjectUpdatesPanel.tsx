@@ -4,6 +4,8 @@ import { Eye, EyeOff, Pencil, Plus, Trash2 } from 'lucide-react';
 import { type FormEvent, useState } from 'react';
 import { toast } from 'sonner';
 import { Button, Card, CardHeader, EmptyState, Input, LoadingState, Textarea } from '../../components/ui';
+import { ApiError, errorMessage } from '../../lib/api';
+import { toastError } from '../../lib/formErrors';
 import {
   createProjectUpdate,
   deleteProjectUpdate,
@@ -33,6 +35,7 @@ export function ProjectUpdatesPanel({ projectId }: { projectId: string }) {
   });
   const [editing, setEditing] = useState<string | 'new' | null>(null);
   const [draft, setDraft] = useState<Draft>(EMPTY);
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   const refresh = () => queryClient.invalidateQueries({ queryKey });
 
@@ -44,25 +47,30 @@ export function ProjectUpdatesPanel({ projectId }: { projectId: string }) {
     onSuccess: async () => {
       setEditing(null);
       setDraft(EMPTY);
+      setErrors({});
       await refresh();
       toast.success('Update saved');
     },
-    onError: (error) => toast.error(error.message)
+    onError: (error) => {
+      if (error instanceof ApiError && Object.keys(error.fieldErrors).length > 0) setErrors(error.fieldErrors);
+      toast.error(errorMessage(error, 'Could not save the update'));
+    }
   });
 
   const toggle = useMutation({
     mutationFn: (update: ProjectUpdateRecord) => updateProjectUpdate(update.id, { clientVisible: !update.clientVisible }),
     onSuccess: refresh,
-    onError: (error) => toast.error(error.message)
+    onError: toastError('Could not change the update visibility')
   });
 
   const remove = useMutation({
     mutationFn: deleteProjectUpdate,
     onSuccess: refresh,
-    onError: (error) => toast.error(error.message)
+    onError: toastError('Could not delete the update')
   });
 
   function startEdit(update?: ProjectUpdateRecord) {
+    setErrors({});
     setEditing(update ? update.id : 'new');
     setDraft(
       update
@@ -73,7 +81,12 @@ export function ProjectUpdatesPanel({ projectId }: { projectId: string }) {
 
   function submit(event: FormEvent) {
     event.preventDefault();
-    if (draft.title.trim()) save.mutate();
+    if (!draft.title.trim()) {
+      setErrors({ title: 'Enter a title for the update' });
+      return;
+    }
+    setErrors({});
+    save.mutate();
   }
 
   function toggleAttachment(id: string, checked: boolean) {
@@ -106,6 +119,9 @@ export function ProjectUpdatesPanel({ projectId }: { projectId: string }) {
       {/* Editing Form */}
       {editing !== null ? (
         <form onSubmit={submit} className="mb-4 space-y-3 rounded-md bg-surface-soft p-4 border border-[rgba(120,110,90,0.14)]">
+          <label className="block font-body text-xs font-semibold text-ink-700">
+            Title <span className="text-danger-fg">*</span>
+          </label>
           <Input
             aria-label="Update title"
             placeholder="Update Title"
@@ -113,6 +129,7 @@ export function ProjectUpdatesPanel({ projectId }: { projectId: string }) {
             onChange={(event) => setDraft({ ...draft, title: event.target.value })}
             className="w-full bg-surface"
           />
+          {errors.title ? <p className="font-body text-xs text-danger-fg">{errors.title}</p> : null}
           <Textarea
             aria-label="Update body"
             placeholder="What progress was made or changed?"
@@ -121,6 +138,7 @@ export function ProjectUpdatesPanel({ projectId }: { projectId: string }) {
             onChange={(event) => setDraft({ ...draft, body: event.target.value })}
             className="w-full bg-surface"
           />
+          {errors.body ? <p className="font-body text-xs text-danger-fg">{errors.body}</p> : null}
           <label className="flex items-center gap-2 font-body text-xs text-ink-900 cursor-pointer pt-1">
             <input
               type="checkbox"
@@ -151,7 +169,7 @@ export function ProjectUpdatesPanel({ projectId }: { projectId: string }) {
           <div className="flex gap-2.5 pt-2">
             <button
               type="submit"
-              disabled={save.isPending || !draft.title.trim()}
+              disabled={save.isPending}
               className="clay-btn clay-btn--primary h-9 px-4 rounded-pill font-body text-xs font-medium text-white shadow-clay-green disabled:opacity-50"
             >
               {save.isPending ? 'Saving...' : 'Save Update'}
@@ -165,7 +183,17 @@ export function ProjectUpdatesPanel({ projectId }: { projectId: string }) {
 
       {/* List */}
       {updates.isLoading ? <LoadingState label="Loading updates..." className="py-4" /> : null}
-      {!updates.isLoading && list.length === 0 ? (
+      {updates.isError ? (
+        <p role="alert" className="font-body text-sm text-danger-fg">
+          {errorMessage(updates.error, 'Unable to load updates.')}
+        </p>
+      ) : null}
+      {files.isError ? (
+        <p role="alert" className="font-body text-xs text-danger-fg">
+          {errorMessage(files.error, 'Unable to load project files for attachments.')}
+        </p>
+      ) : null}
+      {!updates.isLoading && !updates.isError && list.length === 0 ? (
         <EmptyState title="No updates posted yet" className="py-6" />
       ) : null}
       <ul className="space-y-3">

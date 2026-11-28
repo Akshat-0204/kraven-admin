@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { FilePlus2, FileText } from 'lucide-react';
 import { useState } from 'react';
+import { errorMessage } from '../../lib/api';
 import { Button } from '../../components/ui/button';
 import { Card, CardHeader } from '../../components/ui/card';
 import { type DocumentScope, documentQueryKeys, listDocuments } from './documentApi';
@@ -39,7 +40,7 @@ export function DocumentsPanel({ scope }: { scope: DocumentScope }) {
       {documentsQuery.isLoading ? (
         <p className="font-body text-xs text-ink-500">Loading documents...</p>
       ) : documentsQuery.isError ? (
-        <p className="font-body text-sm text-danger-fg">Unable to load documents.</p>
+        <p role="alert" className="font-body text-sm text-danger-fg">{errorMessage(documentsQuery.error, 'Unable to load documents.')}</p>
       ) : documents.length === 0 ? (
         <div className="rounded-md border border-dashed border-[rgba(120,110,90,0.2)] p-6 text-center font-body text-xs text-ink-500">No documents yet</div>
       ) : (

@@ -18,6 +18,7 @@ import { PortalPayPage } from '../features/portal/PortalPayPage';
 import { ProjectDetailPage } from '../features/projects/ProjectDetailPage';
 import { ProjectListPage } from '../features/projects/ProjectListPage';
 import { SettingsPage } from '../features/settings/SettingsPage';
+import { RouteError } from '../components/RouteError';
 import { AppShell } from '../layouts/AppShell';
 import { readStoredWorkspace } from '../layouts/workspace';
 
@@ -27,30 +28,37 @@ function WorkspaceRedirect() {
 }
 
 export const router = createBrowserRouter([
+  // Catch-all error boundary: render crashes and unknown URLs show a message instead of a white screen.
   {
     path: '/login',
-    element: <LoginPage />
+    element: <LoginPage />,
+    errorElement: <RouteError />
   },
   // Client portal: public, outside the admin session and layout.
   {
     path: '/c/:slug',
-    element: <PortalPage />
+    element: <PortalPage />,
+    errorElement: <RouteError />
   },
   {
     path: '/c/:slug/pay/:invoiceId',
-    element: <PortalPayPage />
+    element: <PortalPayPage />,
+    errorElement: <RouteError />
   },
   {
     path: '/c/:slug/pay-item/:packId/:itemId',
-    element: <PortalPayPage />
+    element: <PortalPayPage />,
+    errorElement: <RouteError />
   },
   {
     path: '/c/:slug/sign/:documentId',
-    element: <PortalSignPage />
+    element: <PortalSignPage />,
+    errorElement: <RouteError />
   },
   {
     path: '/',
     element: <ProtectedRoute />,
+    errorElement: <RouteError />,
     children: [
       {
         element: <AppShell />,
@@ -122,5 +130,6 @@ export const router = createBrowserRouter([
         ]
       }
     ]
-  }
+  },
+  { path: '*', element: <RouteError /> }
 ]);

@@ -3,6 +3,8 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { type FormEvent, useState } from 'react';
 import { toast } from 'sonner';
 import { Button, Card, CardHeader, EmptyState, Input } from '../../components/ui';
+import { ApiError, errorMessage } from '../../lib/api';
+import { toastError } from '../../lib/formErrors';
 import { documentQueryKeys, listDocuments } from '../documents/documentApi';
 import {
   createPack,
@@ -18,6 +20,7 @@ import {
 function SignatureAudit({ documentId }: { documentId: string }) {
   const query = useQuery({ queryKey: packQueryKeys.signature(documentId), queryFn: () => getDocumentSignature(documentId) });
   const signature = query.data?.signature;
+  if (query.isError) return <p role="alert" className="mt-2 text-xs text-danger-fg">{errorMessage(query.error, 'Unable to load signature details.')}</p>;
   if (!signature) return null;
   return (
     <dl className="mt-2 grid grid-cols-[auto_1fr] gap-x-2 gap-y-1 text-[11px] font-body text-ink-500 bg-surface p-2.5 rounded border border-[rgba(120,110,90,0.1)]">
@@ -40,9 +43,10 @@ function PackCard({ pack, onChange }: { pack: PackRecord; onChange: () => void }
     mutationFn: (email: boolean) => sendPack(pack.id, email),
     onSuccess: (result) => {
       if (result.emailError) toast.error(`Pack sent, but email failed: ${result.emailError}`);
+      else toast.success('Pack sent');
       onChange();
     },
-    onError: (e) => toast.error(e.message)
+    onError: toastError('Could not send the pack')
   });
   const email = useMutation({
     mutationFn: () => emailPack(pack.id),
@@ -50,13 +54,13 @@ function PackCard({ pack, onChange }: { pack: PackRecord; onChange: () => void }
       toast.success('Email queued');
       onChange();
     },
-    onError: (e) => toast.error(e.message)
+    onError: toastError('Could not email the client')
   });
-  const remove = useMutation({ mutationFn: () => deletePack(pack.id), onSuccess: onChange, onError: (e) => toast.error(e.message) });
+  const remove = useMutation({ mutationFn: () => deletePack(pack.id), onSuccess: onChange, onError: toastError('Could not delete the pack') });
   const advance = useMutation({
     mutationFn: ({ itemId, status }: { itemId: string; status: 'Sent' | 'Paid' }) => setPackPaymentStatus(pack.id, itemId, status),
     onSuccess: onChange,
-    onError: (e) => toast.error(e.message)
+    onError: toastError('Could not update the payment status')
   });
 
   return (
@@ -91,7 +95,10 @@ function PackCard({ pack, onChange }: { pack: PackRecord; onChange: () => void }
           <button
             type="button"
             className="h-8 px-3 rounded-pill font-body text-xs font-medium text-danger-fg hover:bg-danger-fg/10 transition-colors"
-            onClick={() => remove.mutate()}
+            disabled={remove.isPending}
+            onClick={() => {
+              if (window.confirm(`Delete pack "${pack.title}"?`)) remove.mutate();
+            }}
           >
             Delete
           </button>
@@ -134,6 +141,7 @@ export function PacksPanel({ clientId }: { clientId: string }) {
   const [selected, setSelected] = useState<string[]>([]);
   const [payLabel, setPayLabel] = useState('');
   const [payAmount, setPayAmount] = useState('');
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   const refresh = () => {
     void queryClient.invalidateQueries({ queryKey: key });
@@ -154,14 +162,23 @@ export function PacksPanel({ clientId }: { clientId: string }) {
       setSelected([]);
       setPayLabel('');
       setPayAmount('');
+      setErrors({});
       refresh();
     },
-    onError: (e) => toast.error(e.message)
+    onError: (e) => {
+      if (e instanceof ApiError && Object.keys(e.fieldErrors).length > 0) setErrors(e.fieldErrors);
+      toast.error(errorMessage(e, 'Could not create the pack'));
+    }
   });
 
   function submit(event: FormEvent) {
     event.preventDefault();
-    if (title.trim()) create.mutate();
+    const next: Record<string, string> = {};
+    if (!title.trim()) next.title = 'Enter a pack title';
+    if (payAmount && !payLabel.trim()) next.payLabel = 'Enter a label for the payment item';
+    if (payLabel.trim() && !(Number(payAmount) > 0)) next.payAmount = 'Enter an amount greater than 0';
+    setErrors(next);
+    if (Object.keys(next).length === 0) create.mutate();
   }
 
   return (
@@ -171,6 +188,16 @@ export function PacksPanel({ clientId }: { clientId: string }) {
         subtitle="Group agreements and payment requests into signed workflows."
       />
 
+      {packs.isError ? (
+        <p role="alert" className="font-body text-sm text-danger-fg">
+          {errorMessage(packs.error, 'Unable to load packs.')}
+        </p>
+      ) : null}
+      {documents.isError ? (
+        <p role="alert" className="font-body text-xs text-danger-fg">
+          {errorMessage(documents.error, 'Unable to load documents to attach.')}
+        </p>
+      ) : null}
       <ul className="space-y-3">
         {(packs.data?.packs ?? []).map((pack) => (
           <PackCard key={pack.id} pack={pack} onChange={refresh} />
@@ -185,9 +212,10 @@ export function PacksPanel({ clientId }: { clientId: string }) {
       <form onSubmit={submit} className="space-y-3 pt-2 border-t border-[rgba(120,110,90,0.12)]">
         <div>
           <label className="block font-body text-xs font-semibold uppercase tracking-wider text-ink-700 mb-1.5">
-            New Pack Title
+            New Pack Title <span className="text-danger-fg">*</span>
           </label>
           <Input aria-label="Pack title" placeholder="e.g. Master Agreement & Retainer" value={title} onChange={(e) => setTitle(e.target.value)} />
+          {errors.title ? <p className="mt-1 font-body text-xs text-danger-fg">{errors.title}</p> : null}
         </div>
 
         {(documents.data?.documents ?? []).length > 0 && (
@@ -209,13 +237,19 @@ export function PacksPanel({ clientId }: { clientId: string }) {
         )}
 
         <div className="grid gap-2 sm:grid-cols-2">
-          <Input aria-label="Payment label" placeholder="Payment item (optional, e.g. Advance)" value={payLabel} onChange={(e) => setPayLabel(e.target.value)} />
-          <Input aria-label="Payment amount" type="number" min="0" placeholder="Amount (INR)" value={payAmount} onChange={(e) => setPayAmount(e.target.value)} />
+          <div>
+            <Input aria-label="Payment label" placeholder="Payment item (optional, e.g. Advance)" value={payLabel} onChange={(e) => setPayLabel(e.target.value)} />
+            {errors.payLabel ? <p className="mt-1 font-body text-xs text-danger-fg">{errors.payLabel}</p> : null}
+          </div>
+          <div>
+            <Input aria-label="Payment amount" type="number" min="0" placeholder="Amount (INR)" value={payAmount} onChange={(e) => setPayAmount(e.target.value)} />
+            {errors.payAmount ? <p className="mt-1 font-body text-xs text-danger-fg">{errors.payAmount}</p> : null}
+          </div>
         </div>
 
         <button
           type="submit"
-          disabled={create.isPending || !title.trim()}
+          disabled={create.isPending}
           className="clay-btn clay-btn--primary h-9 px-4 rounded-pill font-body text-xs font-medium text-white shadow-clay-green disabled:opacity-50"
         >
           {create.isPending ? 'Creating...' : 'Create Pack'}

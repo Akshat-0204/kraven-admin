@@ -4,6 +4,8 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ExternalLink, FileDown, Lock, LockOpen, RefreshCw, Share2, Trash2, Users, Pencil } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
+import { ApiError, errorMessage } from '../../lib/api';
+import { toastError } from '../../lib/formErrors';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Modal } from '../../components/ui/modal';
@@ -42,6 +44,7 @@ function SavePdfDialog({ document, onClose }: { document: DocumentListItem; onCl
     `${slug(document.client?.companyName ?? 'client')}_${slug(initial)}_${new Date().toISOString().slice(0, 10)}.pdf`
   );
   const [clientVisible, setClientVisible] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const mutation = useMutation({
     mutationFn: () => saveDocumentPdf(document.id, { category, filename, clientVisible }),
     onSuccess: () => {
@@ -50,8 +53,16 @@ function SavePdfDialog({ document, onClose }: { document: DocumentListItem; onCl
       void queryClient.invalidateQueries({ queryKey: ['files'] });
       onClose();
     },
-    onError: (error) => toast.error(error.message)
+    onError: (error) => {
+      setError(error instanceof ApiError && error.fieldErrors.filename ? error.fieldErrors.filename : null);
+      toast.error(errorMessage(error, 'Could not save the PDF'));
+    }
   });
+  function submit() {
+    if (!filename.trim()) return setError('Enter a filename');
+    setError(null);
+    mutation.mutate();
+  }
   return (
     <Modal
       open
@@ -63,7 +74,7 @@ function SavePdfDialog({ document, onClose }: { document: DocumentListItem; onCl
           <Button className="bg-transparent shadow-none" onClick={onClose}>
             Cancel
           </Button>
-          <Button disabled={mutation.isPending || !filename.trim()} onClick={() => mutation.mutate()}>
+          <Button disabled={mutation.isPending} onClick={submit}>
             {mutation.isPending ? 'Saving...' : 'Save PDF'}
           </Button>
         </>
@@ -79,8 +90,11 @@ function SavePdfDialog({ document, onClose }: { document: DocumentListItem; onCl
         </Select>
       </label>
       <label className="block space-y-1 font-body text-sm">
-        <span className="text-ink-500">Filename</span>
-        <Input aria-label="Filename" value={filename} onChange={(event) => setFilename(event.target.value)} />
+        <span className="text-ink-500">
+          Filename <span className="text-danger-fg">*</span>
+        </span>
+        <Input aria-label="Filename" aria-invalid={Boolean(error)} value={filename} onChange={(event) => setFilename(event.target.value)} />
+        {error ? <span className="block text-xs text-danger-fg">{error}</span> : null}
       </label>
       <label className="flex items-center gap-2 font-body text-sm text-ink-700">
         <input type="checkbox" className="accent-olive-700" checked={clientVisible} onChange={(event) => setClientVisible(event.target.checked)} />
@@ -94,14 +108,23 @@ function SavePdfDialog({ document, onClose }: { document: DocumentListItem; onCl
 function RenameDialog({ document, onClose }: { document: DocumentListItem; onClose: () => void }) {
   const queryClient = useQueryClient();
   const [title, setTitle] = useState(document.title);
+  const [error, setError] = useState<string | null>(null);
   const mutation = useMutation({
     mutationFn: () => updateDocument(document.id, { title: title.trim() }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: documentQueryKeys.documents });
       onClose();
     },
-    onError: (error) => toast.error(error.message)
+    onError: (error) => {
+      setError(error instanceof ApiError && error.fieldErrors.title ? error.fieldErrors.title : null);
+      toast.error(errorMessage(error, 'Could not rename the document'));
+    }
   });
+  function submit() {
+    if (!title.trim()) return setError('Enter a title');
+    setError(null);
+    mutation.mutate();
+  }
   return (
     <Modal
       open
@@ -113,13 +136,19 @@ function RenameDialog({ document, onClose }: { document: DocumentListItem; onClo
           <Button className="bg-transparent shadow-none" onClick={onClose}>
             Cancel
           </Button>
-          <Button disabled={mutation.isPending || !title.trim()} onClick={() => mutation.mutate()}>
+          <Button disabled={mutation.isPending} onClick={submit}>
             Rename
           </Button>
         </>
       }
     >
-      <Input aria-label="Title" value={title} onChange={(event) => setTitle(event.target.value)} />
+      <label className="block space-y-1 font-body text-sm">
+        <span className="text-ink-500">
+          Title <span className="text-danger-fg">*</span>
+        </span>
+        <Input aria-label="Title" aria-invalid={Boolean(error)} value={title} onChange={(event) => setTitle(event.target.value)} />
+        {error ? <span className="block text-xs text-danger-fg">{error}</span> : null}
+      </label>
     </Modal>
   );
 }
@@ -134,7 +163,7 @@ function AccessDialog({ document, onClose }: { document: DocumentListItem; onClo
       void queryClient.invalidateQueries({ queryKey: documentQueryKeys.documents });
       onClose();
     },
-    onError: (error) => toast.error(error.message)
+    onError: toastError('Could not update access')
   });
   return (
     <Modal
@@ -153,6 +182,11 @@ function AccessDialog({ document, onClose }: { document: DocumentListItem; onClo
         </>
       }
     >
+      {adminsQuery.isError ? (
+        <p role="alert" className="mb-2 font-body text-xs text-danger-fg">
+          {errorMessage(adminsQuery.error, 'Unable to load admins.')}
+        </p>
+      ) : null}
       <AccessPicker value={access} onChange={setAccess} admins={adminsQuery.data?.admins} />
     </Modal>
   );
@@ -168,7 +202,7 @@ export function DocumentActions({ document }: { document: DocumentListItem }) {
   const isDraft = document.status === 'Draft';
   const refresh = () => queryClient.invalidateQueries({ queryKey: documentQueryKeys.documents });
   const run = <T,>(fn: () => Promise<T>, success?: string) =>
-    useMutation({ mutationFn: fn, onSuccess: () => { if (success) toast.success(success); void refresh(); }, onError: (error: Error) => toast.error(error.message) });
+    useMutation({ mutationFn: fn, onSuccess: () => { if (success) toast.success(success); void refresh(); }, onError: toastError('Action failed') });
 
   const share = run(() => shareDocument(document.id), 'Shared with client portal');
   const revise = run(() => reviseDocument(document.id), 'Unlocked for editing');

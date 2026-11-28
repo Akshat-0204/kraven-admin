@@ -2,6 +2,8 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Mail, Send } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button, Card, CardHeader, EmptyState } from '../../components/ui';
+import { errorMessage } from '../../lib/api';
+import { toastError } from '../../lib/formErrors';
 import { emailQueryKeys, listClientEmails, sendPortalEmail } from './portalApi';
 
 /** Client page panel: email the portal link (never the code) and see what was sent. */
@@ -15,7 +17,7 @@ export function EmailLogPanel({ clientId, hasEmail }: { clientId: string; hasEma
       toast.success('Portal link email queued');
       queryClient.invalidateQueries({ queryKey: key });
     },
-    onError: (error) => toast.error(error.message)
+    onError: toastError('Could not send the portal link email')
   });
   const emails = query.data?.emails ?? [];
 
@@ -43,7 +45,11 @@ export function EmailLogPanel({ clientId, hasEmail }: { clientId: string; hasEma
           : 'Please add an email address to this client record before sending notifications.'}
       </p>
 
-      {emails.length === 0 ? (
+      {query.isError ? (
+        <p role="alert" className="font-body text-sm text-danger-fg">
+          {errorMessage(query.error, 'Unable to load the email log.')}
+        </p>
+      ) : emails.length === 0 ? (
         <EmptyState title="No portal emails dispatched yet" className="py-6" />
       ) : (
         <ul className="space-y-2.5">
