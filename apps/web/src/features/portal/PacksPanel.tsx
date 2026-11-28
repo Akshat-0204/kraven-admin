@@ -2,8 +2,7 @@ import type { PackRecord } from '@kraven/types';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { type FormEvent, useState } from 'react';
 import { toast } from 'sonner';
-import { Button } from '../../components/ui/button';
-import { Input } from '../../components/ui/input';
+import { Button, Card, CardHeader, EmptyState, Input } from '../../components/ui';
 import { documentQueryKeys, listDocuments } from '../documents/documentApi';
 import {
   createPack,
@@ -72,32 +71,22 @@ function PackCard({ pack, onChange }: { pack: PackRecord; onChange: () => void }
         <div className="flex flex-wrap items-center gap-2">
           {pack.status === 'Draft' ? (
             <>
-              <button
-                type="button"
-                onClick={() => send.mutate(false)}
-                disabled={send.isPending}
-                className="clay-btn clay-btn--secondary h-8 px-3 rounded-pill font-body text-xs font-medium text-ink-900 bg-surface shadow-[var(--clay-raised-sm)] border border-white/80 hover:text-olive-700"
-              >
+              <Button type="button" onClick={() => send.mutate(false)} disabled={send.isPending} className="h-8 px-3 text-xs">
                 Send
-              </button>
+              </Button>
               <button
                 type="button"
                 onClick={() => send.mutate(true)}
                 disabled={send.isPending}
-                className="clay-btn clay-btn--primary h-8 px-3 rounded-pill font-body text-xs font-medium text-white shadow-[var(--clay-green)]"
+                className="clay-btn clay-btn--primary h-8 px-3 rounded-pill font-body text-xs font-medium text-white shadow-clay-green"
               >
                 Send + email
               </button>
             </>
           ) : pack.status === 'Sent' ? (
-            <button
-              type="button"
-              onClick={() => email.mutate()}
-              disabled={email.isPending}
-              className="clay-btn clay-btn--secondary h-8 px-3 rounded-pill font-body text-xs font-medium text-ink-900 bg-surface shadow-[var(--clay-raised-sm)] border border-white/80 hover:text-olive-700"
-            >
+            <Button type="button" onClick={() => email.mutate()} disabled={email.isPending} className="h-8 px-3 text-xs">
               Email client
-            </button>
+            </Button>
           ) : null}
           <button
             type="button"
@@ -118,13 +107,13 @@ function PackCard({ pack, onChange }: { pack: PackRecord; onChange: () => void }
                 {item.kind === 'payment' ? ` · INR ${item.amount} · ${item.paymentStatus}` : ''}
               </span>
               {item.kind === 'payment' && item.paymentStatus !== 'Paid' ? (
-                <button
+                <Button
                   type="button"
-                  className="clay-btn clay-btn--secondary h-7 px-2.5 rounded-pill font-body text-[11px] font-medium text-ink-900 bg-surface shadow-[var(--clay-raised-sm)] border border-white/80 hover:text-olive-700"
+                  className="h-7 px-2.5 text-[11px]"
                   onClick={() => advance.mutate({ itemId: item.id, status: item.paymentStatus === 'Pending' ? 'Sent' : 'Paid' })}
                 >
                   Mark {item.paymentStatus === 'Pending' ? 'Sent' : 'Paid'}
-                </button>
+                </Button>
               ) : null}
             </div>
             {item.kind === 'document' && item.documentStatus === 'Signed' && item.document ? <SignatureAudit documentId={item.document} /> : null}
@@ -176,19 +165,19 @@ export function PacksPanel({ clientId }: { clientId: string }) {
   }
 
   return (
-    <section className="clay-card p-6 rounded-lg border border-white/80 shadow-[var(--clay-raised)] bg-surface space-y-4">
-      <div className="border-b border-[rgba(120,110,90,0.12)] pb-3">
-        <h2 className="font-display text-base font-bold text-ink-900">Document & Payment Packs</h2>
-        <p className="font-body text-xs text-ink-500">Group agreements and payment requests into signed workflows.</p>
-      </div>
+    <Card className="space-y-4">
+      <CardHeader
+        title="Document & Payment Packs"
+        subtitle="Group agreements and payment requests into signed workflows."
+      />
 
       <ul className="space-y-3">
         {(packs.data?.packs ?? []).map((pack) => (
           <PackCard key={pack.id} pack={pack} onChange={refresh} />
         ))}
         {packs.data?.packs.length === 0 ? (
-          <li className="rounded-md border border-dashed border-[rgba(120,110,90,0.2)] p-4 text-center font-body text-xs text-ink-500">
-            No packs created yet
+          <li>
+            <EmptyState title="No packs created yet" className="py-6" />
           </li>
         ) : null}
       </ul>
@@ -227,11 +216,11 @@ export function PacksPanel({ clientId }: { clientId: string }) {
         <button
           type="submit"
           disabled={create.isPending || !title.trim()}
-          className="clay-btn clay-btn--primary h-9 px-4 rounded-pill font-body text-xs font-medium text-white shadow-[var(--clay-green)] disabled:opacity-50"
+          className="clay-btn clay-btn--primary h-9 px-4 rounded-pill font-body text-xs font-medium text-white shadow-clay-green disabled:opacity-50"
         >
           {create.isPending ? 'Creating...' : 'Create Pack'}
         </button>
       </form>
-    </section>
+    </Card>
   );
 }

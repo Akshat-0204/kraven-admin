@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Mail, Send } from 'lucide-react';
 import { toast } from 'sonner';
+import { Button, Card, CardHeader, EmptyState } from '../../components/ui';
 import { emailQueryKeys, listClientEmails, sendPortalEmail } from './portalApi';
 
 /** Client page panel: email the portal link (never the code) and see what was sent. */
@@ -19,23 +20,22 @@ export function EmailLogPanel({ clientId, hasEmail }: { clientId: string; hasEma
   const emails = query.data?.emails ?? [];
 
   return (
-    <section className="clay-card p-6 rounded-lg border border-white/80 shadow-[var(--clay-raised)] bg-surface space-y-4">
-      {/* Header */}
-      <div className="flex items-center justify-between border-b border-[rgba(120,110,90,0.12)] pb-3">
-        <div>
-          <h2 className="font-display text-base font-bold text-ink-900">Portal Communications</h2>
-          <p className="font-body text-xs text-ink-500">Dispatch direct link to the client portal</p>
-        </div>
-        <button
-          type="button"
-          onClick={() => send.mutate()}
-          disabled={send.isPending || !hasEmail}
-          className="clay-btn clay-btn--secondary h-9 px-3.5 rounded-pill flex items-center gap-1.5 text-xs font-body font-medium text-ink-900 bg-surface shadow-[var(--clay-raised-sm)] border border-white/80 hover:text-olive-700 disabled:opacity-50"
-        >
-          <Mail className="h-3.5 w-3.5" aria-hidden="true" />
-          <span>Email portal link</span>
-        </button>
-      </div>
+    <Card className="space-y-4">
+      <CardHeader
+        title="Portal Communications"
+        subtitle="Dispatch direct link to the client portal"
+        actions={
+          <Button
+            type="button"
+            onClick={() => send.mutate()}
+            disabled={send.isPending || !hasEmail}
+            className="h-9 gap-1.5 px-3.5 text-xs"
+          >
+            <Mail className="h-3.5 w-3.5" aria-hidden="true" />
+            <span>Email portal link</span>
+          </Button>
+        }
+      />
 
       <p className="font-body text-xs text-ink-500">
         {hasEmail
@@ -44,9 +44,7 @@ export function EmailLogPanel({ clientId, hasEmail }: { clientId: string; hasEma
       </p>
 
       {emails.length === 0 ? (
-        <div className="rounded-md border border-dashed border-[rgba(120,110,90,0.2)] p-4 text-center font-body text-xs text-ink-500">
-          No portal emails dispatched yet
-        </div>
+        <EmptyState title="No portal emails dispatched yet" className="py-6" />
       ) : (
         <ul className="space-y-2.5">
           {emails.map((email) => (
@@ -73,6 +71,6 @@ export function EmailLogPanel({ clientId, hasEmail }: { clientId: string; hasEma
           ))}
         </ul>
       )}
-    </section>
+    </Card>
   );
 }

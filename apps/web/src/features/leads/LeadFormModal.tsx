@@ -2,12 +2,8 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { LEAD_STATUSES } from '@kraven/config';
 import type { LeadRecord } from '@kraven/types';
 import { leadSchema, type LeadInput } from '@kraven/validation';
-import { X } from 'lucide-react';
 import { useForm } from 'react-hook-form';
-import { Button } from '../../components/ui/button';
-import { Input } from '../../components/ui/input';
-import { Select } from '../../components/ui/select';
-import { Textarea } from '../../components/ui/textarea';
+import { Button, Input, Modal, Select, Textarea } from '../../components/ui';
 
 interface LeadFormModalProps {
   lead?: LeadRecord | null;
@@ -60,31 +56,13 @@ export function LeadFormModal({ lead, isOpen, onClose, onSubmit }: LeadFormModal
   }
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6"
-      style={{ backgroundColor: 'rgba(235, 233, 227, 0.7)' }}
+    <Modal
+      open={isOpen}
+      onClose={onClose}
+      size="lg"
+      title={lead ? 'Edit Lead' : 'Create New Lead'}
+      description={lead ? 'Update lead information and status' : 'Enter lead contact and opportunity details'}
     >
-      <div className="clay-card w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-xl p-6 sm:p-8 border border-white/90 shadow-[var(--clay-floating)] bg-surface animate-in fade-in zoom-in-95 duration-150">
-        {/* Modal Header */}
-        <div className="flex items-center justify-between border-b border-[rgba(120,110,90,0.12)] pb-4 mb-6">
-          <div>
-            <h2 className="font-display text-xl font-bold text-ink-900">
-              {lead ? 'Edit Lead' : 'Create New Lead'}
-            </h2>
-            <p className="font-body text-xs text-ink-500">
-              {lead ? 'Update lead information and status' : 'Enter lead contact and opportunity details'}
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Close modal"
-            className="flex h-8 w-8 items-center justify-center rounded-sm bg-surface shadow-[var(--clay-raised-sm)] border border-white/80 text-ink-500 hover:text-ink-900 hover:shadow-[var(--clay-hover)] transition-all"
-          >
-            <X className="h-4 w-4" aria-hidden="true" />
-          </button>
-        </div>
-
         {/* Modal Form */}
         <form className="space-y-6" onSubmit={handleSubmit(submit)}>
           <div className="grid gap-6 md:grid-cols-2">
@@ -211,23 +189,18 @@ export function LeadFormModal({ lead, isOpen, onClose, onSubmit }: LeadFormModal
 
           {/* Modal Actions */}
           <div className="flex items-center justify-end gap-3 pt-4 border-t border-[rgba(120,110,90,0.12)]">
-            <button
-              type="button"
-              className="clay-btn clay-btn--secondary h-11 px-5 rounded-pill font-body text-sm font-medium text-ink-900 bg-surface shadow-[var(--clay-raised-sm)] border border-white/80 hover:text-ink-700"
-              onClick={onClose}
-            >
+            <Button type="button" className="h-11 px-5" onClick={onClose}>
               Cancel
-            </button>
+            </Button>
             <button
               type="submit"
               disabled={isSubmitting}
-              className="clay-btn clay-btn--primary h-11 px-6 rounded-pill font-body text-sm font-medium text-white shadow-[var(--clay-green)] disabled:opacity-50"
+              className="clay-btn clay-btn--primary h-11 px-6 rounded-pill font-body text-sm font-medium text-white shadow-clay-green disabled:opacity-50"
             >
               {isSubmitting ? 'Saving...' : lead ? 'Update Lead' : 'Create Lead'}
             </button>
           </div>
         </form>
-      </div>
-    </div>
+    </Modal>
   );
 }

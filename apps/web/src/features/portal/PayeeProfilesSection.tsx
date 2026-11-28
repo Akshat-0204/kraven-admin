@@ -3,8 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Plus, Star, Trash2 } from 'lucide-react';
 import { type FormEvent, useState } from 'react';
 import { toast } from 'sonner';
-import { Button } from '../../components/ui/button';
-import { Input } from '../../components/ui/input';
+import { Button, Card, CardHeader, EmptyState, Input, LoadingState } from '../../components/ui';
 import { createPayeeProfile, deletePayeeProfile, listPayeeProfiles, portalAdminQueryKeys, updatePayeeProfile } from './portalApi';
 
 /** Settings section: UPI payee profiles used by the client portal's Pay page. */
@@ -52,20 +51,19 @@ export function PayeeProfilesSection() {
   const payees = query.data?.payeeProfiles ?? [];
 
   return (
-    <section className="clay-card p-6 rounded-lg border border-white/80 shadow-[var(--clay-raised)] bg-surface space-y-4">
-      {/* Header */}
-      <div className="border-b border-[rgba(120,110,90,0.12)] pb-3">
-        <h2 className="font-display text-base font-bold text-ink-900">UPI Payee Accounts</h2>
-        <p className="font-body text-xs text-ink-500">
-          Designate verified settlement handles for portal invoice payments.
-        </p>
-      </div>
+    <Card className="space-y-4">
+      <CardHeader
+        title="UPI Payee Accounts"
+        subtitle="Designate verified settlement handles for portal invoice payments."
+      />
 
       <ul className="space-y-2.5">
-        {query.isLoading ? <li className="font-body text-xs text-ink-500">Loading payee accounts...</li> : null}
+        {query.isLoading ? <li>
+            <LoadingState label="Loading payee accounts..." className="py-4" />
+          </li> : null}
         {!query.isLoading && payees.length === 0 ? (
-          <li className="rounded-md border border-dashed border-[rgba(120,110,90,0.2)] p-4 text-center font-body text-xs text-ink-500">
-            No payees configured yet. Add one below to enable UPI payments.
+          <li>
+            <EmptyState title="No payees configured yet. Add one below to enable UPI payments." className="py-6" />
           </li>
         ) : null}
         {payees.map((payee) => (
@@ -87,9 +85,9 @@ export function PayeeProfilesSection() {
 
             <div className="flex items-center gap-1.5 shrink-0">
               {!payee.isDefault ? (
-                <button
+                <Button
                   type="button"
-                  className="clay-btn clay-btn--secondary h-8 px-2.5 rounded-pill font-body text-xs text-ink-700 bg-surface shadow-[var(--clay-raised-sm)] border border-white/80 hover:text-olive-700 flex items-center gap-1"
+                  className="h-8 gap-1 px-2.5 text-xs text-ink-700"
                   onClick={() => makeDefault.mutate(payee.id)}
                   disabled={makeDefault.isPending}
                   aria-label={`Make ${payee.name} the default payee`}
@@ -97,7 +95,7 @@ export function PayeeProfilesSection() {
                 >
                   <Star className="h-3.5 w-3.5" aria-hidden />
                   <span className="hidden sm:inline">Set Default</span>
-                </button>
+                </Button>
               ) : null}
               <button
                 type="button"
@@ -148,12 +146,12 @@ export function PayeeProfilesSection() {
         <button
           type="submit"
           disabled={create.isPending || !name.trim() || !vpa.trim()}
-          className="clay-btn clay-btn--primary h-10 px-5 rounded-pill font-body text-xs font-medium text-white shadow-[var(--clay-green)] disabled:opacity-50 inline-flex items-center gap-1.5"
+          className="clay-btn clay-btn--primary h-10 px-5 rounded-pill font-body text-xs font-medium text-white shadow-clay-green disabled:opacity-50 inline-flex items-center gap-1.5"
         >
           <Plus className="h-3.5 w-3.5" />
           <span>Add Payee Account</span>
         </button>
       </form>
-    </section>
+    </Card>
   );
 }

@@ -2,7 +2,7 @@ import { LEAD_STATUSES } from '@kraven/config';
 import type { LeadRecord, LeadStatus } from '@kraven/types';
 import { Calendar, DollarSign } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { LeadStatusBadge } from '../../components/ui/statusBadge';
+import { EmptyState, LeadStatusBadge } from '../../components/ui';
 import { formatCurrency, formatDate, leadInitials } from './leadFormat';
 
 interface LeadKanbanBoardProps {
@@ -19,7 +19,7 @@ export function LeadKanbanBoard({ leads, onStatusChange }: LeadKanbanBoardProps)
         return (
           <section
             key={status}
-            className="min-h-[480px] min-w-[240px] xl:min-w-0 rounded-lg border border-[rgba(120,110,90,0.14)] bg-surface-soft/60 shadow-[var(--clay-inset-sm)] p-2.5 flex flex-col transition-colors"
+            className="min-h-[480px] min-w-[240px] xl:min-w-0 rounded-lg border border-[rgba(120,110,90,0.14)] bg-surface-soft/60 shadow-clay-inset-sm p-2.5 flex flex-col transition-colors"
             onDragOver={(event) => event.preventDefault()}
             onDrop={(event) => {
               const leadId = event.dataTransfer.getData('text/plain');
@@ -39,9 +39,7 @@ export function LeadKanbanBoard({ leads, onStatusChange }: LeadKanbanBoardProps)
             {/* Column Cards */}
             <div className="space-y-2.5 flex-1">
               {columnLeads.length === 0 ? (
-                <div className="rounded-md border border-dashed border-[rgba(120,110,90,0.2)] p-4 text-center text-xs text-ink-500 font-body">
-                  No leads
-                </div>
+                <EmptyState title="No leads" className="py-4" />
               ) : (
                 columnLeads.map((lead) => (
                   <Link
@@ -49,10 +47,10 @@ export function LeadKanbanBoard({ leads, onStatusChange }: LeadKanbanBoardProps)
                     to={`/leads/${lead.id}`}
                     draggable
                     onDragStart={(event) => event.dataTransfer.setData('text/plain', lead.id)}
-                    className="block clay-card p-3.5 rounded-md shadow-[var(--clay-raised-sm)] hover:shadow-[var(--clay-hover)] transition-all hover:-translate-y-0.5 border border-white/90 bg-surface cursor-grab active:cursor-grabbing group"
+                    className="block clay-card p-3.5 rounded-md shadow-clay-sm hover:shadow-clay-hover transition-all hover:-translate-y-0.5 border border-white/90 bg-surface cursor-grab active:cursor-grabbing group"
                   >
                     <div className="mb-2.5 flex items-center gap-2.5">
-                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-olive-100 text-olive-800 font-semibold text-xs shadow-[var(--clay-raised-sm)] border border-white/80">
+                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-olive-100 text-olive-800 font-semibold text-xs shadow-clay-sm border border-white/80">
                         {leadInitials(lead)}
                       </div>
                       <div className="min-w-0 flex-1">

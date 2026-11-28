@@ -3,9 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Eye, EyeOff, Pencil, Plus, Trash2 } from 'lucide-react';
 import { type FormEvent, useState } from 'react';
 import { toast } from 'sonner';
-import { Button } from '../../components/ui/button';
-import { Input } from '../../components/ui/input';
-import { Textarea } from '../../components/ui/textarea';
+import { Button, Card, CardHeader, EmptyState, Input, LoadingState, Textarea } from '../../components/ui';
 import {
   createProjectUpdate,
   deleteProjectUpdate,
@@ -90,24 +88,20 @@ export function ProjectUpdatesPanel({ projectId }: { projectId: string }) {
   const list = updates.data?.updates ?? [];
 
   return (
-    <section className="clay-card p-6 rounded-lg border border-white/80 shadow-[var(--clay-raised)] bg-surface space-y-4">
+    <Card className="space-y-4">
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-[rgba(120,110,90,0.12)] pb-3">
-        <div>
-          <h2 className="font-display text-base font-bold text-ink-900">Project Updates</h2>
-          <p className="font-body text-xs text-ink-500">Milestone updates published to client portal</p>
-        </div>
-        {editing === null ? (
-          <button
-            type="button"
-            onClick={() => startEdit()}
-            className="clay-btn clay-btn--secondary h-9 px-3.5 rounded-pill flex items-center gap-1.5 text-xs font-body font-medium text-ink-900 bg-surface shadow-[var(--clay-raised-sm)] border border-white/80 hover:text-olive-700"
-          >
-            <Plus className="h-3.5 w-3.5" aria-hidden="true" />
-            <span>Post update</span>
-          </button>
-        ) : null}
-      </div>
+      <CardHeader
+        title="Project Updates"
+        subtitle="Milestone updates published to client portal"
+        actions={
+          editing === null ? (
+            <Button type="button" onClick={() => startEdit()} className="h-9 gap-1.5 px-3.5 text-xs">
+              <Plus className="h-3.5 w-3.5" aria-hidden="true" />
+              <span>Post update</span>
+            </Button>
+          ) : null
+        }
+      />
 
       {/* Editing Form */}
       {editing !== null ? (
@@ -158,27 +152,21 @@ export function ProjectUpdatesPanel({ projectId }: { projectId: string }) {
             <button
               type="submit"
               disabled={save.isPending || !draft.title.trim()}
-              className="clay-btn clay-btn--primary h-9 px-4 rounded-pill font-body text-xs font-medium text-white shadow-[var(--clay-green)] disabled:opacity-50"
+              className="clay-btn clay-btn--primary h-9 px-4 rounded-pill font-body text-xs font-medium text-white shadow-clay-green disabled:opacity-50"
             >
               {save.isPending ? 'Saving...' : 'Save Update'}
             </button>
-            <button
-              type="button"
-              className="clay-btn clay-btn--secondary h-9 px-4 rounded-pill font-body text-xs font-medium text-ink-900 bg-surface shadow-[var(--clay-raised-sm)] border border-white/80 hover:text-ink-700"
-              onClick={() => setEditing(null)}
-            >
+            <Button type="button" className="h-9 text-xs" onClick={() => setEditing(null)}>
               Cancel
-            </button>
+            </Button>
           </div>
         </form>
       ) : null}
 
       {/* List */}
-      {updates.isLoading ? <p className="font-body text-xs text-ink-500">Loading updates...</p> : null}
+      {updates.isLoading ? <LoadingState label="Loading updates..." className="py-4" /> : null}
       {!updates.isLoading && list.length === 0 ? (
-        <div className="rounded-md border border-dashed border-[rgba(120,110,90,0.2)] p-4 text-center font-body text-xs text-ink-500">
-          No updates posted yet
-        </div>
+        <EmptyState title="No updates posted yet" className="py-6" />
       ) : null}
       <ul className="space-y-3">
         {list.map((update) => (
@@ -240,6 +228,6 @@ export function ProjectUpdatesPanel({ projectId }: { projectId: string }) {
           </li>
         ))}
       </ul>
-    </section>
+    </Card>
   );
 }

@@ -3,8 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Copy, KeyRound, ShieldOff } from 'lucide-react';
 import { type FormEvent, useEffect, useState } from 'react';
 import { toast } from 'sonner';
-import { Button } from '../../components/ui/button';
-import { Input } from '../../components/ui/input';
+import { Button, Card, CardHeader, Input } from '../../components/ui';
 import { getPortalSettings, portalAdminQueryKeys, revokePortal, savePortalSettings, setPortalCode } from './portalApi';
 
 /** Suggested slug for a client without one; the server still validates it. */
@@ -93,37 +92,35 @@ export function PortalPanel({ clientId, defaultSlug }: { clientId: string; defau
 
   if (query.isLoading) {
     return (
-      <section className="clay-card p-6 rounded-lg border border-white/80 shadow-[var(--clay-raised)] bg-surface text-xs font-body text-ink-500">
-        Loading portal settings...
-      </section>
+      <Card className="text-xs font-body text-ink-500">Loading portal settings...</Card>
     );
   }
   if (!portal) {
     return (
-      <section className="clay-card p-6 rounded-lg border border-danger-fg/30 bg-surface text-xs font-body text-danger-fg">
+      <Card className="border border-danger-fg/30 text-xs font-body text-danger-fg">
         Could not load portal settings.
-      </section>
+      </Card>
     );
   }
 
   return (
-    <section className="clay-card p-6 rounded-lg border border-white/80 shadow-[var(--clay-raised)] bg-surface space-y-4">
+    <Card className="space-y-4">
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-[rgba(120,110,90,0.12)] pb-3">
-        <div>
-          <h2 className="font-display text-base font-bold text-ink-900">Client Portal</h2>
-          <p className="font-body text-xs text-ink-500">Access link, security code, and authentication status</p>
-        </div>
-        <span
-          className={
-            portal.enabled
-              ? 'clay-chip text-xs bg-olive-100 text-olive-800'
-              : 'clay-chip text-xs bg-sand-200 text-ink-600'
-          }
-        >
-          {portal.enabled ? 'Enabled' : 'Disabled'}
-        </span>
-      </div>
+      <CardHeader
+        title="Client Portal"
+        subtitle="Access link, security code, and authentication status"
+        actions={
+          <span
+            className={
+              portal.enabled
+                ? 'clay-chip text-xs bg-olive-100 text-olive-800'
+                : 'clay-chip text-xs bg-sand-200 text-ink-600'
+            }
+          >
+            {portal.enabled ? 'Enabled' : 'Disabled'}
+          </span>
+        }
+      />
 
       <form onSubmit={submit} className="space-y-3.5">
         <div>
@@ -163,7 +160,7 @@ export function PortalPanel({ clientId, defaultSlug }: { clientId: string; defau
         <button
           type="submit"
           disabled={save.isPending || !slug.trim()}
-          className="clay-btn clay-btn--primary h-9 px-4 rounded-pill font-body text-xs font-medium text-white shadow-[var(--clay-green)] disabled:opacity-50"
+          className="clay-btn clay-btn--primary h-9 px-4 rounded-pill font-body text-xs font-medium text-white shadow-clay-green disabled:opacity-50"
         >
           {save.isPending ? 'Saving...' : 'Save Settings'}
         </button>
@@ -212,18 +209,18 @@ export function PortalPanel({ clientId, defaultSlug }: { clientId: string; defau
         ) : null}
 
         <div className="flex flex-wrap gap-2.5">
-          <button
+          <Button
             type="button"
-            className="clay-btn clay-btn--secondary h-9 px-4 rounded-pill font-body text-xs font-medium text-ink-900 bg-surface shadow-[var(--clay-raised-sm)] border border-white/80 hover:text-olive-700 flex items-center gap-1.5 disabled:opacity-50"
+            className="h-9 gap-1.5 text-xs"
             onClick={() => code.mutate(undefined)}
             disabled={code.isPending || !portal.slug}
           >
             <KeyRound className="h-3.5 w-3.5" aria-hidden="true" />
             <span>Generate Code</span>
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
-            className="clay-btn h-9 px-4 rounded-pill font-body text-xs font-medium text-danger-fg bg-surface shadow-[var(--clay-raised-sm)] border border-danger-fg/30 hover:bg-danger-fg/10 flex items-center gap-1.5 disabled:opacity-50"
+            className="h-9 gap-1.5 border-danger-fg/30 text-xs text-danger-fg hover:bg-danger-fg/10"
             onClick={() => {
               if (window.confirm('Revoke portal access? The code is removed and every session is signed out.')) revoke.mutate();
             }}
@@ -231,7 +228,7 @@ export function PortalPanel({ clientId, defaultSlug }: { clientId: string; defau
           >
             <ShieldOff className="h-3.5 w-3.5" aria-hidden="true" />
             <span>Revoke Access</span>
-          </button>
+          </Button>
         </div>
 
         <form
@@ -250,13 +247,13 @@ export function PortalPanel({ clientId, defaultSlug }: { clientId: string; defau
             disabled={!portal.slug}
             className="flex-1"
           />
-          <button
+          <Button
             type="submit"
-            className="clay-btn clay-btn--secondary h-11 px-4 rounded-pill font-body text-xs font-medium text-ink-900 bg-surface shadow-[var(--clay-raised-sm)] border border-white/80 hover:text-olive-700 disabled:opacity-50"
+            className="h-11 text-xs"
             disabled={code.isPending || !customCode.trim() || !portal.slug}
           >
             Set Code
-          </button>
+          </Button>
         </form>
       </div>
 
@@ -272,6 +269,6 @@ export function PortalPanel({ clientId, defaultSlug }: { clientId: string; defau
           </>
         ) : null}
       </dl>
-    </section>
+    </Card>
   );
 }

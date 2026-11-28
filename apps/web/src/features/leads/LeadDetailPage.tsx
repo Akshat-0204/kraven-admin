@@ -4,8 +4,7 @@ import { ArrowLeft, Clock, Pencil, RefreshCcw, UserCheck } from 'lucide-react';
 import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'sonner';
-import { Button } from '../../components/ui/button';
-import { LeadStatusBadge } from '../../components/ui/statusBadge';
+import { Button, Card, CardHeader, EmptyState, LeadStatusBadge, LoadingState, PageHeader } from '../../components/ui';
 import { clientQueryKeys } from '../clients/clientApi';
 import { convertLead, getLead, leadQueryKeys, updateLead } from './leadApi';
 import { formatCurrency, formatDate } from './leadFormat';
@@ -51,26 +50,24 @@ export function LeadDetailPage() {
 
   if (leadQuery.isLoading) {
     return (
-      <div className="clay-card p-12 text-center font-body text-sm text-ink-500">
-        <div className="inline-block h-6 w-6 animate-spin rounded-full border-2 border-olive-600 border-t-transparent mb-2" />
-        <p>Loading lead details...</p>
-      </div>
+      <Card className="p-12">
+        <LoadingState label="Loading lead details..." />
+      </Card>
     );
   }
 
   if (leadQuery.isError || !leadQuery.data) {
     return (
       <div className="space-y-4">
-        <Link
-          to="/leads"
-          className="clay-btn clay-btn--secondary inline-flex h-9 items-center gap-1.5 rounded-pill px-4 text-xs font-body font-medium"
-        >
-          <ArrowLeft className="h-3.5 w-3.5" aria-hidden="true" />
-          <span>Back to leads</span>
-        </Link>
-        <div className="clay-card p-8 text-center font-body text-sm text-danger-fg">
+        <Button asChild className="h-9 gap-1.5 text-xs">
+          <Link to="/leads">
+            <ArrowLeft className="h-3.5 w-3.5" aria-hidden="true" />
+            <span>Back to leads</span>
+          </Link>
+        </Button>
+        <Card className="p-8 text-center font-body text-sm text-danger-fg">
           Unable to load lead. Please check the URL or return to leads list.
-        </div>
+        </Card>
       </div>
     );
   }
@@ -79,58 +76,49 @@ export function LeadDetailPage() {
 
   return (
     <section className="space-y-6 sm:space-y-8">
-      {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div className="space-y-2">
+      <PageHeader
+        eyebrow={
           <Link
-            className="inline-flex items-center gap-1.5 text-xs font-body font-medium text-ink-500 hover:text-olive-700 transition-colors"
+            className="inline-flex items-center gap-1.5 text-xs font-body font-medium normal-case tracking-normal text-ink-500 hover:text-olive-700 transition-colors"
             to="/leads"
           >
             <ArrowLeft className="h-3.5 w-3.5" aria-hidden="true" />
             <span>Back to leads</span>
           </Link>
-          <div className="space-y-1">
-            <div className="flex flex-wrap items-center gap-3">
-              <h1 className="font-display text-2xl sm:text-3xl font-bold text-ink-900">
-                {lead.companyName}
-              </h1>
-              <LeadStatusBadge status={lead.status} />
-            </div>
-            <p className="font-body text-sm text-ink-500">Primary Contact: {lead.name}</p>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2.5">
-          {lead.status === 'Won' && !lead.convertedClient ? (
-            <button
-              type="button"
-              onClick={() => convertMutation.mutate()}
-              disabled={convertMutation.isPending}
-              className="clay-btn clay-btn--primary inline-flex h-10 items-center gap-2 rounded-pill px-4 text-xs font-body font-medium shadow-[var(--clay-green)] disabled:opacity-50"
-            >
-              <UserCheck className="h-4 w-4" aria-hidden="true" />
-              <span>{convertMutation.isPending ? 'Converting...' : 'Convert to Client'}</span>
-            </button>
-          ) : null}
-          <button
-            type="button"
-            onClick={() => setIsEditOpen(true)}
-            className="clay-btn clay-btn--secondary inline-flex h-10 items-center gap-1.5 rounded-pill px-4 text-xs font-body font-medium text-ink-900 bg-surface shadow-[var(--clay-raised-sm)] border border-white/80 hover:text-olive-700"
-          >
-            <Pencil className="h-3.5 w-3.5" aria-hidden="true" />
-            <span>Edit Lead</span>
-          </button>
-        </div>
-      </div>
+        }
+        title={lead.companyName}
+        subtitle={`Primary Contact: ${lead.name}`}
+        actions={
+          <>
+            <LeadStatusBadge status={lead.status} />
+            {lead.status === 'Won' && !lead.convertedClient ? (
+              <button
+                type="button"
+                onClick={() => convertMutation.mutate()}
+                disabled={convertMutation.isPending}
+                className="clay-btn clay-btn--primary inline-flex h-10 items-center gap-2 rounded-pill px-4 text-xs font-body font-medium shadow-clay-green disabled:opacity-50"
+              >
+                <UserCheck className="h-4 w-4" aria-hidden="true" />
+                <span>{convertMutation.isPending ? 'Converting...' : 'Convert to Client'}</span>
+              </button>
+            ) : null}
+            <Button type="button" onClick={() => setIsEditOpen(true)} className="gap-1.5 text-xs hover:text-olive-700">
+              <Pencil className="h-3.5 w-3.5" aria-hidden="true" />
+              <span>Edit Lead</span>
+            </Button>
+          </>
+        }
+      />
 
       {/* Main Grid */}
       <div className="grid gap-6 lg:grid-cols-3">
         {/* Left: Lead Information Card */}
-        <div className="clay-card p-6 rounded-lg border border-white/80 shadow-[var(--clay-raised)] bg-surface lg:col-span-2 space-y-6">
-          <div className="border-b border-[rgba(120,110,90,0.12)] pb-3">
-            <h2 className="font-display text-base font-bold text-ink-900">Lead Information</h2>
-            <p className="font-body text-xs text-ink-500">Core contact details, pipeline attributes, and value</p>
-          </div>
+        <Card className="lg:col-span-2 space-y-6">
+          <CardHeader
+            title="Lead Information"
+            subtitle="Core contact details, pipeline attributes, and value"
+            className="mb-0 border-b border-[rgba(120,110,90,0.12)] pb-3"
+          />
 
           <dl className="grid gap-6 text-sm sm:grid-cols-2">
             <div>
@@ -174,19 +162,22 @@ export function LeadDetailPage() {
               </dd>
             </div>
           </dl>
-        </div>
+        </Card>
 
         {/* Right: Activity Feed Card */}
-        <div className="clay-card p-6 rounded-lg border border-white/80 shadow-[var(--clay-raised)] bg-surface space-y-4">
-          <div className="border-b border-[rgba(120,110,90,0.12)] pb-3 flex items-center gap-2">
-            <Clock className="h-4 w-4 text-olive-700" />
-            <h2 className="font-display text-base font-bold text-ink-900">Activity History</h2>
-          </div>
+        <Card className="space-y-4">
+          <CardHeader
+            title={
+              <span className="flex items-center gap-2">
+                <Clock className="h-4 w-4 text-olive-700" />
+                Activity History
+              </span>
+            }
+            className="mb-0 border-b border-[rgba(120,110,90,0.12)] pb-3"
+          />
 
           {activity.length === 0 ? (
-            <div className="rounded-md border border-dashed border-[rgba(120,110,90,0.2)] p-6 text-center font-body text-xs text-ink-500">
-              No activity recorded yet.
-            </div>
+            <EmptyState title="No activity recorded yet." className="py-6" />
           ) : (
             <ol className="space-y-4 pt-1">
               {activity.map((item) => (
@@ -199,7 +190,7 @@ export function LeadDetailPage() {
               ))}
             </ol>
           )}
-        </div>
+        </Card>
       </div>
 
       <LeadFormModal
