@@ -4,7 +4,7 @@ import { Mail, Phone, Plus, Search, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
-import { Input } from '../../components/ui/input';
+import { Card, EmptyState, Input, LoadingState, PageHeader } from '../../components/ui';
 import { createClient, deleteClient, clientQueryKeys, listClients } from './clientApi';
 import { clientInitials } from './clientFormat';
 import { ClientFormModal } from './ClientFormModal';
@@ -45,62 +45,56 @@ export function ClientListPage() {
 
   return (
     <section className="space-y-6 sm:space-y-8">
-      {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div className="space-y-1">
-          <p className="font-display text-xs uppercase tracking-wider text-olive-700">Client Directory</p>
-          <h1 className="font-display text-2xl sm:text-3xl font-bold text-ink-900">Clients</h1>
-          <p className="font-body text-sm text-ink-500">
-            Manage agency accounts, key stakeholders, and project relationships.
-          </p>
-        </div>
-        <div>
+      <PageHeader
+        eyebrow="Client Directory"
+        title="Clients"
+        subtitle="Manage agency accounts, key stakeholders, and project relationships."
+        actions={
           <button
             type="button"
             onClick={() => setIsCreateOpen(true)}
-            className="clay-btn clay-btn--primary inline-flex h-11 items-center justify-center gap-2 rounded-pill px-5 text-sm font-body font-medium shadow-[var(--clay-green)] transition-transform hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98]"
+            className="clay-btn clay-btn--primary inline-flex h-11 items-center justify-center gap-2 rounded-pill px-5 text-sm font-body font-medium shadow-clay-green transition-transform hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98]"
           >
             <Plus className="h-4 w-4" aria-hidden="true" />
             <span>New client</span>
           </button>
-        </div>
-      </div>
+        }
+      />
 
       {/* Search Toolbar */}
-      <div className="clay-card p-4 rounded-lg border border-white/80 shadow-[var(--clay-raised)] bg-surface">
+      <Card className="p-4">
         <Input
           startIcon={<Search className="h-4 w-4 text-ink-500" aria-hidden="true" />}
           placeholder="Search by company, contact person, or email..."
           value={search}
           onChange={(event) => setSearch(event.target.value)}
         />
-      </div>
+      </Card>
 
       {/* Main Content Grid */}
       {clientsQuery.isLoading ? (
-        <div className="clay-card p-12 text-center font-body text-sm text-ink-500">
-          <div className="inline-block h-6 w-6 animate-spin rounded-full border-2 border-olive-600 border-t-transparent mb-2" />
-          <p>Loading clients...</p>
-        </div>
+        <Card>
+          <LoadingState label="Loading clients..." />
+        </Card>
       ) : clientsQuery.isError ? (
-        <div className="clay-card p-8 text-center font-body text-sm text-danger-fg">
+        <Card className="p-8 text-center font-body text-sm text-danger-fg">
           Unable to load clients. Please refresh the page.
-        </div>
+        </Card>
       ) : clients.length === 0 ? (
-        <div className="clay-card p-12 text-center font-body text-sm text-ink-500">
-          No clients match the current search.
-        </div>
+        <Card>
+          <EmptyState title="No clients match the current search." />
+        </Card>
       ) : (
         <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
           {clients.map((client) => (
-            <article
+            <Card
               key={client.id}
-              className="clay-card p-6 rounded-lg border border-white/80 shadow-[var(--clay-raised)] hover:shadow-[var(--clay-hover)] transition-all hover:-translate-y-0.5 bg-surface flex flex-col justify-between group"
+              className="flex flex-col justify-between group transition-all hover:-translate-y-0.5 hover:shadow-clay-hover"
             >
               <div>
                 <Link to={`/clients/${client.id}`} className="block">
                   <div className="flex items-start gap-3.5 mb-4">
-                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-olive-100 text-olive-800 font-bold text-sm shadow-[var(--clay-raised-sm)] border border-white/90">
+                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-olive-100 text-olive-800 font-bold text-sm shadow-clay-sm border border-white/90">
                       {clientInitials(client.companyName)}
                     </div>
                     <div className="min-w-0 flex-1">
@@ -137,7 +131,7 @@ export function ClientListPage() {
                   type="button"
                   aria-label={`Delete client ${client.companyName}`}
                   title="Delete client"
-                  className="inline-flex h-8 w-8 items-center justify-center rounded-sm bg-surface shadow-[var(--clay-raised-sm)] border border-white/80 text-ink-500 hover:text-danger-fg hover:shadow-[var(--clay-hover)] transition-all active:scale-[0.96]"
+                  className="inline-flex h-8 w-8 items-center justify-center rounded-sm bg-surface shadow-clay-sm border border-white/80 text-ink-500 hover:text-danger-fg hover:shadow-clay-hover transition-all active:scale-[0.96]"
                   onClick={() => {
                     if (window.confirm(`Delete client ${client.companyName}?`)) {
                       deleteMutation.mutate(client.id);
@@ -147,7 +141,7 @@ export function ClientListPage() {
                   <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
                 </button>
               </div>
-            </article>
+            </Card>
           ))}
         </div>
       )}

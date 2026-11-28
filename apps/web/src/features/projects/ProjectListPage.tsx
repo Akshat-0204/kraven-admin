@@ -5,10 +5,19 @@ import { Plus, Search, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
-import { Input } from '../../components/ui/input';
-import { ProgressBar } from '../../components/ui/progressBar';
-import { Select } from '../../components/ui/select';
-import { ProjectStatusBadge } from '../../components/ui/statusBadge';
+import {
+  Card,
+  EmptyState,
+  Input,
+  LoadingState,
+  PageHeader,
+  ProgressBar,
+  ProjectStatusBadge,
+  Select,
+  Table,
+  Td,
+  Th
+} from '../../components/ui';
 import { clientQueryKeys, listClients } from '../clients/clientApi';
 import {
   createProject,
@@ -69,29 +78,24 @@ export function ProjectListPage() {
 
   return (
     <section className="space-y-6 sm:space-y-8">
-      {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div className="space-y-1">
-          <p className="font-display text-xs uppercase tracking-wider text-olive-700">Delivery & Execution</p>
-          <h1 className="font-display text-2xl sm:text-3xl font-bold text-ink-900">Projects</h1>
-          <p className="font-body text-sm text-ink-500">
-            Monitor project milestones, client deliverables, and fulfillment progress.
-          </p>
-        </div>
-        <div>
+      <PageHeader
+        eyebrow="Delivery & Execution"
+        title="Projects"
+        subtitle="Monitor project milestones, client deliverables, and fulfillment progress."
+        actions={
           <button
             type="button"
             onClick={() => setIsCreateOpen(true)}
-            className="clay-btn clay-btn--primary inline-flex h-11 items-center justify-center gap-2 rounded-pill px-5 text-sm font-body font-medium shadow-[var(--clay-green)] transition-transform hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98]"
+            className="clay-btn clay-btn--primary inline-flex h-11 items-center justify-center gap-2 rounded-pill px-5 text-sm font-body font-medium shadow-clay-green transition-transform hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98]"
           >
             <Plus className="h-4 w-4" aria-hidden="true" />
             <span>New project</span>
           </button>
-        </div>
-      </div>
+        }
+      />
 
       {/* Filter Card */}
-      <div className="clay-card p-4 rounded-lg border border-white/80 shadow-[var(--clay-raised)] bg-surface grid gap-3 sm:gap-4 md:grid-cols-6">
+      <Card className="grid gap-3 p-4 sm:gap-4 md:grid-cols-6">
         <div className="md:col-span-2">
           <Input
             startIcon={<Search className="h-4 w-4 text-ink-500" aria-hidden="true" />}
@@ -126,40 +130,38 @@ export function ProjectListPage() {
           value={filters.priority ?? ''}
           onChange={(event) => updateFilter('priority', event.target.value)}
         />
-      </div>
+      </Card>
 
       {/* Projects Table Card */}
       {projectsQuery.isLoading ? (
-        <div className="clay-card p-12 text-center font-body text-sm text-ink-500">
-          <div className="inline-block h-6 w-6 animate-spin rounded-full border-2 border-olive-600 border-t-transparent mb-2" />
-          <p>Loading projects...</p>
-        </div>
+        <Card>
+          <LoadingState label="Loading projects..." />
+        </Card>
       ) : projectsQuery.isError ? (
-        <div className="clay-card p-8 text-center font-body text-sm text-danger-fg">
+        <Card className="p-8 text-center font-body text-sm text-danger-fg">
           Unable to load projects. Please refresh the page.
-        </div>
+        </Card>
       ) : projects.length === 0 ? (
-        <div className="clay-card p-12 text-center font-body text-sm text-ink-500">
-          No projects match the current filters. Try adjusting your query or create a new project.
-        </div>
+        <Card>
+          <EmptyState title="No projects match the current filters. Try adjusting your query or create a new project." />
+        </Card>
       ) : (
-        <div className="clay-card p-0 overflow-hidden rounded-lg border border-white/80 shadow-[var(--clay-raised)] bg-surface">
-          <div className="overflow-x-auto">
-            <table className="w-full border-collapse text-left font-body text-sm">
-              <thead>
-                <tr className="border-b border-[rgba(120,110,90,0.14)] bg-surface-soft/80 font-display text-xs uppercase tracking-wider text-ink-500">
-                  <th className="px-5 py-4 font-normal">Project & Team</th>
-                  <th className="px-5 py-4 font-normal">Status</th>
-                  <th className="px-5 py-4 font-normal">Progress</th>
-                  <th className="px-5 py-4 font-normal">Project Value</th>
-                  <th className="px-5 py-4 font-normal">Deadline</th>
-                  <th className="px-5 py-4 font-normal text-right">Actions</th>
+        <Card padded={false}>
+            <Table>
+              <thead className="border-b border-sand-300/40 bg-sand-100/50">
+                <tr>
+                  <Th>Project & Team</Th>
+                  <Th>Status</Th>
+                  <Th>Progress</Th>
+                  <Th>Project Value</Th>
+                  <Th>Deadline</Th>
+                  <Th className="text-right">Actions</Th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[rgba(120,110,90,0.12)]">
+              <tbody className="divide-y divide-sand-300/30">
                 {projects.map((project) => (
                   <tr key={project.id} className="group transition-colors hover:bg-surface-soft/70">
-                    <td className="px-5 py-4">
+                    <Td>
                       <Link to={`/projects/${project.id}`} className="block">
                         <div className="font-semibold text-ink-900 group-hover:text-olive-700 transition-colors">
                           {project.projectName}
@@ -168,30 +170,30 @@ export function ProjectListPage() {
                           {project.assignedTeam || 'Unassigned'}
                         </div>
                       </Link>
-                    </td>
-                    <td className="px-5 py-4">
+                    </Td>
+                    <Td>
                       <ProjectStatusBadge status={project.status} />
-                    </td>
-                    <td className="px-5 py-4">
+                    </Td>
+                    <Td>
                       <div className="flex min-w-36 items-center gap-2.5">
                         <ProgressBar value={project.progressPercentage} />
                         <span className="w-10 text-xs font-mono font-medium text-ink-600">
                           {project.progressPercentage}%
                         </span>
                       </div>
-                    </td>
-                    <td className="px-5 py-4 font-medium text-ink-800">
+                    </Td>
+                    <Td className="font-medium text-ink-800">
                       {formatCurrency(project.projectValue)}
-                    </td>
-                    <td className="px-5 py-4 text-xs text-ink-600">
+                    </Td>
+                    <Td className="text-xs text-ink-600">
                       {formatDate(project.expectedCompletionDate)}
-                    </td>
-                    <td className="px-5 py-4 text-right">
+                    </Td>
+                    <Td className="text-right">
                       <button
                         type="button"
                         aria-label={`Delete project ${project.projectName}`}
                         title="Delete project"
-                        className="inline-flex h-8 w-8 items-center justify-center rounded-sm bg-surface shadow-[var(--clay-raised-sm)] border border-white/80 text-ink-500 hover:text-danger-fg hover:shadow-[var(--clay-hover)] transition-all active:scale-[0.96]"
+                        className="inline-flex h-8 w-8 items-center justify-center rounded-sm bg-surface shadow-clay-sm border border-white/80 text-ink-500 hover:text-danger-fg hover:shadow-clay-hover transition-all active:scale-[0.96]"
                         onClick={() => {
                           if (window.confirm(`Delete project ${project.projectName}?`)) {
                             deleteMutation.mutate(project.id);
@@ -200,13 +202,12 @@ export function ProjectListPage() {
                       >
                         <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
                       </button>
-                    </td>
+                    </Td>
                   </tr>
                 ))}
               </tbody>
-            </table>
-          </div>
-        </div>
+            </Table>
+        </Card>
       )}
 
       <ProjectFormModal

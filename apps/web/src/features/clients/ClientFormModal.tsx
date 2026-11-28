@@ -1,9 +1,9 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import type { ClientRecord, FileReference } from '@kraven/types';
 import { clientSchema, type ClientInput } from '@kraven/validation';
-import { X } from 'lucide-react';
 import { type SubmitHandler, useForm } from 'react-hook-form';
 import { Button } from '../../components/ui/button';
+import { Modal } from '../../components/ui/modal';
 import { Input } from '../../components/ui/input';
 import { Textarea } from '../../components/ui/textarea';
 
@@ -59,32 +59,7 @@ export function ClientFormModal({ client, isOpen, onClose, onSubmit }: ClientFor
   };
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6"
-      style={{ backgroundColor: 'rgba(235, 233, 227, 0.7)' }}
-    >
-      <div className="clay-card w-full max-w-3xl max-h-[90vh] overflow-y-auto rounded-xl p-6 sm:p-8 border border-white/90 shadow-[var(--clay-floating)] bg-surface animate-in fade-in zoom-in-95 duration-150">
-        {/* Modal Header */}
-        <div className="flex items-center justify-between border-b border-[rgba(120,110,90,0.12)] pb-4 mb-6">
-          <div>
-            <h2 className="font-display text-xl font-bold text-ink-900">
-              {client ? 'Edit Client' : 'Create New Client'}
-            </h2>
-            <p className="font-body text-xs text-ink-500">
-              {client ? 'Update client organization details and preferences' : 'Add a new client account to your agency directory'}
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Close modal"
-            className="flex h-8 w-8 items-center justify-center rounded-sm bg-surface shadow-[var(--clay-raised-sm)] border border-white/80 text-ink-500 hover:text-ink-900 hover:shadow-[var(--clay-hover)] transition-all"
-          >
-            <X className="h-4 w-4" aria-hidden="true" />
-          </button>
-        </div>
-
-        {/* Modal Form */}
+    <Modal open onClose={onClose} title={client ? 'Edit Client' : 'Create New Client'} description={client ? 'Update client organization details and preferences' : 'Add a new client account to your agency directory'} size="lg">
         <form className="space-y-6" onSubmit={handleSubmit(submit)}>
           <div className="grid gap-6 md:grid-cols-2">
             <div>
@@ -191,7 +166,7 @@ export function ClientFormModal({ client, isOpen, onClose, onSubmit }: ClientFor
           <div className="flex items-center justify-end gap-3 pt-4 border-t border-[rgba(120,110,90,0.12)]">
             <button
               type="button"
-              className="clay-btn clay-btn--secondary h-11 px-5 rounded-pill font-body text-sm font-medium text-ink-900 bg-surface shadow-[var(--clay-raised-sm)] border border-white/80 hover:text-ink-700"
+              className="clay-btn clay-btn--secondary h-11 px-5 rounded-pill font-body text-sm font-medium text-ink-900 bg-surface shadow-clay-sm border border-white/80 hover:text-ink-700"
               onClick={onClose}
             >
               Cancel
@@ -199,13 +174,12 @@ export function ClientFormModal({ client, isOpen, onClose, onSubmit }: ClientFor
             <button
               type="submit"
               disabled={isSubmitting}
-              className="clay-btn clay-btn--primary h-11 px-6 rounded-pill font-body text-sm font-medium text-white shadow-[var(--clay-green)] disabled:opacity-50"
+              className="clay-btn clay-btn--primary h-11 px-6 rounded-pill font-body text-sm font-medium text-white shadow-clay-green disabled:opacity-50"
             >
               {isSubmitting ? 'Saving...' : client ? 'Update Client' : 'Create Client'}
             </button>
           </div>
         </form>
-      </div>
-    </div>
+    </Modal>
   );
 }

@@ -74,17 +74,17 @@ export function LoginPage() {
 
       {/* Main Authentication Card */}
       <section className="relative z-10 w-full max-w-md">
-        <div className="clay-card rounded-card border border-white/80 bg-surface p-7 sm:p-9 shadow-[var(--clay-raised-lg)]">
+        <div className="clay-card rounded-card border border-white/80 bg-surface p-7 sm:p-9 shadow-clay-floating">
           {/* Logo & Header */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <div className="flex h-9 w-9 items-center justify-center rounded-pill bg-[var(--grad-olive)] font-display text-sm font-bold text-white shadow-[var(--clay-raised-sm)]">
+                <div className="flex h-9 w-9 items-center justify-center rounded-pill bg-[var(--grad-olive)] font-display text-sm font-bold text-white shadow-clay-sm">
                   K
                 </div>
                 <span className="font-display text-xl font-bold tracking-tight text-ink-900">KRAVEN</span>
               </div>
-              <span className="clay-chip inline-flex items-center rounded-pill border border-[rgba(120,110,90,0.18)] bg-sand-200 px-2.5 py-0.5 text-xs font-body font-medium text-ink-800 shadow-[var(--clay-raised-sm)]">
+              <span className="clay-chip inline-flex items-center rounded-pill border border-[rgba(120,110,90,0.18)] bg-sand-200 px-2.5 py-0.5 text-xs font-body font-medium text-ink-800 shadow-clay-sm">
                 Admin Console
               </span>
             </div>
@@ -152,7 +152,7 @@ export function LoginPage() {
 
             <div className="pt-2">
               <Button
-                className="clay-btn--primary h-12 w-full rounded-pill bg-[var(--grad-olive)] font-body text-sm font-semibold text-white shadow-[var(--clay-green)] transition-all hover:opacity-95 flex items-center justify-center gap-2"
+                className="clay-btn--primary h-12 w-full rounded-pill bg-[var(--grad-olive)] font-body text-sm font-semibold text-white shadow-clay-green transition-all hover:opacity-95 flex items-center justify-center gap-2"
                 type="submit"
                 disabled={isSubmitting || isLoading}
               >

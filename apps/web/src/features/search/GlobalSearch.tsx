@@ -18,13 +18,13 @@ export function GlobalSearch() {
     <div className="relative">
       <Input
         startIcon={<Search className="h-4 w-4 text-ink-500" aria-hidden="true" />}
-        className="bg-surface-soft text-ink-900 placeholder:text-ink-500 shadow-[var(--clay-inset)] rounded-md border-none focus:bg-surface"
+        className="bg-surface-soft text-ink-900 placeholder:text-ink-500 shadow-clay-inset rounded-md border-none focus:bg-surface"
         placeholder="Search leads, clients, projects, invoices..."
         value={query}
         onChange={(event) => setQuery(event.target.value)}
       />
       {query.trim().length > 1 ? (
-        <div className="absolute left-0 right-0 top-12 z-40 overflow-hidden rounded-md border border-white/80 bg-surface shadow-[var(--clay-hover)]">
+        <div className="absolute left-0 right-0 top-12 z-40 overflow-hidden rounded-md border border-white/80 bg-surface shadow-clay-hover">
           {searchQuery.isLoading ? (
             <div className="p-3 text-sm text-ink-500">Searching...</div>
           ) : results.length === 0 ? (

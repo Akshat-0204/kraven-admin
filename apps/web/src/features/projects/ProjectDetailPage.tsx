@@ -17,11 +17,16 @@ import {
 import { useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'sonner';
-import { Button } from '../../components/ui/button';
-import { Input } from '../../components/ui/input';
-import { ProgressBar } from '../../components/ui/progressBar';
-import { Select } from '../../components/ui/select';
-import { ProjectStatusBadge } from '../../components/ui/statusBadge';
+import {
+  Button,
+  Card,
+  CardHeader,
+  Input,
+  LoadingState,
+  ProgressBar,
+  ProjectStatusBadge,
+  Select
+} from '../../components/ui';
 import { apiUrl } from '../../lib/api';
 import { clientQueryKeys } from '../clients/clientApi';
 import { financeQueryKeys, getProjectFinancials } from '../finance/financeApi';
@@ -140,10 +145,9 @@ export function ProjectDetailPage() {
 
   if (projectQuery.isLoading) {
     return (
-      <div className="clay-card p-12 text-center font-body text-sm text-ink-500">
-        <div className="inline-block h-6 w-6 animate-spin rounded-full border-2 border-olive-600 border-t-transparent mb-2" />
-        <p>Loading project details...</p>
-      </div>
+      <Card>
+        <LoadingState label="Loading project details..." />
+      </Card>
     );
   }
 
@@ -157,9 +161,9 @@ export function ProjectDetailPage() {
           <ArrowLeft className="h-3.5 w-3.5" aria-hidden="true" />
           <span>Back to projects</span>
         </Link>
-        <div className="clay-card p-8 text-center font-body text-sm text-danger-fg">
+        <Card className="p-8 text-center font-body text-sm text-danger-fg">
           Unable to load project. Please check the URL or return to projects list.
-        </div>
+        </Card>
       </div>
     );
   }
@@ -207,7 +211,7 @@ export function ProjectDetailPage() {
           <button
             type="button"
             onClick={() => setIsEditOpen(true)}
-            className="clay-btn clay-btn--secondary inline-flex h-10 items-center gap-1.5 rounded-pill px-4 text-xs font-body font-medium text-ink-900 bg-surface shadow-[var(--clay-raised-sm)] border border-white/80 hover:text-olive-700"
+            className="clay-btn clay-btn--secondary inline-flex h-10 items-center gap-1.5 rounded-pill px-4 text-xs font-body font-medium text-ink-900 bg-surface shadow-clay-sm border border-white/80 hover:text-olive-700"
           >
             <Pencil className="h-3.5 w-3.5" aria-hidden="true" />
             <span>Edit Project</span>
@@ -220,11 +224,8 @@ export function ProjectDetailPage() {
         {/* Left Column (col-span-2) */}
         <div className="space-y-6 lg:col-span-2">
           {/* Overview Card */}
-          <section className="clay-card p-6 rounded-lg border border-white/80 shadow-[var(--clay-raised)] bg-surface space-y-6">
-            <div className="border-b border-[rgba(120,110,90,0.12)] pb-3">
-              <h2 className="font-display text-base font-bold text-ink-900">Project Overview</h2>
-              <p className="font-body text-xs text-ink-500">Milestones, schedule, and team assignment</p>
-            </div>
+          <Card className="space-y-6">
+            <CardHeader title="Project Overview" subtitle="Milestones, schedule, and team assignment" />
 
             {/* Progress Bar Container */}
             <div className="rounded-md bg-surface-soft p-4 border border-[rgba(120,110,90,0.12)] space-y-2">
@@ -246,14 +247,11 @@ export function ProjectDetailPage() {
               <Info className="sm:col-span-2" label="Description" value={project.description} multiline />
               <Info className="sm:col-span-2" label="Notes" value={project.notes} multiline />
             </dl>
-          </section>
+          </Card>
 
           {/* Quick Status & Progress Control */}
-          <section className="clay-card p-6 rounded-lg border border-white/80 shadow-[var(--clay-raised)] bg-surface space-y-4">
-            <div className="border-b border-[rgba(120,110,90,0.12)] pb-3">
-              <h2 className="font-display text-base font-bold text-ink-900">Update Status & Progress</h2>
-              <p className="font-body text-xs text-ink-500">Quickly adjust current phase and completion percentage</p>
-            </div>
+          <Card className="space-y-4">
+            <CardHeader title="Update Status & Progress" subtitle="Quickly adjust current phase and completion percentage" />
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
                 <label className="block font-body text-xs font-semibold uppercase tracking-wider text-ink-700 mb-2">
@@ -285,14 +283,11 @@ export function ProjectDetailPage() {
                 />
               </div>
             </div>
-          </section>
+          </Card>
 
           {/* Deliverables */}
-          <section className="clay-card p-6 rounded-lg border border-white/80 shadow-[var(--clay-raised)] bg-surface space-y-4">
-            <div className="border-b border-[rgba(120,110,90,0.12)] pb-3">
-              <h2 className="font-display text-base font-bold text-ink-900">Deliverables</h2>
-              <p className="font-body text-xs text-ink-500">Agreed scope of work and completion items</p>
-            </div>
+          <Card className="space-y-4">
+            <CardHeader title="Deliverables" subtitle="Agreed scope of work and completion items" />
             {project.deliverables.length === 0 ? (
               <div className="rounded-md border border-dashed border-[rgba(120,110,90,0.2)] p-6 text-center font-body text-xs text-ink-500">
                 No deliverables listed for this project.
@@ -310,14 +305,11 @@ export function ProjectDetailPage() {
                 ))}
               </ul>
             )}
-          </section>
+          </Card>
 
           {/* Financials Summary */}
-          <section className="clay-card p-6 rounded-lg border border-white/80 shadow-[var(--clay-raised)] bg-surface space-y-4">
-            <div className="border-b border-[rgba(120,110,90,0.12)] pb-3">
-              <h2 className="font-display text-base font-bold text-ink-900">Project Financials</h2>
-              <p className="font-body text-xs text-ink-500">Invoiced revenue, received payments, and expenses</p>
-            </div>
+          <Card className="space-y-4">
+            <CardHeader title="Project Financials" subtitle="Invoiced revenue, received payments, and expenses" />
             {financialsQuery.isLoading ? (
               <div className="p-6 text-center font-body text-xs text-ink-500">Loading financials...</div>
             ) : financialsQuery.isError || !financialsQuery.data ? (
@@ -334,13 +326,13 @@ export function ProjectDetailPage() {
                 <Metric label="Profit" value={formatCurrency(financialsQuery.data.summary.profit)} isHero />
               </div>
             )}
-          </section>
+          </Card>
         </div>
 
         {/* Right Column (col-span-1) */}
         <div className="space-y-6">
           {/* Client Details Card */}
-          <section className="clay-card p-6 rounded-lg border border-white/80 shadow-[var(--clay-raised)] bg-surface space-y-3">
+          <Card className="space-y-3">
             <div className="border-b border-[rgba(120,110,90,0.12)] pb-3">
               <h2 className="font-display text-base font-bold text-ink-900">Client Details</h2>
             </div>
@@ -355,14 +347,11 @@ export function ProjectDetailPage() {
               <div className="text-xs text-ink-500">{client.email || '-'}</div>
               <div className="text-xs text-ink-500">{client.phone || '-'}</div>
             </div>
-          </section>
+          </Card>
 
           {/* Links Card */}
-          <section className="clay-card p-6 rounded-lg border border-white/80 shadow-[var(--clay-raised)] bg-surface space-y-4">
-            <div className="border-b border-[rgba(120,110,90,0.12)] pb-3">
-              <h2 className="font-display text-base font-bold text-ink-900">Resource Links</h2>
-              <p className="font-body text-xs text-ink-500">Figma, GitHub, Staging, or Drive URLs</p>
-            </div>
+          <Card className="space-y-4">
+            <CardHeader title="Resource Links" subtitle="Figma, GitHub, Staging, or Drive URLs" />
             <div className="space-y-2">
               {project.links.length === 0 ? (
                 <div className="rounded-md border border-dashed border-[rgba(120,110,90,0.2)] p-4 text-center text-xs text-ink-500">
@@ -409,17 +398,17 @@ export function ProjectDetailPage() {
               />
               <button
                 type="button"
-                className="clay-btn clay-btn--secondary w-full h-10 rounded-pill font-body text-xs font-medium text-ink-900 bg-surface shadow-[var(--clay-raised-sm)] border border-white/80 hover:text-olive-700 flex items-center justify-center gap-1.5"
+                className="clay-btn clay-btn--secondary w-full h-10 rounded-pill font-body text-xs font-medium text-ink-900 bg-surface shadow-clay-sm border border-white/80 hover:text-olive-700 flex items-center justify-center gap-1.5"
                 onClick={submitLink}
               >
                 <Plus className="h-3.5 w-3.5" aria-hidden="true" />
                 <span>Add Link</span>
               </button>
             </div>
-          </section>
+          </Card>
 
           {/* Project Documents Card */}
-          <section className="clay-card p-6 rounded-lg border border-white/80 shadow-[var(--clay-raised)] bg-surface space-y-4">
+          <Card className="space-y-4">
             <div className="flex items-center justify-between border-b border-[rgba(120,110,90,0.12)] pb-3">
               <div>
                 <h2 className="font-display text-base font-bold text-ink-900">Project Files</h2>
@@ -428,7 +417,7 @@ export function ProjectDetailPage() {
               <button
                 type="button"
                 aria-label="Upload document"
-                className="clay-btn clay-btn--secondary h-9 w-9 rounded-pill flex items-center justify-center p-0 text-ink-700 hover:text-olive-700 shadow-[var(--clay-raised-sm)] border border-white/80"
+                className="clay-btn clay-btn--secondary h-9 w-9 rounded-pill flex items-center justify-center p-0 text-ink-700 hover:text-olive-700 shadow-clay-sm border border-white/80"
                 onClick={() => fileInputRef.current?.click()}
               >
                 <Upload className="h-4 w-4" aria-hidden="true" />
@@ -476,7 +465,7 @@ export function ProjectDetailPage() {
                 ))}
               </div>
             )}
-          </section>
+          </Card>
 
           {/* Generated Documents Panel */}
           <DocumentsPanel scope={{ client: client.id, project: project.id }} />
@@ -488,7 +477,7 @@ export function ProjectDetailPage() {
           <SharedFilesPanel entityType="Project" entityId={project.id} />
 
           {/* Activity History */}
-          <section className="clay-card p-6 rounded-lg border border-white/80 shadow-[var(--clay-raised)] bg-surface space-y-4">
+          <Card className="space-y-4">
             <div className="border-b border-[rgba(120,110,90,0.12)] pb-3 flex items-center gap-2">
               <Clock className="h-4 w-4 text-olive-700" />
               <h2 className="font-display text-base font-bold text-ink-900">Activity History</h2>
@@ -507,7 +496,7 @@ export function ProjectDetailPage() {
                 ))}
               </ol>
             )}
-          </section>
+          </Card>
         </div>
       </div>
 
@@ -526,8 +515,8 @@ function Metric({ label, value, isHero = false }: { label: string; value: string
     <div
       className={
         isHero
-          ? 'rounded-md p-4 bg-olive-100/70 border border-olive-200 shadow-[var(--clay-raised-sm)]'
-          : 'rounded-md p-4 bg-surface-soft border border-[rgba(120,110,90,0.12)] shadow-[var(--clay-raised-sm)]'
+          ? 'rounded-md p-4 bg-olive-100/70 border border-olive-200 shadow-clay-sm'
+          : 'rounded-md p-4 bg-surface-soft border border-[rgba(120,110,90,0.12)] shadow-clay-sm'
       }
     >
       <div className="font-display text-xs uppercase tracking-wider text-ink-500">{label}</div>

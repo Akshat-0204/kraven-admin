@@ -26,10 +26,16 @@ import {
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
-import { Button } from '../../components/ui/button';
-import { Input } from '../../components/ui/input';
-import { Select } from '../../components/ui/select';
-import { LeadStatusBadge, ProjectStatusBadge } from '../../components/ui/statusBadge';
+import {
+  Button,
+  Card,
+  CardHeader,
+  Input,
+  LeadStatusBadge,
+  PageHeader,
+  ProjectStatusBadge,
+  Select
+} from '../../components/ui';
 import { useAuth } from '../auth/AuthProvider';
 import { changePassword, getHealth } from '../../lib/api';
 import { listLeads } from '../leads/leadApi';
@@ -150,16 +156,14 @@ export function SettingsPage() {
   return (
     <section className="space-y-6 sm:space-y-8">
       {/* Page Header */}
-      <div>
-        <p className="font-display text-xs uppercase tracking-wider text-olive-700">Administration & Preferences</p>
-        <h1 className="font-display text-2xl sm:text-3xl font-bold text-ink-900">Settings</h1>
-        <p className="font-body text-sm text-ink-500">
-          Manage your account security, workspace preferences, pipelines, and system configuration.
-        </p>
-      </div>
+      <PageHeader
+        eyebrow="Administration & Preferences"
+        title="Settings"
+        subtitle="Manage your account security, workspace preferences, pipelines, and system configuration."
+      />
 
       {/* Tab Navigation Pill Well */}
-      <div className="clay-card p-1.5 rounded-pill border border-white/80 shadow-[var(--clay-raised-sm)] bg-surface inline-flex flex-wrap gap-1.5">
+      <Card className="inline-flex flex-wrap gap-1.5 rounded-pill p-1.5">
         <TabButton
           icon={<User className="h-4 w-4" />}
           label="Account & Security"
@@ -190,15 +194,15 @@ export function SettingsPage() {
           active={activeTab === 'system'}
           onClick={() => setActiveTab('system')}
         />
-      </div>
+      </Card>
 
       {/* Tab 1: Account & Security */}
       {activeTab === 'account' && (
         <div className="grid gap-6 lg:grid-cols-2">
           <div className="space-y-6">
-            <section className="clay-card p-6 rounded-lg border border-white/80 shadow-[var(--clay-raised)] bg-surface space-y-4">
+            <Card className="space-y-4">
               <div className="flex items-center gap-3.5 border-b border-[rgba(120,110,90,0.12)] pb-4">
-                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-olive-100 text-olive-800 font-bold shadow-[var(--clay-raised-sm)] border border-white/90">
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-olive-100 text-olive-800 font-bold shadow-clay-sm border border-white/90">
                   <User className="h-5 w-5" />
                 </div>
                 <div>
@@ -229,13 +233,10 @@ export function SettingsPage() {
                   </dd>
                 </div>
               </dl>
-            </section>
+            </Card>
 
-            <section className="clay-card p-6 rounded-lg border border-white/80 shadow-[var(--clay-raised)] bg-surface space-y-3">
-              <div className="border-b border-[rgba(120,110,90,0.12)] pb-3">
-                <h2 className="font-display text-base font-bold text-ink-900">Security & Authentication Policy</h2>
-                <p className="font-body text-xs text-ink-500">Active cryptographic and session safeguards</p>
-              </div>
+            <Card className="space-y-3">
+              <CardHeader title="Security & Authentication Policy" subtitle="Active cryptographic and session safeguards" />
               <ul className="space-y-2.5 font-body text-xs text-ink-700 pt-1">
                 <li className="flex items-center gap-2.5">
                   <CheckCircle2 className="h-4 w-4 text-olive-600 shrink-0" />
@@ -250,12 +251,12 @@ export function SettingsPage() {
                   Reverse proxy trust headers verified for secure cloud deployments
                 </li>
               </ul>
-            </section>
+            </Card>
           </div>
 
-          <section className="clay-card p-6 rounded-lg border border-white/80 shadow-[var(--clay-raised)] bg-surface space-y-4">
+          <Card className="space-y-4">
             <div className="flex items-center gap-3.5 border-b border-[rgba(120,110,90,0.12)] pb-4">
-              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-sand-200 text-ink-800 shadow-[var(--clay-raised-sm)] border border-white/90">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-sand-200 text-ink-800 shadow-clay-sm border border-white/90">
                 <KeyRound className="h-5 w-5 text-olive-800" />
               </div>
               <div>
@@ -302,24 +303,21 @@ export function SettingsPage() {
                 <button
                   type="submit"
                   disabled={isSubmitting || passwordMutation.isPending}
-                  className="clay-btn clay-btn--primary w-full h-11 rounded-pill font-body text-sm font-medium text-white shadow-[var(--clay-green)] disabled:opacity-50"
+                  className="clay-btn clay-btn--primary w-full h-11 rounded-pill font-body text-sm font-medium text-white shadow-clay-green disabled:opacity-50"
                 >
                   {isSubmitting || passwordMutation.isPending ? 'Updating password...' : 'Update Password'}
                 </button>
               </div>
             </form>
-          </section>
+          </Card>
         </div>
       )}
 
       {/* Tab 2: Workspace Preferences */}
       {activeTab === 'workspace' && (
         <div className="grid gap-6 lg:grid-cols-2">
-          <section className="clay-card p-6 rounded-lg border border-white/80 shadow-[var(--clay-raised)] bg-surface space-y-4">
-            <div className="border-b border-[rgba(120,110,90,0.12)] pb-3">
-              <h2 className="font-display text-base font-bold text-ink-900">Workspace Configuration</h2>
-              <p className="font-body text-xs text-ink-500">Regional and financial presentation settings</p>
-            </div>
+          <Card className="space-y-4">
+            <CardHeader title="Workspace Configuration" subtitle="Regional and financial presentation settings" />
 
             <div className="space-y-4 pt-1">
               <div>
@@ -356,19 +354,16 @@ export function SettingsPage() {
                 <button
                   type="button"
                   onClick={handleSavePreferences}
-                  className="clay-btn clay-btn--primary h-11 px-6 rounded-pill font-body text-sm font-medium text-white shadow-[var(--clay-green)]"
+                  className="clay-btn clay-btn--primary h-11 px-6 rounded-pill font-body text-sm font-medium text-white shadow-clay-green"
                 >
                   Save Workspace Preferences
                 </button>
               </div>
             </div>
-          </section>
+          </Card>
 
-          <section className="clay-card p-6 rounded-lg border border-white/80 shadow-[var(--clay-raised)] bg-surface space-y-4">
-            <div className="border-b border-[rgba(120,110,90,0.12)] pb-3">
-              <h2 className="font-display text-base font-bold text-ink-900">Design System & Appearance</h2>
-              <p className="font-body text-xs text-ink-500">Design tokens and font rules active in this build</p>
-            </div>
+          <Card className="space-y-4">
+            <CardHeader title="Design System & Appearance" subtitle="Design tokens and font rules active in this build" />
 
             <div className="space-y-3 pt-1 text-sm font-body">
               <div className="rounded-md border border-[rgba(120,110,90,0.12)] bg-surface-soft p-4 flex items-center justify-between">
@@ -398,18 +393,15 @@ export function SettingsPage() {
                 </div>
               </div>
             </div>
-          </section>
+          </Card>
         </div>
       )}
 
       {/* Tab 3: Pipelines & Stages */}
       {activeTab === 'pipeline' && (
         <div className="space-y-6">
-          <section className="clay-card p-6 rounded-lg border border-white/80 shadow-[var(--clay-raised)] bg-surface space-y-4">
-            <div className="border-b border-[rgba(120,110,90,0.12)] pb-3">
-              <h2 className="font-display text-base font-bold text-ink-900">Lead Pipeline Stages</h2>
-              <p className="font-body text-xs text-ink-500">Configured stages for incoming inquiries and opportunities</p>
-            </div>
+          <Card className="space-y-4">
+            <CardHeader title="Lead Pipeline Stages" subtitle="Configured stages for incoming inquiries and opportunities" />
             <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 pt-1">
               {LEAD_STATUSES.map((status, index) => (
                 <div
@@ -421,13 +413,10 @@ export function SettingsPage() {
                 </div>
               ))}
             </div>
-          </section>
+          </Card>
 
-          <section className="clay-card p-6 rounded-lg border border-white/80 shadow-[var(--clay-raised)] bg-surface space-y-4">
-            <div className="border-b border-[rgba(120,110,90,0.12)] pb-3">
-              <h2 className="font-display text-base font-bold text-ink-900">Project Delivery Stages</h2>
-              <p className="font-body text-xs text-ink-500">Configured workflow stages for client project fulfillment</p>
-            </div>
+          <Card className="space-y-4">
+            <CardHeader title="Project Delivery Stages" subtitle="Configured workflow stages for client project fulfillment" />
             <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3 pt-1">
               {PROJECT_STATUSES.map((status, index) => (
                 <div
@@ -439,14 +428,11 @@ export function SettingsPage() {
                 </div>
               ))}
             </div>
-          </section>
+          </Card>
 
           <div className="grid gap-6 md:grid-cols-2">
-            <section className="clay-card p-6 rounded-lg border border-white/80 shadow-[var(--clay-raised)] bg-surface space-y-3">
-              <div className="border-b border-[rgba(120,110,90,0.12)] pb-3">
-                <h2 className="font-display text-base font-bold text-ink-900">Invoice Payment Statuses</h2>
-                <p className="font-body text-xs text-ink-500">Automated ledger states</p>
-              </div>
+            <Card className="space-y-3">
+              <CardHeader title="Invoice Payment Statuses" subtitle="Automated ledger states" />
               <div className="flex flex-wrap gap-2 pt-1">
                 {INVOICE_PAYMENT_STATUSES.map((status) => (
                   <span
@@ -457,13 +443,10 @@ export function SettingsPage() {
                   </span>
                 ))}
               </div>
-            </section>
+            </Card>
 
-            <section className="clay-card p-6 rounded-lg border border-white/80 shadow-[var(--clay-raised)] bg-surface space-y-3">
-              <div className="border-b border-[rgba(120,110,90,0.12)] pb-3">
-                <h2 className="font-display text-base font-bold text-ink-900">Expense Allocation Categories</h2>
-                <p className="font-body text-xs text-ink-500">Cost accounting breakdown tags</p>
-              </div>
+            <Card className="space-y-3">
+              <CardHeader title="Expense Allocation Categories" subtitle="Cost accounting breakdown tags" />
               <div className="flex flex-wrap gap-2 pt-1">
                 {EXPENSE_CATEGORIES.map((category) => (
                   <span
@@ -474,7 +457,7 @@ export function SettingsPage() {
                   </span>
                 ))}
               </div>
-            </section>
+            </Card>
           </div>
         </div>
       )}
@@ -489,10 +472,10 @@ export function SettingsPage() {
       {/* Tab 5: System & Diagnostics */}
       {activeTab === 'system' && (
         <div className="grid gap-6 lg:grid-cols-2">
-          <section className="clay-card p-6 rounded-lg border border-white/80 shadow-[var(--clay-raised)] bg-surface space-y-4">
+          <Card className="space-y-4">
             <div className="flex items-center justify-between border-b border-[rgba(120,110,90,0.12)] pb-3">
               <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-olive-100 text-olive-800 shadow-[var(--clay-raised-sm)] border border-white/90">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-olive-100 text-olive-800 shadow-clay-sm border border-white/90">
                   <Server className="h-5 w-5" />
                 </div>
                 <div>
@@ -502,7 +485,7 @@ export function SettingsPage() {
               </div>
               <button
                 type="button"
-                className="clay-btn clay-btn--secondary h-9 px-4 rounded-pill font-body text-xs font-medium text-ink-900 bg-surface shadow-[var(--clay-raised-sm)] border border-white/80 hover:text-olive-700 flex items-center gap-1.5"
+                className="clay-btn clay-btn--secondary h-9 px-4 rounded-pill font-body text-xs font-medium text-ink-900 bg-surface shadow-clay-sm border border-white/80 hover:text-olive-700 flex items-center gap-1.5"
                 onClick={pingServer}
                 disabled={isPinging}
               >
@@ -536,13 +519,10 @@ export function SettingsPage() {
                 <dd className="font-mono text-xs text-ink-600 uppercase">{import.meta.env.MODE}</dd>
               </div>
             </dl>
-          </section>
+          </Card>
 
-          <section className="clay-card p-6 rounded-lg border border-white/80 shadow-[var(--clay-raised)] bg-surface space-y-4">
-            <div className="border-b border-[rgba(120,110,90,0.12)] pb-3">
-              <h2 className="font-display text-base font-bold text-ink-900">Data Backup & Maintenance</h2>
-              <p className="font-body text-xs text-ink-500">Export workspace records or invalidate in-memory query cache</p>
-            </div>
+          <Card className="space-y-4">
+            <CardHeader title="Data Backup & Maintenance" subtitle="Export workspace records or invalidate in-memory query cache" />
 
             <div className="space-y-3 pt-1">
               <div className="rounded-md border border-[rgba(120,110,90,0.12)] bg-surface-soft p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -552,7 +532,7 @@ export function SettingsPage() {
                 </div>
                 <button
                   type="button"
-                  className="clay-btn clay-btn--primary h-9 px-4 rounded-pill font-body text-xs font-medium text-white shadow-[var(--clay-green)] flex items-center justify-center gap-1.5 shrink-0"
+                  className="clay-btn clay-btn--primary h-9 px-4 rounded-pill font-body text-xs font-medium text-white shadow-clay-green flex items-center justify-center gap-1.5 shrink-0"
                   onClick={handleExportData}
                   disabled={isExporting}
                 >
@@ -568,7 +548,7 @@ export function SettingsPage() {
                 </div>
                 <button
                   type="button"
-                  className="clay-btn h-9 px-4 rounded-pill font-body text-xs font-medium text-danger-fg bg-surface shadow-[var(--clay-raised-sm)] border border-danger-fg/30 hover:bg-danger-fg/10 flex items-center justify-center gap-1.5 shrink-0"
+                  className="clay-btn h-9 px-4 rounded-pill font-body text-xs font-medium text-danger-fg bg-surface shadow-clay-sm border border-danger-fg/30 hover:bg-danger-fg/10 flex items-center justify-center gap-1.5 shrink-0"
                   onClick={handleClearCache}
                 >
                   <RefreshCw className="h-3.5 w-3.5" />
@@ -576,7 +556,7 @@ export function SettingsPage() {
                 </button>
               </div>
             </div>
-          </section>
+          </Card>
         </div>
       )}
     </section>
@@ -600,7 +580,7 @@ function TabButton({
       onClick={onClick}
       className={`inline-flex items-center gap-2 rounded-pill px-4 py-2 font-body text-xs sm:text-sm font-medium transition-all duration-200 ${
         active
-          ? 'bg-ink-900 text-white shadow-[var(--clay-pressed)]'
+          ? 'bg-ink-900 text-white shadow-clay-pressed'
           : 'text-ink-600 hover:text-ink-900 hover:bg-surface-soft'
       }`}
     >
