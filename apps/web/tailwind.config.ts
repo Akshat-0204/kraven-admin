@@ -39,6 +39,8 @@ const config: Config = {
         'clay-hover': 'var(--clay-hover)',
         'clay-pressed': 'var(--clay-pressed)',
         'clay-inset': 'var(--clay-inset)',
+        'clay-inset-sm': 'var(--clay-inset-sm)',
+        'clay-floating': 'var(--clay-floating)',
         'clay-green': 'var(--clay-green)'
       }
     }

@@ -69,6 +69,12 @@
   --clay-inset:
     inset 4px 4px 9px rgba(120, 110, 90, 0.16),
     inset -4px -4px 9px rgba(255, 255, 255, 0.95);
+  --clay-inset-sm:
+    inset 2px 2px 5px rgba(120, 110, 90, 0.16),
+    inset -2px -2px 5px rgba(255, 255, 255, 0.95);
+  --clay-floating:
+    20px 24px 48px rgba(120, 110, 90, 0.28),
+    -8px -8px 24px rgba(255, 255, 255, 0.9);
   --clay-green:
     10px 12px 24px rgba(74, 107, 87, 0.35),
     -6px -6px 16px rgba(255, 255, 255, 0.7),
