@@ -6,6 +6,9 @@ import { useQuery } from '@tanstack/react-query';
 import { Upload } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { type SubmitHandler, useForm } from 'react-hook-form';
+import { toast } from 'sonner';
+import { errorMessage } from '../../lib/api';
+import { applyServerErrors } from '../../lib/formErrors';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Modal } from '../../components/ui/modal';
@@ -23,6 +26,11 @@ interface ExpenseFormModalProps {
 
 function toDateInput(value?: string) {
   return value ? value.slice(0, 10) : '';
+}
+
+// Date inputs need 'YYYY-MM-DD' strings; zod coerces them back to Date on submit.
+function dateField(value?: string): Date {
+  return (toDateInput(value) || new Date().toISOString().slice(0, 10)) as unknown as Date;
 }
 
 function toReceiptInput(receipt?: ExpenseRecord['receipt']): ExpenseInput['receipt'] {
@@ -50,7 +58,7 @@ export function ExpenseFormModal({ expense, isOpen, onClose, onSubmit }: Expense
       name: expense?.name ?? '',
       amount: expense?.amount ?? 0,
       category: expense?.category ?? 'Other',
-      date: expense?.date ? new Date(expense.date) : new Date(),
+      date: dateField(expense?.date),
       vendor: expense?.vendor ?? '',
       associatedProject: expense?.associatedProject ?? '',
       receipt,
@@ -63,6 +71,7 @@ export function ExpenseFormModal({ expense, isOpen, onClose, onSubmit }: Expense
     register,
     handleSubmit,
     reset,
+    setError,
     formState: { isSubmitting, errors }
   } = useForm<ExpenseInput>({
     resolver: zodResolver(expenseSchema),
@@ -76,19 +85,28 @@ export function ExpenseFormModal({ expense, isOpen, onClose, onSubmit }: Expense
   if (!isOpen) return null;
 
   const submit: SubmitHandler<ExpenseInput> = async (values) => {
-    await onSubmit({ ...values, receipt });
+    try {
+      await onSubmit({ ...values, receipt });
+    } catch (error) {
+      applyServerErrors(error, setError, 'Could not save expense');
+      return;
+    }
     reset();
     onClose();
   };
 
   async function handleReceipt(file: File) {
-    const upload = await uploadExpenseReceipt(file);
-    setReceipt({
-      fileId: upload.file.id,
-      filename: upload.file.filename,
-      contentType: upload.file.contentType,
-      uploadedAt: new Date(upload.file.createdAt)
-    });
+    try {
+      const upload = await uploadExpenseReceipt(file);
+      setReceipt({
+        fileId: upload.file.id,
+        filename: upload.file.filename,
+        contentType: upload.file.contentType,
+        uploadedAt: new Date(upload.file.createdAt)
+      });
+    } catch (error) {
+      toast.error(errorMessage(error, 'Could not upload receipt'));
+    }
   }
 
   return (
@@ -99,20 +117,21 @@ export function ExpenseFormModal({ expense, isOpen, onClose, onSubmit }: Expense
       title={expense ? 'Edit Expense' : 'Record Expense'}
       description="Log operational overhead, contractor disbursements, or project expenditures"
     >
-        <form className="grid gap-6 md:grid-cols-2" onSubmit={handleSubmit(submit)}>
+        <form noValidate className="grid gap-6 md:grid-cols-2" onSubmit={handleSubmit(submit)}>
           <label className="space-y-1.5 md:col-span-2">
-            <span className="font-body text-xs font-semibold uppercase tracking-wider text-ink-700">Expense Title</span>
+            <span className="font-body text-xs font-semibold uppercase tracking-wider text-ink-700">Expense Title <span className="text-olive-700">*</span></span>
             <Input placeholder="e.g. AWS Cloud Hosting, Ergonomic Chairs" {...register('name')} />
             {errors.name ? <span className="block text-xs font-body text-danger-fg">{errors.name.message}</span> : null}
           </label>
 
           <label className="space-y-1.5">
-            <span className="font-body text-xs font-semibold uppercase tracking-wider text-ink-700">Amount</span>
+            <span className="font-body text-xs font-semibold uppercase tracking-wider text-ink-700">Amount <span className="text-olive-700">*</span></span>
             <Input type="number" min="0" step="any" {...register('amount')} />
+            {errors.amount ? <span className="block text-xs font-body text-danger-fg">{errors.amount.message}</span> : null}
           </label>
 
           <label className="space-y-1.5">
-            <span className="font-body text-xs font-semibold uppercase tracking-wider text-ink-700">Category</span>
+            <span className="font-body text-xs font-semibold uppercase tracking-wider text-ink-700">Category <span className="text-olive-700">*</span></span>
             <Select aria-label="Category" {...register('category')}>
               {EXPENSE_CATEGORIES.map((category) => (
                 <option key={category} value={category}>
@@ -120,16 +139,19 @@ export function ExpenseFormModal({ expense, isOpen, onClose, onSubmit }: Expense
                 </option>
               ))}
             </Select>
+            {errors.category ? <span className="block text-xs font-body text-danger-fg">{errors.category.message}</span> : null}
           </label>
 
           <label className="space-y-1.5">
-            <span className="font-body text-xs font-semibold uppercase tracking-wider text-ink-700">Date</span>
-            <Input type="date" {...register('date')} defaultValue={toDateInput(expense?.date)} />
+            <span className="font-body text-xs font-semibold uppercase tracking-wider text-ink-700">Date <span className="text-olive-700">*</span></span>
+            <Input type="date" {...register('date')} />
+            {errors.date ? <span className="block text-xs font-body text-danger-fg">{errors.date.message}</span> : null}
           </label>
 
           <label className="space-y-1.5">
             <span className="font-body text-xs font-semibold uppercase tracking-wider text-ink-700">Vendor / Payee</span>
             <Input placeholder="e.g. Amazon Web Services, GitHub" {...register('vendor')} />
+            {errors.vendor ? <span className="block text-xs font-body text-danger-fg">{errors.vendor.message}</span> : null}
           </label>
 
           <label className="space-y-1.5 md:col-span-2">
@@ -142,6 +164,7 @@ export function ExpenseFormModal({ expense, isOpen, onClose, onSubmit }: Expense
                 </option>
               ))}
             </Select>
+            {errors.associatedProject ? <span className="block text-xs font-body text-danger-fg">{errors.associatedProject.message}</span> : null}
           </label>
 
           <div className="space-y-1.5 md:col-span-2">
@@ -176,6 +199,7 @@ export function ExpenseFormModal({ expense, isOpen, onClose, onSubmit }: Expense
           <label className="space-y-1.5 md:col-span-2">
             <span className="font-body text-xs font-semibold uppercase tracking-wider text-ink-700">Notes</span>
             <Textarea placeholder="Business purpose or item details..." {...register('notes')} />
+            {errors.notes ? <span className="block text-xs font-body text-danger-fg">{errors.notes.message}</span> : null}
           </label>
 
           <div className="flex items-center justify-end gap-3 pt-2 md:col-span-2">

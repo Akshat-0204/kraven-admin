@@ -14,7 +14,8 @@ import { LoadingState } from '../../components/ui/loadingState';
 import { PageHeader } from '../../components/ui/pageHeader';
 import { Select } from '../../components/ui/select';
 import { InvoiceStatusBadge } from '../../components/ui/statusBadge';
-import { downloadFile } from '../../lib/api';
+import { downloadFile, errorMessage } from '../../lib/api';
+import { toastError } from '../../lib/formErrors';
 import { clientQueryKeys, listClients } from '../clients/clientApi';
 import { listProjects, projectQueryKeys } from '../projects/projectApi';
 import {
@@ -58,8 +59,8 @@ export function InvoicesPaymentsPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['finance'] });
       toast.success('Invoice created');
-    },
-    onError: (error) => toast.error(error.message)
+    }
+    // Errors are surfaced by InvoiceFormModal (inline field errors + toast).
   });
 
   const paymentMutation = useMutation({
@@ -67,8 +68,8 @@ export function InvoicesPaymentsPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['finance'] });
       toast.success('Payment recorded');
-    },
-    onError: (error) => toast.error(error.message)
+    }
+    // Errors are surfaced by PaymentFormModal (inline field errors + toast).
   });
 
   const deleteMutation = useMutation({
@@ -77,7 +78,7 @@ export function InvoicesPaymentsPage() {
       queryClient.invalidateQueries({ queryKey: ['finance'] });
       toast.success('Invoice deleted');
     },
-    onError: (error) => toast.error(error.message)
+    onError: toastError('Could not delete invoice')
   });
 
   const invoices = invoicesQuery.data?.invoices ?? [];
@@ -174,7 +175,7 @@ export function InvoicesPaymentsPage() {
         </Card>
       ) : invoicesQuery.isError ? (
         <Card className="bg-danger-bg p-6 font-body text-sm text-danger-fg">
-          Unable to load invoices.
+          Unable to load invoices: {errorMessage(invoicesQuery.error, 'Unknown error')}
         </Card>
       ) : invoices.length === 0 ? (
         <Card>
@@ -225,8 +226,8 @@ export function InvoicesPaymentsPage() {
                           className="clay-btn h-8 w-8 rounded-pill p-0 text-ink-700 hover:text-olive-700"
                           aria-label={`Download invoice ${invoice.invoiceNumber} PDF`}
                           onClick={() =>
-                            downloadFile(`/invoices/${invoice.id}/pdf`, `${invoice.invoiceNumber}.pdf`).catch((error: Error) =>
-                              toast.error(error.message)
+                            downloadFile(`/invoices/${invoice.id}/pdf`, `${invoice.invoiceNumber}.pdf`).catch(
+                              toastError('Could not download invoice PDF')
                             )
                           }
                         >
@@ -266,7 +267,15 @@ export function InvoicesPaymentsPage() {
           title="Recent Payment Transactions"
           subtitle="Audit trail of cleared client payments and settlement references"
         />
-        {(paymentsQuery.data?.payments ?? []).length === 0 ? (
+        {paymentsQuery.isError ? (
+          <Card className="bg-danger-bg p-6 font-body text-sm text-danger-fg">
+            Unable to load payments: {errorMessage(paymentsQuery.error, 'Unknown error')}
+          </Card>
+        ) : paymentsQuery.isLoading ? (
+          <Card>
+            <LoadingState label="Loading payments..." />
+          </Card>
+        ) : (paymentsQuery.data?.payments ?? []).length === 0 ? (
           <Card>
             <EmptyState title="No payments recorded yet." />
           </Card>

@@ -5,6 +5,8 @@ import { useQuery } from '@tanstack/react-query';
 import { Plus, Trash2 } from 'lucide-react';
 import { useMemo } from 'react';
 import { useFieldArray, useForm, useWatch } from 'react-hook-form';
+import { errorMessage } from '../../lib/api';
+import { applyServerErrors } from '../../lib/formErrors';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Modal } from '../../components/ui/modal';
@@ -21,8 +23,14 @@ interface InvoiceFormModalProps {
   onSubmit: (input: InvoiceInput) => Promise<void>;
 }
 
-function toDateInput(value?: string) {
-  return value ? value.slice(0, 10) : '';
+function toDateInput(value?: string | Date) {
+  if (!value) return '';
+  return (value instanceof Date ? value.toISOString() : value).slice(0, 10);
+}
+
+// Date inputs need 'YYYY-MM-DD' strings; zod coerces them back to Date on submit.
+function dateField(value?: string): Date {
+  return (toDateInput(value) || toDateInput(new Date())) as unknown as Date;
 }
 
 export function InvoiceFormModal({ invoice, isOpen, onClose, onSubmit }: InvoiceFormModalProps) {
@@ -50,11 +58,11 @@ export function InvoiceFormModal({ invoice, isOpen, onClose, onSubmit }: Invoice
       amount: invoice?.amount ?? 0,
       lineItems: invoice?.lineItems ?? [],
       taxRate: invoice?.taxRate ?? 0,
-      invoiceDate: invoice?.invoiceDate ? new Date(invoice.invoiceDate) : new Date(),
-      dueDate: invoice?.dueDate ? new Date(invoice.dueDate) : new Date(),
+      invoiceDate: dateField(invoice?.invoiceDate),
+      dueDate: dateField(invoice?.dueDate),
       paymentStatus: invoice?.paymentStatus ?? 'Pending',
       amountPaid: invoice?.amountPaid ?? 0,
-      paymentDate: invoice?.paymentDate ? new Date(invoice.paymentDate) : undefined,
+      paymentDate: (toDateInput(invoice?.paymentDate) || undefined) as unknown as Date | undefined,
       paymentMethod: invoice?.paymentMethod ?? '',
       transactionReferenceId: invoice?.transactionReferenceId ?? '',
       notes: invoice?.notes ?? '',
@@ -68,6 +76,7 @@ export function InvoiceFormModal({ invoice, isOpen, onClose, onSubmit }: Invoice
     control,
     handleSubmit,
     reset,
+    setError,
     formState: { errors, isSubmitting }
   } = useForm<InvoiceInput>({
     resolver: zodResolver(invoiceSchema),
@@ -83,7 +92,12 @@ export function InvoiceFormModal({ invoice, isOpen, onClose, onSubmit }: Invoice
   if (!isOpen) return null;
 
   async function submit(values: InvoiceInput) {
-    await onSubmit(values);
+    try {
+      await onSubmit(values);
+    } catch (error) {
+      applyServerErrors(error, setError, 'Could not save invoice');
+      return;
+    }
     reset();
     onClose();
   }
@@ -96,9 +110,9 @@ export function InvoiceFormModal({ invoice, isOpen, onClose, onSubmit }: Invoice
       title={invoice ? 'Edit Invoice' : 'Create Invoice'}
       description="Generate an itemized invoice for client billing and automated payment tracking"
     >
-        <form className="grid gap-6 md:grid-cols-2" onSubmit={handleSubmit(submit)}>
+        <form className="grid gap-6 md:grid-cols-2" onSubmit={handleSubmit(submit)} noValidate>
           <label className="space-y-1.5">
-            <span className="font-body text-xs font-semibold uppercase tracking-wider text-ink-700">Client</span>
+            <span className="font-body text-xs font-semibold uppercase tracking-wider text-ink-700">Client <span className="text-olive-700">*</span></span>
             <Select aria-label="Client" {...register('client')}>
               <option value="">Select client</option>
               {(clientsQuery.data?.clients ?? []).map((client) => (
@@ -108,6 +122,7 @@ export function InvoiceFormModal({ invoice, isOpen, onClose, onSubmit }: Invoice
               ))}
             </Select>
             {errors.client ? <span className="block text-xs font-body text-danger-fg">{errors.client.message}</span> : null}
+            {clientsQuery.isError ? <span className="block text-xs font-body text-danger-fg">Could not load clients: {errorMessage(clientsQuery.error)}</span> : null}
           </label>
 
           <label className="space-y-1.5">
@@ -120,18 +135,21 @@ export function InvoiceFormModal({ invoice, isOpen, onClose, onSubmit }: Invoice
                 </option>
               ))}
             </Select>
+            {errors.project ? <span className="block text-xs font-body text-danger-fg">{errors.project.message}</span> : null}
           </label>
 
           <label className="space-y-1.5">
-            <span className="font-body text-xs font-semibold uppercase tracking-wider text-ink-700">Invoice Number</span>
+            <span className="font-body text-xs font-semibold uppercase tracking-wider text-ink-700">Invoice Number <span className="text-olive-700">*</span></span>
             <Input placeholder="e.g. INV-2026-001" {...register('invoiceNumber')} />
+            {errors.invoiceNumber ? <span className="block text-xs font-body text-danger-fg">{errors.invoiceNumber.message}</span> : null}
           </label>
 
           <label className="space-y-1.5">
             <span className="font-body text-xs font-semibold uppercase tracking-wider text-ink-700">
-              Amount{fields.length > 0 ? ' (computed from items)' : ''}
+              Amount{fields.length > 0 ? ' (computed from items)' : <span className="text-olive-700"> *</span>}
             </span>
             <Input type="number" min="0" step="any" disabled={fields.length > 0} {...register('amount')} />
+            {errors.amount ? <span className="block text-xs font-body text-danger-fg">{errors.amount.message}</span> : null}
           </label>
 
           {/* Line items section */}
@@ -152,7 +170,8 @@ export function InvoiceFormModal({ invoice, isOpen, onClose, onSubmit }: Invoice
             </div>
 
             {fields.map((field, index) => (
-              <div key={field.id} className="grid grid-cols-[1fr_5.5rem_7.5rem_2.5rem] items-center gap-2">
+              <div key={field.id} className="space-y-1">
+              <div className="grid grid-cols-[1fr_5.5rem_7.5rem_2.5rem] items-center gap-2">
                 <Input
                   placeholder="Item description"
                   aria-label={`Item ${index + 1} description`}
@@ -183,7 +202,16 @@ export function InvoiceFormModal({ invoice, isOpen, onClose, onSubmit }: Invoice
                   <Trash2 className="h-4 w-4" aria-hidden="true" />
                 </Button>
               </div>
+              {[errors.lineItems?.[index]?.description, errors.lineItems?.[index]?.quantity, errors.lineItems?.[index]?.unitPrice].map((e, i) =>
+                e?.message ? (
+                  <span key={i} className="block text-xs font-body text-danger-fg">
+                    Item {index + 1}: {e.message}
+                  </span>
+                ) : null
+              )}
+              </div>
             ))}
+            {errors.lineItems?.message ? <span className="block text-xs font-body text-danger-fg">{errors.lineItems.message}</span> : null}
 
             {fields.length > 0 ? (
               <div className="border-t border-sand-200/40 pt-2 text-right text-xs font-body text-ink-700">
@@ -195,16 +223,19 @@ export function InvoiceFormModal({ invoice, isOpen, onClose, onSubmit }: Invoice
           <label className="space-y-1.5">
             <span className="font-body text-xs font-semibold uppercase tracking-wider text-ink-700">Tax Rate (%)</span>
             <Input type="number" min="0" max="100" step="any" disabled={fields.length === 0} {...register('taxRate')} />
+            {errors.taxRate ? <span className="block text-xs font-body text-danger-fg">{errors.taxRate.message}</span> : null}
           </label>
 
           <label className="space-y-1.5">
-            <span className="font-body text-xs font-semibold uppercase tracking-wider text-ink-700">Invoice Date</span>
-            <Input type="date" {...register('invoiceDate')} defaultValue={toDateInput(invoice?.invoiceDate)} />
+            <span className="font-body text-xs font-semibold uppercase tracking-wider text-ink-700">Invoice Date <span className="text-olive-700">*</span></span>
+            <Input type="date" {...register('invoiceDate')} />
+            {errors.invoiceDate ? <span className="block text-xs font-body text-danger-fg">{errors.invoiceDate.message}</span> : null}
           </label>
 
           <label className="space-y-1.5">
-            <span className="font-body text-xs font-semibold uppercase tracking-wider text-ink-700">Due Date</span>
-            <Input type="date" {...register('dueDate')} defaultValue={toDateInput(invoice?.dueDate)} />
+            <span className="font-body text-xs font-semibold uppercase tracking-wider text-ink-700">Due Date <span className="text-olive-700">*</span></span>
+            <Input type="date" {...register('dueDate')} />
+            {errors.dueDate ? <span className="block text-xs font-body text-danger-fg">{errors.dueDate.message}</span> : null}
           </label>
 
           <label className="space-y-1.5 md:col-span-2">
@@ -217,6 +248,7 @@ export function InvoiceFormModal({ invoice, isOpen, onClose, onSubmit }: Invoice
                 </option>
               ))}
             </Select>
+            {errors.payeeProfile ? <span className="block text-xs font-body text-danger-fg">{errors.payeeProfile.message}</span> : null}
           </label>
 
           <label className="space-y-1.5 md:col-span-2">

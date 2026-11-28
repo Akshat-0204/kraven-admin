@@ -27,7 +27,8 @@ import {
   ProjectStatusBadge,
   Select
 } from '../../components/ui';
-import { apiUrl } from '../../lib/api';
+import { apiUrl, errorMessage } from '../../lib/api';
+import { toastError } from '../../lib/formErrors';
 import { clientQueryKeys } from '../clients/clientApi';
 import { financeQueryKeys, getProjectFinancials } from '../finance/financeApi';
 import {
@@ -84,8 +85,8 @@ export function ProjectDetailPage() {
     onSuccess: (result) => {
       refreshProject(result.client.id);
       toast.success('Project updated');
-    },
-    onError: (error) => toast.error(error.message)
+    }
+    // Errors are surfaced by ProjectFormModal (inline field errors + toast).
   });
 
   const statusMutation = useMutation({
@@ -94,7 +95,7 @@ export function ProjectDetailPage() {
       refreshProject(result.client.id);
       toast.success('Project status updated');
     },
-    onError: (error) => toast.error(error.message)
+    onError: toastError('Could not update status')
   });
 
   const progressMutation = useMutation({
@@ -103,7 +104,7 @@ export function ProjectDetailPage() {
       refreshProject(result.client.id);
       toast.success('Project progress updated');
     },
-    onError: (error) => toast.error(error.message)
+    onError: toastError('Could not update progress')
   });
 
   const addLinkMutation = useMutation({
@@ -113,7 +114,7 @@ export function ProjectDetailPage() {
       refreshProject(projectQuery.data?.client.id);
       toast.success('Link added');
     },
-    onError: (error) => toast.error(error.message)
+    onError: toastError('Could not add link')
   });
 
   const removeLinkMutation = useMutation({
@@ -122,7 +123,7 @@ export function ProjectDetailPage() {
       refreshProject(projectQuery.data?.client.id);
       toast.success('Link removed');
     },
-    onError: (error) => toast.error(error.message)
+    onError: toastError('Could not remove link')
   });
 
   const uploadDocumentMutation = useMutation({
@@ -131,7 +132,7 @@ export function ProjectDetailPage() {
       refreshProject(projectQuery.data?.client.id);
       toast.success('Document uploaded');
     },
-    onError: (error) => toast.error(error.message)
+    onError: toastError('Could not upload document')
   });
 
   const removeDocumentMutation = useMutation({
@@ -140,7 +141,7 @@ export function ProjectDetailPage() {
       refreshProject(projectQuery.data?.client.id);
       toast.success('Document removed');
     },
-    onError: (error) => toast.error(error.message)
+    onError: toastError('Could not remove document')
   });
 
   if (projectQuery.isLoading) {
@@ -162,7 +163,7 @@ export function ProjectDetailPage() {
           <span>Back to projects</span>
         </Link>
         <Card className="p-8 text-center font-body text-sm text-danger-fg">
-          Unable to load project. Please check the URL or return to projects list.
+          {errorMessage(projectQuery.error, 'Unable to load project. Please check the URL or return to projects list.')}
         </Card>
       </div>
     );
@@ -314,7 +315,7 @@ export function ProjectDetailPage() {
               <div className="p-6 text-center font-body text-xs text-ink-500">Loading financials...</div>
             ) : financialsQuery.isError || !financialsQuery.data ? (
               <div className="rounded-md border border-danger-fg/30 bg-surface-soft p-4 text-xs text-danger-fg">
-                Unable to load project financials.
+                {errorMessage(financialsQuery.error, 'Unable to load project financials.')}
               </div>
             ) : (
               <div className="grid gap-3 sm:grid-cols-3">

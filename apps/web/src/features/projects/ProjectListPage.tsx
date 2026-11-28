@@ -5,6 +5,8 @@ import { Plus, Search, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
+import { errorMessage } from '../../lib/api';
+import { toastError } from '../../lib/formErrors';
 import {
   Card,
   EmptyState,
@@ -49,8 +51,8 @@ export function ProjectListPage() {
       queryClient.invalidateQueries({ queryKey: projectQueryKeys.all });
       queryClient.invalidateQueries({ queryKey: clientQueryKeys.all });
       toast.success('Project created');
-    },
-    onError: (error) => toast.error(error.message)
+    }
+    // Errors are surfaced by ProjectFormModal (inline field errors + toast).
   });
 
   const deleteMutation = useMutation({
@@ -60,7 +62,7 @@ export function ProjectListPage() {
       queryClient.invalidateQueries({ queryKey: clientQueryKeys.all });
       toast.success('Project deleted');
     },
-    onError: (error) => toast.error(error.message)
+    onError: toastError('Could not delete project')
   });
 
   const projects = projectsQuery.data?.projects ?? [];
@@ -139,7 +141,7 @@ export function ProjectListPage() {
         </Card>
       ) : projectsQuery.isError ? (
         <Card className="p-8 text-center font-body text-sm text-danger-fg">
-          Unable to load projects. Please refresh the page.
+          Unable to load projects: {errorMessage(projectsQuery.error, 'Please refresh the page.')}
         </Card>
       ) : projects.length === 0 ? (
         <Card>

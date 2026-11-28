@@ -3,6 +3,7 @@ import type { InvoiceRecord } from '@kraven/types';
 import { paymentSchema, type PaymentInput } from '@kraven/validation';
 import { useMemo } from 'react';
 import { useForm } from 'react-hook-form';
+import { applyServerErrors } from '../../lib/formErrors';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Modal } from '../../components/ui/modal';
@@ -21,7 +22,7 @@ export function PaymentFormModal({ invoice, isOpen, onClose, onSubmit }: Payment
     () => ({
       invoice: invoice?.id ?? '',
       amount: invoice?.remainingAmount ?? 0,
-      paymentDate: new Date(),
+      paymentDate: new Date().toISOString().slice(0, 10) as unknown as Date,
       paymentMethod: '',
       transactionReferenceId: '',
       notes: ''
@@ -33,6 +34,7 @@ export function PaymentFormModal({ invoice, isOpen, onClose, onSubmit }: Payment
     register,
     handleSubmit,
     reset,
+    setError,
     formState: { isSubmitting, errors }
   } = useForm<PaymentInput>({
     resolver: zodResolver(paymentSchema),
@@ -42,7 +44,12 @@ export function PaymentFormModal({ invoice, isOpen, onClose, onSubmit }: Payment
   if (!isOpen || !invoice) return null;
 
   async function submit(values: PaymentInput) {
-    await onSubmit(values);
+    try {
+      await onSubmit(values);
+    } catch (error) {
+      applyServerErrors(error, setError, 'Could not record payment');
+      return;
+    }
     reset();
     onClose();
   }
@@ -64,32 +71,38 @@ export function PaymentFormModal({ invoice, isOpen, onClose, onSubmit }: Payment
         </span>
       }
     >
-        <form className="space-y-4" onSubmit={handleSubmit(submit)}>
+        <form noValidate className="space-y-4" onSubmit={handleSubmit(submit)}>
           <label className="block space-y-1.5">
-            <span className="font-body text-xs font-semibold uppercase tracking-wider text-ink-700">Payment Amount</span>
+            <span className="font-body text-xs font-semibold uppercase tracking-wider text-ink-700">Payment Amount <span className="text-olive-700">*</span></span>
             <Input type="number" min="1" max={invoice.remainingAmount} step="any" {...register('amount')} />
             {errors.amount ? <span className="block text-xs font-body text-danger-fg">{errors.amount.message}</span> : null}
           </label>
 
           <label className="block space-y-1.5">
-            <span className="font-body text-xs font-semibold uppercase tracking-wider text-ink-700">Payment Date</span>
+            <span className="font-body text-xs font-semibold uppercase tracking-wider text-ink-700">Payment Date <span className="text-olive-700">*</span></span>
             <Input type="date" {...register('paymentDate')} />
+            {errors.paymentDate ? <span className="block text-xs font-body text-danger-fg">{errors.paymentDate.message}</span> : null}
           </label>
 
           <label className="block space-y-1.5">
             <span className="font-body text-xs font-semibold uppercase tracking-wider text-ink-700">Payment Method</span>
             <Input placeholder="e.g. Bank Transfer, UPI, Credit Card" {...register('paymentMethod')} />
+            {errors.paymentMethod ? <span className="block text-xs font-body text-danger-fg">{errors.paymentMethod.message}</span> : null}
           </label>
 
           <label className="block space-y-1.5">
             <span className="font-body text-xs font-semibold uppercase tracking-wider text-ink-700">Transaction Reference ID</span>
             <Input placeholder="e.g. UTR / Transaction #123456" {...register('transactionReferenceId')} />
+            {errors.transactionReferenceId ? <span className="block text-xs font-body text-danger-fg">{errors.transactionReferenceId.message}</span> : null}
           </label>
 
           <label className="block space-y-1.5">
             <span className="font-body text-xs font-semibold uppercase tracking-wider text-ink-700">Notes</span>
             <Textarea placeholder="Optional clearing notes or bank account reference..." {...register('notes')} />
+            {errors.notes ? <span className="block text-xs font-body text-danger-fg">{errors.notes.message}</span> : null}
           </label>
+
+          {errors.invoice ? <span className="block text-xs font-body text-danger-fg">Invoice: {errors.invoice.message}</span> : null}
 
           <div className="flex items-center justify-end gap-3 pt-3">
             <Button

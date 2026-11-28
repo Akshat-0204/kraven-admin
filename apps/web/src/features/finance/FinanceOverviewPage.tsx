@@ -16,6 +16,7 @@ import { Card } from '../../components/ui/card';
 import { LoadingState } from '../../components/ui/loadingState';
 import { PageHeader } from '../../components/ui/pageHeader';
 import { IconCircle, StatCard } from '../../components/ui/statCard';
+import { errorMessage } from '../../lib/api';
 import { financeQueryKeys, getFinanceOverview } from './financeApi';
 import { formatCurrency } from './financeFormat';
 import { FinanceSubNav } from './FinanceSubNav';
@@ -98,7 +99,7 @@ export function FinanceOverviewPage() {
         </Card>
       ) : summaryQuery.isError || !summary ? (
         <Card className="bg-danger-bg p-6 font-body text-sm text-danger-fg">
-          Unable to load finance overview. Please refresh or verify permissions.
+          Unable to load finance overview: {errorMessage(summaryQuery.error, 'Please refresh or verify permissions.')}
         </Card>
       ) : (
         <div className="space-y-6">

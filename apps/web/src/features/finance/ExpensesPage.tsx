@@ -4,6 +4,8 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Plus, Search, Tag, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
+import { errorMessage } from '../../lib/api';
+import { toastError } from '../../lib/formErrors';
 import { Button } from '../../components/ui/button';
 import { Card } from '../../components/ui/card';
 import { Table, Td, Th } from '../../components/ui/dataTable';
@@ -37,8 +39,8 @@ export function ExpensesPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['finance'] });
       toast.success('Expense recorded');
-    },
-    onError: (error) => toast.error(error.message)
+    }
+    // Errors are surfaced by ExpenseFormModal (inline field errors + toast).
   });
 
   const deleteMutation = useMutation({
@@ -47,7 +49,7 @@ export function ExpensesPage() {
       queryClient.invalidateQueries({ queryKey: ['finance'] });
       toast.success('Expense deleted');
     },
-    onError: (error) => toast.error(error.message)
+    onError: toastError('Could not delete expense')
   });
 
   const expenses = expensesQuery.data?.expenses ?? [];
@@ -128,7 +130,7 @@ export function ExpensesPage() {
         </Card>
       ) : expensesQuery.isError ? (
         <Card className="bg-danger-bg p-6 font-body text-sm text-danger-fg">
-          Unable to load expenses.
+          Unable to load expenses: {errorMessage(expensesQuery.error, 'Unknown error')}
         </Card>
       ) : expenses.length === 0 ? (
         <Card>

@@ -5,6 +5,7 @@ import { projectSchema, type ProjectInput } from '@kraven/validation';
 import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 import { type SubmitHandler, useForm } from 'react-hook-form';
+import { applyServerErrors } from '../../lib/formErrors';
 import { Button } from '../../components/ui/button';
 import { Modal } from '../../components/ui/modal';
 import { Input } from '../../components/ui/input';
@@ -19,12 +20,9 @@ interface ProjectFormModalProps {
   onSubmit: (input: ProjectInput) => Promise<void>;
 }
 
-function toDateInput(value?: string) {
-  return value ? value.slice(0, 10) : '';
-}
-
-function toDateValue(value?: string) {
-  return value ? new Date(value) : undefined;
+// Date inputs need 'YYYY-MM-DD' strings; zod coerces them back to Date on submit.
+function toDateValue(value?: string): Date | undefined {
+  return (value ? value.slice(0, 10) : undefined) as unknown as Date | undefined;
 }
 
 function toDocumentInputs(documents?: FileReference[]): ProjectInput['documents'] {
@@ -47,6 +45,7 @@ export function ProjectFormModal({ project, isOpen, onClose, onSubmit }: Project
     handleSubmit,
     reset,
     setValue,
+    setError,
     formState: { errors, isSubmitting }
   } = useForm<ProjectInput>({
     resolver: zodResolver(projectSchema),
@@ -74,14 +73,20 @@ export function ProjectFormModal({ project, isOpen, onClose, onSubmit }: Project
   }
 
   const submit: SubmitHandler<ProjectInput> = async (values) => {
-    await onSubmit(values);
+    try {
+      // The client select is disabled when editing; disabled inputs may be dropped from values.
+      await onSubmit(project ? { ...values, client: values.client || project.client } : values);
+    } catch (error) {
+      applyServerErrors(error, setError, project ? 'Could not update project' : 'Could not create project');
+      return;
+    }
     reset();
     onClose();
   };
 
   return (
     <Modal open onClose={onClose} title={project ? 'Edit Project' : 'Create New Project'} description={project ? 'Update project scope, team, and delivery timelines' : 'Define new project scope, client, and parameters'} size="lg">
-        <form className="space-y-6" onSubmit={handleSubmit(submit)}>
+        <form noValidate className="space-y-6" onSubmit={handleSubmit(submit)}>
           <div className="grid gap-6 md:grid-cols-2">
             <div>
               <label className="block font-body text-sm font-medium text-ink-700 mb-2">
@@ -135,6 +140,7 @@ export function ProjectFormModal({ project, isOpen, onClose, onSubmit }: Project
                 Project Value (INR)
               </label>
               <Input type="number" min="0" {...register('projectValue')} placeholder="500000" />
+              {errors.projectValue ? <span className="block mt-1 font-body text-xs text-danger-fg">{errors.projectValue.message}</span> : null}
             </div>
 
             <div>
@@ -142,6 +148,7 @@ export function ProjectFormModal({ project, isOpen, onClose, onSubmit }: Project
                 Assigned Team or Person
               </label>
               <Input {...register('assignedTeam')} placeholder="e.g. Design Team, Akshat" />
+              {errors.assignedTeam ? <span className="block mt-1 font-body text-xs text-danger-fg">{errors.assignedTeam.message}</span> : null}
             </div>
 
             <div>
@@ -149,6 +156,7 @@ export function ProjectFormModal({ project, isOpen, onClose, onSubmit }: Project
                 Priority
               </label>
               <Input {...register('priority')} placeholder="e.g. High, Medium, Urgent" />
+              {errors.priority ? <span className="block mt-1 font-body text-xs text-danger-fg">{errors.priority.message}</span> : null}
             </div>
 
             <div>
@@ -162,6 +170,7 @@ export function ProjectFormModal({ project, isOpen, onClose, onSubmit }: Project
                   </option>
                 ))}
               </Select>
+              {errors.status ? <span className="block mt-1 font-body text-xs text-danger-fg">{errors.status.message}</span> : null}
             </div>
 
             <div>
@@ -169,13 +178,15 @@ export function ProjectFormModal({ project, isOpen, onClose, onSubmit }: Project
                 Progress Percentage (0 - 100)
               </label>
               <Input type="number" min="0" max="100" {...register('progressPercentage')} />
+              {errors.progressPercentage ? <span className="block mt-1 font-body text-xs text-danger-fg">{errors.progressPercentage.message}</span> : null}
             </div>
 
             <div>
               <label className="block font-body text-sm font-medium text-ink-700 mb-2">
                 Start Date
               </label>
-              <Input type="date" {...register('startDate')} defaultValue={toDateInput(project?.startDate)} />
+              <Input type="date" {...register('startDate')} />
+              {errors.startDate ? <span className="block mt-1 font-body text-xs text-danger-fg">{errors.startDate.message}</span> : null}
             </div>
 
             <div>
@@ -185,8 +196,8 @@ export function ProjectFormModal({ project, isOpen, onClose, onSubmit }: Project
               <Input
                 type="date"
                 {...register('expectedCompletionDate')}
-                defaultValue={toDateInput(project?.expectedCompletionDate)}
               />
+              {errors.expectedCompletionDate ? <span className="block mt-1 font-body text-xs text-danger-fg">{errors.expectedCompletionDate.message}</span> : null}
             </div>
 
             <div>
@@ -196,8 +207,8 @@ export function ProjectFormModal({ project, isOpen, onClose, onSubmit }: Project
               <Input
                 type="date"
                 {...register('actualCompletionDate')}
-                defaultValue={toDateInput(project?.actualCompletionDate)}
               />
+              {errors.actualCompletionDate ? <span className="block mt-1 font-body text-xs text-danger-fg">{errors.actualCompletionDate.message}</span> : null}
             </div>
 
             <div className="md:col-span-2">
@@ -231,6 +242,12 @@ export function ProjectFormModal({ project, isOpen, onClose, onSubmit }: Project
               <Textarea {...register('notes')} placeholder="Operational notes, credentials reference, or team remarks..." />
             </div>
           </div>
+
+          {errors.deliverables || errors.links || errors.documents ? (
+            <p className="font-body text-xs text-danger-fg">
+              {errors.deliverables?.message ?? errors.links?.message ?? errors.documents?.message ?? 'Some attached project data is invalid. Please reopen the form.'}
+            </p>
+          ) : null}
 
           {/* Modal Actions */}
           <div className="flex items-center justify-end gap-3 pt-4 border-t border-[rgba(120,110,90,0.12)]">
