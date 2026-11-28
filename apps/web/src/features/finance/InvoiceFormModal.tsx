@@ -2,11 +2,12 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import type { InvoiceRecord } from '@kraven/types';
 import { invoiceSchema, type InvoiceInput } from '@kraven/validation';
 import { useQuery } from '@tanstack/react-query';
-import { Plus, Trash2, X } from 'lucide-react';
+import { Plus, Trash2 } from 'lucide-react';
 import { useMemo } from 'react';
 import { useFieldArray, useForm, useWatch } from 'react-hook-form';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
+import { Modal } from '../../components/ui/modal';
 import { Select } from '../../components/ui/select';
 import { Textarea } from '../../components/ui/textarea';
 import { clientQueryKeys, listClients } from '../clients/clientApi';
@@ -88,30 +89,14 @@ export function InvoiceFormModal({ invoice, isOpen, onClose, onSubmit }: Invoice
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#EBE9E3]/70 p-4">
-      <div className="clay-card max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-card border border-white/80 bg-surface p-6 shadow-[var(--clay-raised-lg)]">
-        {/* Header */}
-        <div className="flex items-center justify-between border-b border-sand-300/40 pb-4">
-          <div className="space-y-0.5">
-            <h2 className="font-display text-xl font-bold tracking-tight text-ink-900">
-              {invoice ? 'Edit Invoice' : 'Create Invoice'}
-            </h2>
-            <p className="text-xs font-body text-ink-500">
-              Generate an itemized invoice for client billing and automated payment tracking
-            </p>
-          </div>
-          <Button
-            type="button"
-            className="clay-btn h-8 w-8 rounded-pill bg-surface p-0 text-ink-500 shadow-[var(--clay-raised-sm)] transition-all hover:bg-surface-soft hover:text-ink-900"
-            aria-label="Close dialog"
-            onClick={onClose}
-          >
-            <X className="h-4 w-4" aria-hidden="true" />
-          </Button>
-        </div>
-
-        {/* Form */}
-        <form className="mt-6 grid gap-6 md:grid-cols-2" onSubmit={handleSubmit(submit)}>
+    <Modal
+      open={isOpen}
+      onClose={onClose}
+      size="lg"
+      title={invoice ? 'Edit Invoice' : 'Create Invoice'}
+      description="Generate an itemized invoice for client billing and automated payment tracking"
+    >
+        <form className="grid gap-6 md:grid-cols-2" onSubmit={handleSubmit(submit)}>
           <label className="space-y-1.5">
             <span className="font-body text-xs font-semibold uppercase tracking-wider text-ink-700">Client</span>
             <Select aria-label="Client" {...register('client')}>
@@ -150,7 +135,7 @@ export function InvoiceFormModal({ invoice, isOpen, onClose, onSubmit }: Invoice
           </label>
 
           {/* Line items section */}
-          <div className="space-y-3 rounded-card border border-[rgba(120,110,90,0.14)] bg-sand-100/50 p-4 shadow-[var(--clay-inset-sm)] md:col-span-2">
+          <div className="space-y-3 rounded-card border border-[rgba(120,110,90,0.14)] bg-sand-100/50 p-4 shadow-clay-inset-sm md:col-span-2">
             <div className="flex items-center justify-between">
               <div>
                 <span className="font-display text-xs font-semibold uppercase tracking-wider text-ink-900">Line Items</span>
@@ -158,7 +143,7 @@ export function InvoiceFormModal({ invoice, isOpen, onClose, onSubmit }: Invoice
               </div>
               <Button
                 type="button"
-                className="clay-btn h-8 rounded-pill bg-surface px-3 text-xs font-medium text-olive-700 shadow-[var(--clay-raised-sm)] transition-all hover:bg-olive-50"
+                className="clay-btn h-8 rounded-pill px-3 text-xs font-medium text-olive-700 hover:bg-olive-100"
                 onClick={() => append({ description: '', quantity: 1, unitPrice: 0 })}
               >
                 <Plus className="mr-1 h-3.5 w-3.5" aria-hidden="true" />
@@ -191,7 +176,7 @@ export function InvoiceFormModal({ invoice, isOpen, onClose, onSubmit }: Invoice
                 />
                 <Button
                   type="button"
-                  className="clay-btn h-10 w-9 rounded-pill bg-surface p-0 text-ink-400 shadow-[var(--clay-raised-sm)] transition-all hover:bg-red-50 hover:text-red-600"
+                  className="clay-btn h-10 w-9 rounded-pill p-0 text-ink-400 hover:bg-danger-bg hover:text-danger-fg"
                   aria-label="Remove item"
                   onClick={() => remove(index)}
                 >
@@ -242,7 +227,7 @@ export function InvoiceFormModal({ invoice, isOpen, onClose, onSubmit }: Invoice
           <div className="flex items-center justify-end gap-3 pt-2 md:col-span-2">
             <Button
               type="button"
-              className="clay-btn rounded-pill bg-surface px-4 py-2 font-body text-sm font-medium text-ink-700 shadow-[var(--clay-raised-sm)] transition-all hover:bg-surface-soft hover:text-ink-900"
+              className="clay-btn rounded-pill px-4 py-2 font-body text-sm font-medium text-ink-700"
               onClick={onClose}
             >
               Cancel
@@ -250,13 +235,12 @@ export function InvoiceFormModal({ invoice, isOpen, onClose, onSubmit }: Invoice
             <Button
               type="submit"
               disabled={isSubmitting}
-              className="clay-btn--primary rounded-pill bg-[var(--grad-olive)] px-5 py-2 font-body text-sm font-medium text-white shadow-[var(--clay-raised-sm)] transition-all hover:opacity-95"
+              className="clay-btn--primary rounded-pill px-5 py-2 font-body text-sm font-medium text-white"
             >
               {isSubmitting ? 'Saving...' : invoice ? 'Update invoice' : 'Save invoice'}
             </Button>
           </div>
         </form>
-      </div>
-    </div>
+    </Modal>
   );
 }

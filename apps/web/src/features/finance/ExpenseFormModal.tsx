@@ -3,11 +3,12 @@ import { EXPENSE_CATEGORIES } from '@kraven/config';
 import type { ExpenseRecord } from '@kraven/types';
 import { expenseSchema, type ExpenseInput } from '@kraven/validation';
 import { useQuery } from '@tanstack/react-query';
-import { Upload, X } from 'lucide-react';
+import { Upload } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { type SubmitHandler, useForm } from 'react-hook-form';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
+import { Modal } from '../../components/ui/modal';
 import { Select } from '../../components/ui/select';
 import { Textarea } from '../../components/ui/textarea';
 import { listProjects, projectQueryKeys } from '../projects/projectApi';
@@ -91,30 +92,14 @@ export function ExpenseFormModal({ expense, isOpen, onClose, onSubmit }: Expense
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#EBE9E3]/70 p-4">
-      <div className="clay-card max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-card border border-white/80 bg-surface p-6 shadow-[var(--clay-raised-lg)]">
-        {/* Header */}
-        <div className="flex items-center justify-between border-b border-sand-300/40 pb-4">
-          <div className="space-y-0.5">
-            <h2 className="font-display text-xl font-bold tracking-tight text-ink-900">
-              {expense ? 'Edit Expense' : 'Record Expense'}
-            </h2>
-            <p className="text-xs font-body text-ink-500">
-              Log operational overhead, contractor disbursements, or project expenditures
-            </p>
-          </div>
-          <Button
-            type="button"
-            className="clay-btn h-8 w-8 rounded-pill bg-surface p-0 text-ink-500 shadow-[var(--clay-raised-sm)] transition-all hover:bg-surface-soft hover:text-ink-900"
-            aria-label="Close dialog"
-            onClick={onClose}
-          >
-            <X className="h-4 w-4" aria-hidden="true" />
-          </Button>
-        </div>
-
-        {/* Form */}
-        <form className="mt-6 grid gap-6 md:grid-cols-2" onSubmit={handleSubmit(submit)}>
+    <Modal
+      open={isOpen}
+      onClose={onClose}
+      size="md"
+      title={expense ? 'Edit Expense' : 'Record Expense'}
+      description="Log operational overhead, contractor disbursements, or project expenditures"
+    >
+        <form className="grid gap-6 md:grid-cols-2" onSubmit={handleSubmit(submit)}>
           <label className="space-y-1.5 md:col-span-2">
             <span className="font-body text-xs font-semibold uppercase tracking-wider text-ink-700">Expense Title</span>
             <Input placeholder="e.g. AWS Cloud Hosting, Ergonomic Chairs" {...register('name')} />
@@ -170,7 +155,7 @@ export function ExpenseFormModal({ expense, isOpen, onClose, onSubmit }: Expense
               />
               <Button
                 type="button"
-                className="clay-btn rounded-pill bg-surface px-4 py-2 text-xs font-medium text-olive-700 shadow-[var(--clay-raised-sm)] transition-all hover:bg-olive-50"
+                className="clay-btn rounded-pill px-4 py-2 text-xs font-medium text-olive-700 hover:bg-olive-100"
                 onClick={() => fileInputRef.current?.click()}
               >
                 <Upload className="mr-1.5 h-3.5 w-3.5" aria-hidden="true" />
@@ -196,7 +181,7 @@ export function ExpenseFormModal({ expense, isOpen, onClose, onSubmit }: Expense
           <div className="flex items-center justify-end gap-3 pt-2 md:col-span-2">
             <Button
               type="button"
-              className="clay-btn rounded-pill bg-surface px-4 py-2 font-body text-sm font-medium text-ink-700 shadow-[var(--clay-raised-sm)] transition-all hover:bg-surface-soft hover:text-ink-900"
+              className="clay-btn rounded-pill px-4 py-2 font-body text-sm font-medium text-ink-700"
               onClick={onClose}
             >
               Cancel
@@ -204,14 +189,13 @@ export function ExpenseFormModal({ expense, isOpen, onClose, onSubmit }: Expense
             <Button
               type="submit"
               disabled={isSubmitting}
-              className="clay-btn--primary rounded-pill bg-[var(--grad-olive)] px-5 py-2 font-body text-sm font-medium text-white shadow-[var(--clay-raised-sm)] transition-all hover:opacity-95"
+              className="clay-btn--primary rounded-pill px-5 py-2 font-body text-sm font-medium text-white"
             >
               {isSubmitting ? 'Saving...' : expense ? 'Update expense' : 'Save expense'}
             </Button>
           </div>
         </form>
-      </div>
-    </div>
+    </Modal>
   );
 }
 

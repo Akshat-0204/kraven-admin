@@ -4,10 +4,14 @@ import type { InvoiceFilterInput, InvoiceInput, PaymentInput } from '@kraven/val
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Download, Plus, Search, Trash2 } from 'lucide-react';
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
 import { Button } from '../../components/ui/button';
+import { Card, CardHeader } from '../../components/ui/card';
+import { Table, Td, Th } from '../../components/ui/dataTable';
+import { EmptyState } from '../../components/ui/emptyState';
 import { Input } from '../../components/ui/input';
+import { LoadingState } from '../../components/ui/loadingState';
+import { PageHeader } from '../../components/ui/pageHeader';
 import { Select } from '../../components/ui/select';
 import { InvoiceStatusBadge } from '../../components/ui/statusBadge';
 import { downloadFile } from '../../lib/api';
@@ -21,6 +25,7 @@ import {
   listPayments,
   recordPayment
 } from './financeApi';
+import { FinanceSubNav } from './FinanceSubNav';
 import { formatCurrency, formatDate } from './financeFormat';
 import { InvoiceFormModal } from './InvoiceFormModal';
 import { PaymentFormModal } from './PaymentFormModal';
@@ -91,45 +96,21 @@ export function InvoicesPaymentsPage() {
 
   return (
     <section className="space-y-6 sm:space-y-8">
-      {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div className="space-y-1">
-          <p className="font-display text-xs uppercase tracking-wider text-olive-700">Financial Management</p>
-          <h1 className="font-display text-3xl font-bold tracking-tight text-ink-900">Invoices & Payments</h1>
-        </div>
-        <Button
-          className="clay-btn--primary rounded-pill bg-[var(--grad-olive)] px-4 py-2 font-body text-sm font-medium text-white shadow-[var(--clay-raised-sm)] transition-all hover:opacity-95"
-          onClick={() => setIsInvoiceOpen(true)}
-        >
-          <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
-          New invoice
-        </Button>
-      </div>
+      <PageHeader
+        eyebrow="Financial Management"
+        title="Invoices & Payments"
+        actions={
+          <Button className="clay-btn--primary px-4 py-2 text-white" onClick={() => setIsInvoiceOpen(true)}>
+            <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
+            New invoice
+          </Button>
+        }
+      />
 
-      {/* Sub-navigation tabs */}
-      <div className="flex flex-wrap gap-2 border-b border-sand-300/40 pb-4">
-        <Link
-          to="/finance"
-          className="rounded-pill bg-surface px-4 py-1.5 text-xs font-body font-medium text-ink-700 shadow-[var(--clay-raised-sm)] transition-all hover:bg-surface-soft hover:text-ink-900"
-        >
-          Overview
-        </Link>
-        <Link
-          to="/finance/invoices"
-          className="rounded-pill bg-ink-900 px-4 py-1.5 text-xs font-body font-semibold text-white shadow-[var(--clay-raised-sm)]"
-        >
-          Invoices & Payments
-        </Link>
-        <Link
-          to="/finance/expenses"
-          className="rounded-pill bg-surface px-4 py-1.5 text-xs font-body font-medium text-ink-700 shadow-[var(--clay-raised-sm)] transition-all hover:bg-surface-soft hover:text-ink-900"
-        >
-          Expenses
-        </Link>
-      </div>
+      <FinanceSubNav active="invoices" />
 
       {/* Filter Toolbar */}
-      <div className="clay-card rounded-card border border-white/80 bg-surface p-4 shadow-[var(--clay-raised)]">
+      <Card className="p-4">
         <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-6">
           <div className="sm:col-span-2">
             <Input
@@ -184,65 +165,64 @@ export function InvoicesPaymentsPage() {
             />
           </div>
         </div>
-      </div>
+      </Card>
 
       {/* Invoices List Table */}
       {invoicesQuery.isLoading ? (
-        <div className="clay-card rounded-card border border-white/80 bg-surface p-8 text-center text-sm font-body text-ink-500 shadow-[var(--clay-raised)]">
-          Loading invoices...
-        </div>
+        <Card>
+          <LoadingState label="Loading invoices..." />
+        </Card>
       ) : invoicesQuery.isError ? (
-        <div className="clay-card rounded-card border border-red-200/60 bg-[var(--danger-bg)] p-6 text-sm font-body text-[var(--danger-fg)] shadow-[var(--clay-raised)]">
+        <Card className="border-red-200/60 bg-danger-bg p-6 font-body text-sm text-danger-fg">
           Unable to load invoices.
-        </div>
+        </Card>
       ) : invoices.length === 0 ? (
-        <div className="clay-card rounded-card border border-dashed border-sand-300/60 bg-surface p-12 text-center text-sm font-body text-ink-500 shadow-[var(--clay-raised)]">
-          No invoices match the current filters.
-        </div>
+        <Card>
+          <EmptyState title="No invoices match the current filters." />
+        </Card>
       ) : (
-        <div className="clay-card overflow-hidden rounded-card border border-white/80 bg-surface shadow-[var(--clay-raised)]">
-          <div className="overflow-x-auto">
-            <table className="w-full border-collapse text-left text-sm font-body">
+        <Card padded={false}>
+            <Table>
               <thead className="border-b border-sand-300/40 bg-sand-100/50">
                 <tr>
-                  <th className="px-5 py-3.5 font-display text-xs font-semibold uppercase tracking-wider text-ink-500">Invoice</th>
-                  <th className="px-4 py-3.5 font-display text-xs font-semibold uppercase tracking-wider text-ink-500">Amount</th>
-                  <th className="px-4 py-3.5 font-display text-xs font-semibold uppercase tracking-wider text-ink-500">Paid</th>
-                  <th className="px-4 py-3.5 font-display text-xs font-semibold uppercase tracking-wider text-ink-500">Remaining</th>
-                  <th className="px-4 py-3.5 font-display text-xs font-semibold uppercase tracking-wider text-ink-500">Status</th>
-                  <th className="px-4 py-3.5 font-display text-xs font-semibold uppercase tracking-wider text-ink-500">Due Date</th>
-                  <th className="px-5 py-3.5 text-right font-display text-xs font-semibold uppercase tracking-wider text-ink-500">Actions</th>
+                  <Th>Invoice</Th>
+                  <Th>Amount</Th>
+                  <Th>Paid</Th>
+                  <Th>Remaining</Th>
+                  <Th>Status</Th>
+                  <Th>Due Date</Th>
+                  <Th className="text-right">Actions</Th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-sand-200/60">
                 {invoices.map((invoice) => (
                   <tr key={invoice.id} className="transition-colors hover:bg-sand-50/60">
-                    <td className="px-5 py-4 font-semibold text-ink-900">
+                    <Td className="font-semibold text-ink-900">
                       {invoice.invoiceNumber}
-                    </td>
-                    <td className="px-4 py-4 font-medium text-ink-900">
+                    </Td>
+                    <Td className="font-medium text-ink-900">
                       {formatCurrency(invoice.amount)}
-                    </td>
-                    <td className="px-4 py-4 text-emerald-700 font-medium">
+                    </Td>
+                    <Td className="text-emerald-700 font-medium">
                       {formatCurrency(invoice.amountPaid)}
-                    </td>
-                    <td className="px-4 py-4 font-medium text-ink-700">
+                    </Td>
+                    <Td className="font-medium text-ink-700">
                       {invoice.remainingAmount > 0 ? (
                         <span className="text-amber-700">{formatCurrency(invoice.remainingAmount)}</span>
                       ) : (
                         <span className="text-ink-400 font-normal">₹0.00</span>
                       )}
-                    </td>
-                    <td className="px-4 py-4">
+                    </Td>
+                    <Td>
                       <InvoiceStatusBadge status={invoice.paymentStatus} />
-                    </td>
-                    <td className="px-4 py-4 text-ink-500">
+                    </Td>
+                    <Td className="text-ink-500">
                       {formatDate(invoice.dueDate)}
-                    </td>
-                    <td className="px-5 py-4 text-right">
+                    </Td>
+                    <Td className="text-right">
                       <div className="flex items-center justify-end gap-2">
                         <Button
-                          className="clay-btn h-8 w-8 rounded-pill bg-surface p-0 text-ink-700 shadow-[var(--clay-raised-sm)] transition-all hover:bg-surface-soft hover:text-olive-700"
+                          className="clay-btn h-8 w-8 rounded-pill p-0 text-ink-700 hover:text-olive-700"
                           aria-label={`Download invoice ${invoice.invoiceNumber} PDF`}
                           onClick={() =>
                             downloadFile(`/invoices/${invoice.id}/pdf`, `${invoice.invoiceNumber}.pdf`).catch((error: Error) =>
@@ -253,14 +233,14 @@ export function InvoicesPaymentsPage() {
                           <Download className="h-4 w-4" aria-hidden="true" />
                         </Button>
                         <Button
-                          className="clay-btn h-8 rounded-pill bg-surface px-3 text-xs font-medium text-olive-700 shadow-[var(--clay-raised-sm)] transition-all hover:bg-olive-50 disabled:opacity-40 disabled:hover:bg-surface"
+                          className="clay-btn h-8 rounded-pill px-3 text-xs font-medium text-olive-700 hover:bg-olive-100"
                           disabled={invoice.remainingAmount <= 0}
                           onClick={() => setPaymentInvoice(invoice)}
                         >
                           Pay
                         </Button>
                         <Button
-                          className="clay-btn h-8 w-8 rounded-pill bg-surface p-0 text-ink-400 shadow-[var(--clay-raised-sm)] transition-all hover:bg-red-50 hover:text-red-600"
+                          className="clay-btn h-8 w-8 rounded-pill p-0 text-ink-400 hover:bg-danger-bg hover:text-danger-fg"
                           aria-label={`Delete invoice ${invoice.invoiceNumber}`}
                           onClick={() => {
                             if (window.confirm(`Delete invoice ${invoice.invoiceNumber}?`)) {
@@ -271,50 +251,48 @@ export function InvoicesPaymentsPage() {
                           <Trash2 className="h-4 w-4" aria-hidden="true" />
                         </Button>
                       </div>
-                    </td>
+                    </Td>
                   </tr>
                 ))}
               </tbody>
-            </table>
-          </div>
-        </div>
+            </Table>
+        </Card>
       )}
 
       {/* Recent Payments Section */}
       <section className="space-y-4">
-        <div className="space-y-0.5">
-          <h2 className="font-display text-lg font-bold text-ink-900">Recent Payment Transactions</h2>
-          <p className="text-xs font-body text-ink-500">Audit trail of cleared client payments and settlement references</p>
-        </div>
+        <CardHeader
+          className="mb-0"
+          title="Recent Payment Transactions"
+          subtitle="Audit trail of cleared client payments and settlement references"
+        />
         {(paymentsQuery.data?.payments ?? []).length === 0 ? (
-          <div className="clay-card rounded-card border border-dashed border-sand-300/60 bg-surface p-8 text-center text-sm font-body text-ink-500 shadow-[var(--clay-raised)]">
-            No payments recorded yet.
-          </div>
+          <Card>
+            <EmptyState title="No payments recorded yet." />
+          </Card>
         ) : (
-          <div className="clay-card overflow-hidden rounded-card border border-white/80 bg-surface shadow-[var(--clay-raised)]">
-            <div className="overflow-x-auto">
-              <table className="w-full border-collapse text-left text-sm font-body">
+          <Card padded={false}>
+              <Table>
                 <thead className="border-b border-sand-300/40 bg-sand-100/50">
                   <tr>
-                    <th className="px-5 py-3 font-display text-xs font-semibold uppercase tracking-wider text-ink-500">Date</th>
-                    <th className="px-4 py-3 font-display text-xs font-semibold uppercase tracking-wider text-ink-500">Amount</th>
-                    <th className="px-4 py-3 font-display text-xs font-semibold uppercase tracking-wider text-ink-500">Method</th>
-                    <th className="px-5 py-3 font-display text-xs font-semibold uppercase tracking-wider text-ink-500">Reference</th>
+                    <Th>Date</Th>
+                    <Th>Amount</Th>
+                    <Th>Method</Th>
+                    <Th>Reference</Th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-sand-200/60">
                   {(paymentsQuery.data?.payments ?? []).map((payment) => (
                     <tr key={payment.id} className="transition-colors hover:bg-sand-50/60">
-                      <td className="px-5 py-3.5 text-ink-500">{formatDate(payment.paymentDate)}</td>
-                      <td className="px-4 py-3.5 font-semibold text-emerald-700">{formatCurrency(payment.amount)}</td>
-                      <td className="px-4 py-3.5 text-ink-700">{payment.paymentMethod || '—'}</td>
-                      <td className="px-5 py-3.5 font-mono text-xs text-ink-500">{payment.transactionReferenceId || '—'}</td>
+                      <Td className="text-ink-500">{formatDate(payment.paymentDate)}</Td>
+                      <Td className="font-semibold text-emerald-700">{formatCurrency(payment.amount)}</Td>
+                      <Td className="text-ink-700">{payment.paymentMethod || '—'}</Td>
+                      <Td className="font-mono text-xs text-ink-500">{payment.transactionReferenceId || '—'}</Td>
                     </tr>
                   ))}
                 </tbody>
-              </table>
-            </div>
-          </div>
+              </Table>
+          </Card>
         )}
       </section>
 

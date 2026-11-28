@@ -3,14 +3,19 @@ import type { ExpenseFilterInput, ExpenseInput } from '@kraven/validation';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Plus, Search, Tag, Trash2 } from 'lucide-react';
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
 import { Button } from '../../components/ui/button';
+import { Card } from '../../components/ui/card';
+import { Table, Td, Th } from '../../components/ui/dataTable';
+import { EmptyState } from '../../components/ui/emptyState';
 import { Input } from '../../components/ui/input';
+import { LoadingState } from '../../components/ui/loadingState';
+import { PageHeader } from '../../components/ui/pageHeader';
 import { Select } from '../../components/ui/select';
 import { listProjects, projectQueryKeys } from '../projects/projectApi';
 import { ExpenseFormModal } from './ExpenseFormModal';
 import { createExpense, deleteExpense, financeQueryKeys, listExpenses } from './financeApi';
+import { FinanceSubNav } from './FinanceSubNav';
 import { formatCurrency, formatDate } from './financeFormat';
 
 export function ExpensesPage() {
@@ -57,45 +62,21 @@ export function ExpensesPage() {
 
   return (
     <section className="space-y-6 sm:space-y-8">
-      {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div className="space-y-1">
-          <p className="font-display text-xs uppercase tracking-wider text-olive-700">Financial Management</p>
-          <h1 className="font-display text-3xl font-bold tracking-tight text-ink-900">Expenses</h1>
-        </div>
-        <Button
-          className="clay-btn--primary rounded-pill bg-[var(--grad-olive)] px-4 py-2 font-body text-sm font-medium text-white shadow-[var(--clay-raised-sm)] transition-all hover:opacity-95"
-          onClick={() => setIsCreateOpen(true)}
-        >
-          <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
-          New expense
-        </Button>
-      </div>
+      <PageHeader
+        eyebrow="Financial Management"
+        title="Expenses"
+        actions={
+          <Button className="clay-btn--primary px-4 py-2 text-white" onClick={() => setIsCreateOpen(true)}>
+            <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
+            New expense
+          </Button>
+        }
+      />
 
-      {/* Sub-navigation tabs */}
-      <div className="flex flex-wrap gap-2 border-b border-sand-300/40 pb-4">
-        <Link
-          to="/finance"
-          className="rounded-pill bg-surface px-4 py-1.5 text-xs font-body font-medium text-ink-700 shadow-[var(--clay-raised-sm)] transition-all hover:bg-surface-soft hover:text-ink-900"
-        >
-          Overview
-        </Link>
-        <Link
-          to="/finance/invoices"
-          className="rounded-pill bg-surface px-4 py-1.5 text-xs font-body font-medium text-ink-700 shadow-[var(--clay-raised-sm)] transition-all hover:bg-surface-soft hover:text-ink-900"
-        >
-          Invoices & Payments
-        </Link>
-        <Link
-          to="/finance/expenses"
-          className="rounded-pill bg-ink-900 px-4 py-1.5 text-xs font-body font-semibold text-white shadow-[var(--clay-raised-sm)]"
-        >
-          Expenses
-        </Link>
-      </div>
+      <FinanceSubNav active="expenses" />
 
       {/* Filter Toolbar */}
-      <div className="clay-card rounded-card border border-white/80 bg-surface p-4 shadow-[var(--clay-raised)]">
+      <Card className="p-4">
         <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-5">
           <div className="sm:col-span-2">
             <Input
@@ -138,59 +119,58 @@ export function ExpensesPage() {
             />
           </div>
         </div>
-      </div>
+      </Card>
 
       {/* Expenses Table */}
       {expensesQuery.isLoading ? (
-        <div className="clay-card rounded-card border border-white/80 bg-surface p-8 text-center text-sm font-body text-ink-500 shadow-[var(--clay-raised)]">
-          Loading expenses...
-        </div>
+        <Card>
+          <LoadingState label="Loading expenses..." />
+        </Card>
       ) : expensesQuery.isError ? (
-        <div className="clay-card rounded-card border border-red-200/60 bg-[var(--danger-bg)] p-6 text-sm font-body text-[var(--danger-fg)] shadow-[var(--clay-raised)]">
+        <Card className="border-red-200/60 bg-danger-bg p-6 font-body text-sm text-danger-fg">
           Unable to load expenses.
-        </div>
+        </Card>
       ) : expenses.length === 0 ? (
-        <div className="clay-card rounded-card border border-dashed border-sand-300/60 bg-surface p-12 text-center text-sm font-body text-ink-500 shadow-[var(--clay-raised)]">
-          No expenses recorded matching the current filters.
-        </div>
+        <Card>
+          <EmptyState title="No expenses recorded matching the current filters." />
+        </Card>
       ) : (
-        <div className="clay-card overflow-hidden rounded-card border border-white/80 bg-surface shadow-[var(--clay-raised)]">
-          <div className="overflow-x-auto">
-            <table className="w-full border-collapse text-left text-sm font-body">
+        <Card padded={false}>
+            <Table>
               <thead className="border-b border-sand-300/40 bg-sand-100/50">
                 <tr>
-                  <th className="px-5 py-3.5 font-display text-xs font-semibold uppercase tracking-wider text-ink-500">Expense</th>
-                  <th className="px-4 py-3.5 font-display text-xs font-semibold uppercase tracking-wider text-ink-500">Category</th>
-                  <th className="px-4 py-3.5 font-display text-xs font-semibold uppercase tracking-wider text-ink-500">Amount</th>
-                  <th className="px-4 py-3.5 font-display text-xs font-semibold uppercase tracking-wider text-ink-500">Vendor</th>
-                  <th className="px-4 py-3.5 font-display text-xs font-semibold uppercase tracking-wider text-ink-500">Date</th>
-                  <th className="px-5 py-3.5 text-right font-display text-xs font-semibold uppercase tracking-wider text-ink-500">Actions</th>
+                  <Th>Expense</Th>
+                  <Th>Category</Th>
+                  <Th>Amount</Th>
+                  <Th>Vendor</Th>
+                  <Th>Date</Th>
+                  <Th className="text-right">Actions</Th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-sand-200/60">
                 {expenses.map((expense) => (
                   <tr key={expense.id} className="transition-colors hover:bg-sand-50/60">
-                    <td className="px-5 py-4 font-semibold text-ink-900">
+                    <Td className="font-semibold text-ink-900">
                       {expense.name}
-                    </td>
-                    <td className="px-4 py-4">
-                      <span className="clay-chip inline-flex items-center rounded-pill border border-[rgba(120,110,90,0.18)] bg-sand-200 px-2.5 py-0.5 text-xs font-body font-medium text-ink-800 shadow-[var(--clay-raised-sm)]">
+                    </Td>
+                    <Td>
+                      <span className="clay-chip inline-flex items-center rounded-pill border border-[rgba(120,110,90,0.18)] bg-sand-200 px-2.5 py-0.5 text-xs font-body font-medium text-ink-800 shadow-clay-sm">
                         <Tag className="mr-1 h-3 w-3 text-ink-500" aria-hidden="true" />
                         {expense.category}
                       </span>
-                    </td>
-                    <td className="px-4 py-4 font-display font-semibold text-ink-900">
+                    </Td>
+                    <Td className="font-display font-semibold text-ink-900">
                       {formatCurrency(expense.amount)}
-                    </td>
-                    <td className="px-4 py-4 text-ink-600">
+                    </Td>
+                    <Td className="text-ink-600">
                       {expense.vendor || '—'}
-                    </td>
-                    <td className="px-4 py-4 text-ink-500">
+                    </Td>
+                    <Td className="text-ink-500">
                       {formatDate(expense.date)}
-                    </td>
-                    <td className="px-5 py-4 text-right">
+                    </Td>
+                    <Td className="text-right">
                       <Button
-                        className="clay-btn h-8 w-8 rounded-pill bg-surface p-0 text-ink-400 shadow-[var(--clay-raised-sm)] transition-all hover:bg-red-50 hover:text-red-600"
+                        className="clay-btn h-8 w-8 rounded-pill p-0 text-ink-400 hover:bg-danger-bg hover:text-danger-fg"
                         aria-label={`Delete expense ${expense.name}`}
                         onClick={() => {
                           if (window.confirm(`Delete expense ${expense.name}?`)) {
@@ -200,13 +180,12 @@ export function ExpensesPage() {
                       >
                         <Trash2 className="h-4 w-4" aria-hidden="true" />
                       </Button>
-                    </td>
+                    </Td>
                   </tr>
                 ))}
               </tbody>
-            </table>
-          </div>
-        </div>
+            </Table>
+        </Card>
       )}
 
       <ExpenseFormModal isOpen={isCreateOpen} onClose={() => setIsCreateOpen(false)} onSubmit={handleCreateExpense} />
