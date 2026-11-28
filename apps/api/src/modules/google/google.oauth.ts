@@ -1,4 +1,5 @@
 import { createHmac, randomBytes, timingSafeEqual } from 'node:crypto';
+import type { Credentials } from 'google-auth-library';
 import type { CookieOptions, Request, Response } from 'express';
 import { Router } from 'express';
 import { env } from '../../config/env.js';
@@ -6,7 +7,7 @@ import { asyncHandler } from '../../middleware/asyncHandler.js';
 import { HttpError } from '../../shared/errors/httpError.js';
 import { logger } from '../../shared/logger/logger.js';
 import { ensureFolder } from './drive.service.js';
-import { GOOGLE_SCOPES, createOAuthClient, getConnection } from './google.client.js';
+import { GOOGLE_SCOPES, createOAuthClient, getConnection, mapGoogleError } from './google.client.js';
 import { GoogleConnectionModel } from './google.connection.model.js';
 import { decryptToken, encryptToken } from './token.crypto.js';
 
@@ -30,7 +31,7 @@ function stateFor(nonce: string, userId: string) {
 }
 
 function requireConfigured() {
-  if (!env.google.clientId || !env.google.clientSecret) throw new HttpError(409, 'Google OAuth is not configured');
+  if (!env.google.clientId || !env.google.clientSecret) throw new HttpError(409, 'Google OAuth is not configured on the server (missing GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET)');
 }
 
 function webUrl(path: string) {
@@ -84,7 +85,7 @@ googleRoutes.get(
       Boolean(mac) &&
       mac.length === expected.length &&
       timingSafeEqual(Buffer.from(mac), Buffer.from(expected));
-    if (!valid) throw new HttpError(400, 'Invalid OAuth state');
+    if (!valid) throw new HttpError(400, 'Google sign-in could not be verified (it may have expired). Start the connection again');
 
     requireConfigured();
     if (typeof req.query.error === 'string') {
@@ -92,15 +93,27 @@ googleRoutes.get(
       return;
     }
     const code = typeof req.query.code === 'string' ? req.query.code : '';
-    if (!code) throw new HttpError(400, 'Missing authorization code');
+    if (!code) throw new HttpError(400, 'Google did not send an authorization code. Start the connection again');
 
     const client = createOAuthClient();
-    const { tokens } = await client.getToken(code);
+    let tokens: Credentials;
+    try {
+      tokens = (await client.getToken(code)).tokens;
+    } catch (error) {
+      logger.warn({ error }, 'google token exchange failed');
+      const mapped = mapGoogleError(error);
+      throw mapped.statusCode === 409 || mapped.statusCode === 400
+        ? new HttpError(400, 'Google rejected the authorization code (it may have expired). Start the connection again')
+        : mapped;
+    }
     const existing = await getConnection();
     const refreshToken = tokens.refresh_token ? encryptToken(tokens.refresh_token) : existing?.refreshToken;
     if (!refreshToken) throw new HttpError(400, 'Google did not return a refresh token, try connecting again');
     client.setCredentials(tokens);
-    const info = await client.getTokenInfo(tokens.access_token ?? '');
+    const info = await client.getTokenInfo(tokens.access_token ?? '').catch((error: unknown) => {
+      logger.warn({ error }, 'google token info lookup failed');
+      throw mapGoogleError(error);
+    });
     const email = info.email ?? existing?.email;
     if (!email) throw new HttpError(400, 'Could not read the Google account email');
 

@@ -16,7 +16,7 @@ import { serializeFileMetadata } from './files.serializer.js';
 
 export async function uploadFile(req: Request, res: Response) {
   if (!req.file) {
-    throw new HttpError(400, 'Upload a file');
+    throw new HttpError(400, 'No file uploaded (field "file")', { file: 'Attach a file in the "file" field' });
   }
 
   const metadataInput = fileUploadMetadataSchema.parse(req.body);

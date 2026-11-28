@@ -22,7 +22,7 @@ export function serializeProjectUpdate(update: ProjectUpdateDocument & { _id: un
 
 export async function listProjectUpdates(projectId: unknown) {
   if (typeof projectId !== 'string' || !isValidObjectId(projectId)) {
-    throw new HttpError(400, 'Choose a project');
+    throw new HttpError(400, 'A valid project id is required to list updates', { project: 'Choose a project' });
   }
   return ProjectUpdateModel.find({ project: projectId }).sort({ postedAt: -1 }).limit(200).lean();
 }

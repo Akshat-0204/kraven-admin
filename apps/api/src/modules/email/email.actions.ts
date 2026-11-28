@@ -14,8 +14,15 @@ async function loadClient(clientId: string) {
   return client;
 }
 
+/** `sendEmail` records provider failures instead of throwing; surface them to the caller. */
+function assertEmailSent(log: { status: string; error?: string | null }, to: string) {
+  if (log.status === 'failed') {
+    throw new HttpError(502, `Email to ${to} could not be sent: ${log.error ?? 'the email provider rejected it'}`);
+  }
+}
+
 function recipient(client: { email?: string }) {
-  if (!client.email) throw new HttpError(400, 'Client has no email address');
+  if (!client.email) throw new HttpError(400, 'This client has no email address. Add one on the client first', { email: 'Client email is missing' });
   return client.email;
 }
 
@@ -27,6 +34,7 @@ export async function sendPortalAccessEmail(clientId: string) {
   const to = recipient(client);
   const mail = portalAccessEmail({ clientName: client.contactPerson || client.companyName, portalUrl: portalUrl(slug) });
   const log = await sendEmail({ to, type: 'portal-access', ...mail, client: client._id });
+  assertEmailSent(log, to);
   await logActivity({ entityType: 'Client', entityId: clientId, action: 'email-sent', description: `Portal link emailed to ${to}` });
   return serializeEmailLog(log);
 }
@@ -37,7 +45,7 @@ export async function sendPackEmail(packId: string) {
   if (pack.status !== 'Sent') throw new HttpError(409, 'Send the pack before emailing it');
   const client = await loadClient(String(pack.client));
   const slug = client.portalAccess?.slug;
-  if (!slug) throw new HttpError(400, 'Client has no portal link');
+  if (!slug) throw new HttpError(400, 'This client has no portal link yet. Set one in the portal settings first');
   const to = recipient(client);
   const mail = packSentEmail({
     clientName: client.contactPerson || client.companyName,
@@ -45,12 +53,13 @@ export async function sendPackEmail(packId: string) {
     portalUrl: portalUrl(slug)
   });
   const log = await sendEmail({ to, type: 'pack-sent', ...mail, client: client._id, pack: pack._id });
+  assertEmailSent(log, to);
   await logActivity({ entityType: 'Client', entityId: String(client._id), action: 'email-sent', description: `Pack "${pack.title}" emailed to ${to}` });
   return serializeEmailLog(log);
 }
 
 export async function listClientEmails(clientId: string) {
-  if (!isValidObjectId(clientId)) return [];
+  if (!isValidObjectId(clientId)) throw new HttpError(404, 'Client not found');
   const logs = await EmailLogModel.find({ client: clientId }).sort({ createdAt: -1 }).limit(50).lean();
   return logs.map(serializeEmailLog);
 }

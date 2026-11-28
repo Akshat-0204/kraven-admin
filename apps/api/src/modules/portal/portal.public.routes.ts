@@ -94,7 +94,7 @@ export function createPublicPortalRoutes() {
     '/packs/files/:id/url',
     asyncHandler(async (req, res) => {
       const clientId = getPortalClientId(req);
-      if (!(await fileInLivePack(clientId, req.params.id))) throw new HttpError(404, 'Not found');
+      if (!(await fileInLivePack(clientId, req.params.id))) throw new HttpError(404, 'File not found');
       res.json(await getPackFileUrl(req.params.id));
     })
   );
@@ -132,7 +132,7 @@ export function createPublicPortalRoutes() {
   );
 
   router.use((_req, res) => {
-    res.status(404).json({ message: 'Not found' });
+    res.status(404).json({ message: 'Portal endpoint not found' });
   });
 
   return router;

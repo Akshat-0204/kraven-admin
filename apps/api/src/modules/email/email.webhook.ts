@@ -1,6 +1,8 @@
 import { createHmac, timingSafeEqual } from 'node:crypto';
 import express, { Router } from 'express';
 import { env } from '../../config/env.js';
+import { HttpError } from '../../shared/errors/httpError.js';
+import { logger } from '../../shared/logger/logger.js';
 import { asyncHandler } from '../../middleware/asyncHandler.js';
 import { EmailLogModel, EMAIL_STATUSES } from './emailLog.model.js';
 
@@ -53,22 +55,23 @@ resendWebhookRoutes.post(
       rawBody
     );
     if (!valid) {
-      res.status(401).json({ message: 'Invalid signature' });
-      return;
+      throw new HttpError(401, 'Webhook signature is missing, invalid or expired');
     }
 
     let event: { type?: string; data?: { email_id?: string } };
     try {
-      event = JSON.parse(rawBody);
+      const parsed: unknown = JSON.parse(rawBody);
+      if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) throw new Error('not an object');
+      event = parsed;
     } catch {
-      res.status(400).json({ message: 'Invalid payload' });
-      return;
+      throw new HttpError(400, 'Webhook body must be a JSON object');
     }
 
     const status = event.type ? EVENT_STATUS[event.type] : undefined;
     const resendId = event.data?.email_id;
     if (status && resendId) {
       const log = await EmailLogModel.findOne({ resendId });
+      if (!log) logger.debug({ resendId, type: event.type }, 'resend webhook for unknown email');
       if (log && RANK[status] > RANK[log.status]) {
         log.status = status;
         if (status === 'delivered') log.deliveredAt = new Date();

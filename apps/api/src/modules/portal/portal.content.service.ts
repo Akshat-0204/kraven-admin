@@ -67,7 +67,7 @@ function isoDate(value?: Date) {
 
 export async function getPortalOverview(clientId: string): Promise<PortalOverview & { slug?: string }> {
   const client = await ClientModel.findById(clientId).select('companyName contactPerson portalAccess.slug').lean();
-  if (!client) throw new HttpError(404, 'Not found');
+  if (!client) throw new HttpError(404, 'Client not found');
 
   await ClientModel.updateOne({ _id: clientId }, { $set: { 'portalAccess.lastViewedAt': new Date() } });
 
@@ -138,11 +138,11 @@ export async function listPortalDocuments(clientId: string): Promise<PortalDocum
  * document marks it Viewed (atomic, so it is logged once) and records an activity event.
  */
 export async function openPortalDocumentPdf(clientId: string, documentId: string) {
-  if (!isValidObjectId(documentId)) throw new HttpError(404, 'Not found');
+  if (!isValidObjectId(documentId)) throw new HttpError(404, 'Document not found');
   const document = await DocumentModel.findOne({ _id: documentId, ...portalDocumentFilter(clientId) })
     .select('title status')
     .lean();
-  if (!document) throw new HttpError(404, 'Not found');
+  if (!document) throw new HttpError(404, 'Document not found');
 
   if (document.status === 'Sent') {
     const result = await DocumentModel.updateOne({ _id: documentId, status: 'Sent' }, { $set: { status: 'Viewed' } });
@@ -193,10 +193,10 @@ export async function listPortalDownloads(clientId: string): Promise<PortalFileR
 }
 
 export async function getPortalDownloadUrl(clientId: string, fileId: string) {
-  if (!isValidObjectId(fileId)) throw new HttpError(404, 'Not found');
+  if (!isValidObjectId(fileId)) throw new HttpError(404, 'File not found');
   const projectIds = await clientProjectIds(clientId);
   const file = await FileMetadataModel.findOne({ _id: fileId, ...visibleFilesFilter(clientId, projectIds) }).lean();
-  if (!file) throw new HttpError(404, 'Not found');
+  if (!file) throw new HttpError(404, 'File not found');
 
   return {
     url: await presignObject(file.bucketKey, { filename: file.filename }),

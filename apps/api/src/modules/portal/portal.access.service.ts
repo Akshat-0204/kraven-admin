@@ -30,13 +30,24 @@ export async function verifyPortalCode(rawSlug: string, body: unknown, now = new
   }
 
   if (isPortalLocked(access, now)) {
-    throw new HttpError(429, 'Too many attempts. Try again later.');
+    const minutes = Math.max(1, Math.ceil((new Date(access.lockedUntil as Date).getTime() - now.getTime()) / 60_000));
+    throw new HttpError(429, `Too many wrong codes. Try again in ${minutes} minute${minutes === 1 ? '' : 's'}.`);
   }
 
   const valid = await checkPortalCode(code, access.codeHash);
-  if (!valid || !isPortalOpen(access, now)) {
+  if (!valid) {
     if (access.codeHash) await recordFailedAttempt(String(client._id), now);
     throw new HttpError(401, INVALID_CODE_MESSAGE);
+  }
+  // The code is correct, so the caller already knows this portal exists: say why it is closed.
+  if (!isPortalOpen(access, now)) {
+    const expired = access.expiresAt && new Date(access.expiresAt).getTime() <= now.getTime();
+    throw new HttpError(
+      401,
+      expired
+        ? 'This portal link has expired. Ask your contact for a new link.'
+        : 'This portal is currently disabled. Ask your contact to re-enable it.'
+    );
   }
 
   await ClientModel.updateOne(

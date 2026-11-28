@@ -2,6 +2,7 @@ import { docs, type docs_v1 } from '@googleapis/docs';
 import { drive, type drive_v3 } from '@googleapis/drive';
 import { OAuth2Client } from 'google-auth-library';
 import { env } from '../../config/env.js';
+import { logger } from '../../shared/logger/logger.js';
 import { HttpError } from '../../shared/errors/httpError.js';
 import { GoogleConnectionModel } from './google.connection.model.js';
 import { decryptToken, encryptToken } from './token.crypto.js';
@@ -33,6 +34,9 @@ export function mapGoogleError(error: unknown): HttpError {
   if (e.message?.includes('invalid_grant') || data === 'invalid_grant') {
     return new HttpError(409, 'Reconnect Google');
   }
+  if (e.message?.includes('invalid_client') || data === 'invalid_client') {
+    return new HttpError(409, 'Google OAuth credentials are invalid. Check GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET');
+  }
   if (status === 404) return new HttpError(404, 'Google file not found, or not shared with the connected Google account');
   if (status === 403 || status === 429) {
     if (reasons.some((reason) => reason && /quota|rateLimit|storageQuota/i.test(reason)) || status === 429) {
@@ -41,6 +45,16 @@ export function mapGoogleError(error: unknown): HttpError {
     return new HttpError(403, 'The connected Google account does not have access to this file');
   }
   if (status === 401) return new HttpError(409, 'Reconnect Google');
+  const code = String(e.code ?? '');
+  if (/ENOTFOUND|ECONNREFUSED|ECONNRESET|EAI_AGAIN|ETIMEDOUT|ESOCKETTIMEDOUT/.test(code)) {
+    return new HttpError(503, 'Could not reach Google. Check the network connection and try again');
+  }
+  if (status === 400) {
+    return new HttpError(400, `Google rejected the request: ${e.message ?? 'bad request'}`);
+  }
+  if (status >= 500 && status < 600) {
+    return new HttpError(502, 'Google is having trouble right now. Try again shortly');
+  }
   return new HttpError(502, `Google request failed: ${e.message ?? 'unknown error'}`);
 }
 
@@ -68,7 +82,9 @@ export async function getAuthedClient(): Promise<GoogleClients> {
     if (tokens.access_token) update.accessToken = tokens.access_token;
     if (tokens.expiry_date) update.expiryDate = tokens.expiry_date;
     if (tokens.refresh_token) update.refreshToken = encryptToken(tokens.refresh_token);
-    if (Object.keys(update).length > 0) void GoogleConnectionModel.updateOne({ _id: connection._id }, { $set: update }).catch(() => undefined);
+    if (Object.keys(update).length > 0) void GoogleConnectionModel.updateOne({ _id: connection._id }, { $set: update }).catch((error: unknown) => {
+        logger.warn({ error }, 'failed to persist refreshed google tokens');
+      });
   });
 
   return { drive: drive({ version: 'v3', auth }), docs: docs({ version: 'v1', auth }), email: connection.email };

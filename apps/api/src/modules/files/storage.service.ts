@@ -57,6 +57,22 @@ function isNotFound(error: unknown) {
   );
 }
 
+/** Maps an S3/MinIO failure to a client-meaningful HttpError (logged with the operation). */
+function mapS3Error(error: unknown, operation: string): HttpError {
+  if (error instanceof HttpError) return error;
+  logger.error({ error, operation }, 'object storage request failed');
+  const e = error as { name?: string; code?: string; $metadata?: { httpStatusCode?: number } };
+  const code = e.code ?? e.name ?? '';
+  if (/ECONNREFUSED|ENOTFOUND|EAI_AGAIN|ETIMEDOUT|ECONNRESET|TimeoutError/i.test(code)) {
+    return new HttpError(503, 'File storage is unreachable right now. Try again shortly');
+  }
+  if (isNotFound(error)) return new HttpError(404, 'File not found');
+  if (e.name === 'AccessDenied' || e.$metadata?.httpStatusCode === 403) {
+    return new HttpError(502, 'File storage rejected the request (access denied). Check the storage credentials');
+  }
+  return new HttpError(502, `File storage failed while trying to ${operation}`);
+}
+
 export async function ensureBucket() {
   const client = getS3Client();
 
@@ -71,15 +87,19 @@ export async function ensureBucket() {
 }
 
 export async function putObject(key: string, body: Buffer, contentType?: string) {
-  await getS3Client().send(
-    new PutObjectCommand({
-      Bucket: env.s3.bucket,
-      Key: key,
-      Body: body,
-      ContentType: contentType,
-      ContentLength: body.length
-    })
-  );
+  try {
+    await getS3Client().send(
+      new PutObjectCommand({
+        Bucket: env.s3.bucket,
+        Key: key,
+        Body: body,
+        ContentType: contentType,
+        ContentLength: body.length
+      })
+    );
+  } catch (error) {
+    throw mapS3Error(error, 'save the file');
+  }
 }
 
 export async function streamObject(key: string): Promise<Readable> {
@@ -92,8 +112,7 @@ export async function streamObject(key: string): Promise<Readable> {
 
     return response.Body as Readable;
   } catch (error) {
-    if (isNotFound(error)) throw new HttpError(404, 'File not found');
-    throw error;
+    throw mapS3Error(error, 'read the file');
   }
 }
 
@@ -108,7 +127,15 @@ export function attachmentContentDisposition(filename: string) {
   return `attachment; filename="${asciiFallback}"; filename*=UTF-8''${encodeRfc5987(filename)}`;
 }
 
-export function presignObject(key: string, options: { filename?: string; expiresIn?: number } = {}) {
+export async function presignObject(key: string, options: { filename?: string; expiresIn?: number } = {}) {
+  try {
+    return await signObject(key, options);
+  } catch (error) {
+    throw mapS3Error(error, 'create a download link');
+  }
+}
+
+function signObject(key: string, options: { filename?: string; expiresIn?: number }) {
   return getSignedUrl(
     getPresignClient(),
     new GetObjectCommand({
@@ -121,7 +148,11 @@ export function presignObject(key: string, options: { filename?: string; expires
 }
 
 export async function deleteObject(key: string) {
-  await getS3Client().send(new DeleteObjectCommand({ Bucket: env.s3.bucket, Key: key }));
+  try {
+    await getS3Client().send(new DeleteObjectCommand({ Bucket: env.s3.bucket, Key: key }));
+  } catch (error) {
+    throw mapS3Error(error, 'delete the file');
+  }
 }
 
 interface StoreFileInput {

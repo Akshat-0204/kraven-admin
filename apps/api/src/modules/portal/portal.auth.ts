@@ -24,12 +24,12 @@ declare module 'express-serve-static-core' {
 export const requirePortalAccess: RequestHandler = async (req, _res, next) => {
   try {
     const payload = readPortalCookie(req);
-    if (!payload) throw new HttpError(401, 'Portal access required');
+    if (!payload) throw new HttpError(401, 'Enter your access code to open the portal');
 
     const client = await ClientModel.findById(payload.clientId).select('portalAccess').lean();
     const access = client?.portalAccess;
     if (!access?.slug || !isPortalOpen(access) || (access.accessVersion ?? 0) !== payload.accessVersion) {
-      throw new HttpError(401, 'Portal access required');
+      throw new HttpError(401, 'Your portal session has ended. Enter your access code again');
     }
 
     req.portal = { clientId: payload.clientId, slug: access.slug };
@@ -40,6 +40,6 @@ export const requirePortalAccess: RequestHandler = async (req, _res, next) => {
 };
 
 export function getPortalClientId(req: Request) {
-  if (!req.portal) throw new HttpError(401, 'Portal access required');
+  if (!req.portal) throw new HttpError(401, 'Enter your access code to open the portal');
   return req.portal.clientId;
 }

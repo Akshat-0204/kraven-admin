@@ -72,7 +72,7 @@ async function serializePacks(packs: PackRow[]): Promise<PackRecord[]> {
 async function assertItemsBelongToClient(clientId: string, items: PackInput['items']) {
   const docIds = items.flatMap((item) => (item.kind === 'document' ? [item.document] : []));
   const fileIds = items.flatMap((item) => (item.kind === 'file' ? [item.file] : []));
-  if ([...docIds, ...fileIds].some((id) => !isValidObjectId(id))) throw new HttpError(400, 'Invalid item reference');
+  if ([...docIds, ...fileIds].some((id) => !isValidObjectId(id))) throw new HttpError(400, 'One or more pack items reference an id that is not valid', { items: 'Remove the invalid document or file and pick it again' });
 
   if (docIds.length) {
     const found = await DocumentModel.find({ _id: { $in: docIds }, client: clientId }).select('_id').lean();
@@ -104,7 +104,8 @@ function toItemDocuments(items: PackInput['items']) {
 }
 
 export async function listPacks(clientId?: string) {
-  if (!clientId || !isValidObjectId(clientId)) return [];
+  if (!clientId) throw new HttpError(400, 'Choose a client to list packs for', { client: 'Client is required' });
+  if (!isValidObjectId(clientId)) throw new HttpError(400, 'That client id is not valid', { client: 'Not a valid client id' });
   return serializePacks(await PackModel.find({ client: clientId }).sort({ createdAt: -1 }).limit(100).lean());
 }
 
@@ -151,8 +152,11 @@ export async function sendPack(id: string) {
   const clientId = String(pack.client);
   for (const item of pack.items.filter((entry) => entry.document)) {
     const document = await DocumentModel.findOne({ _id: item.document, client: clientId });
+    if (!document) {
+      throw new HttpError(409, 'A document in this pack no longer exists or belongs to another client. Remove it and try again');
+    }
     // Merges variables, sets mergedAt and logs, exactly like sharing a single document.
-    if (document?.status === 'Draft') await markDocumentShared(document);
+    if (document.status === 'Draft') await markDocumentShared(document);
   }
 
   if (pack.status === 'Draft') {
@@ -189,9 +193,9 @@ export async function setPaymentItemStatus(packId: string, itemId: string, body:
 }
 
 export async function getDocumentSignature(documentId: string) {
-  if (!isValidObjectId(documentId)) throw new HttpError(404, 'Not found');
+  if (!isValidObjectId(documentId)) throw new HttpError(404, 'Document not found');
   const signature = await SignatureModel.findOne({ document: documentId }).lean();
-  if (!signature) throw new HttpError(404, 'Document has not been signed');
+  if (!signature) throw new HttpError(404, 'This document has not been signed yet');
   return {
     id: String(signature._id),
     document: String(signature.document),
@@ -252,6 +256,6 @@ export async function fileInLivePack(clientId: string, fileId: string) {
 export async function findPortalPaymentItem(clientId: string, packId: string, itemId: string) {
   const pack = (await livePacksForClient(clientId)).find((entry) => String(entry._id) === packId);
   const item = pack?.items.find((entry) => String(entry._id) === itemId && entry.kind === 'payment');
-  if (!pack || !item) throw new HttpError(404, 'Not found');
+  if (!pack || !item) throw new HttpError(404, 'Payment item not found');
   return { pack, item };
 }

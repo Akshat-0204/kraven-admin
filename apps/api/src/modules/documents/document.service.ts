@@ -1,8 +1,20 @@
 import { randomUUID } from 'node:crypto';
-import type { CreateDocumentInput, DocumentFilterInput, SaveDocumentPdfInput, UpdateDocumentInput } from '@kraven/validation';
-import { createDocumentSchema, documentAccessSchema, documentFilterSchema, saveDocumentPdfSchema, updateDocumentSchema } from '@kraven/validation';
+import type {
+  CreateDocumentInput,
+  DocumentFilterInput,
+  SaveDocumentPdfInput,
+  UpdateDocumentInput
+} from '@kraven/validation';
+import {
+  createDocumentSchema,
+  documentAccessSchema,
+  documentFilterSchema,
+  saveDocumentPdfSchema,
+  updateDocumentSchema
+} from '@kraven/validation';
 import { isValidObjectId, type HydratedDocument } from 'mongoose';
 import { logActivity } from '../../shared/activity/activity.service.js';
+import { logger } from '../../shared/logger/logger.js';
 import { env } from '../../config/env.js';
 import { HttpError } from '../../shared/errors/httpError.js';
 import { UserModel } from '../auth/user.model.js';
@@ -27,7 +39,11 @@ import { requireGoogle } from '../google/google.client.js';
 import { PackModel } from '../packs/pack.model.js';
 import { loadOptionalMergeSource } from './document.context.js';
 import { DocumentModel, type DocumentDocument } from './document.model.js';
-import { buildPlaceholderMap, resolveDocumentVariables, type MergeSource } from './document.variables.js';
+import {
+  buildPlaceholderMap,
+  resolveDocumentVariables,
+  type MergeSource
+} from './document.variables.js';
 import { getDocumentTemplate } from './documentTemplate.service.js';
 
 type DocumentRecordDoc = HydratedDocument<DocumentDocument>;
@@ -50,13 +66,21 @@ function isoDay(date = new Date()) {
 
 /** "Created on 2026-11-28 by admin - Acme Corp" (client part only when assigned). */
 async function blankDocumentTitle(userId: string | undefined, companyName?: string) {
-  const user = userId && isValidObjectId(userId) ? await UserModel.findById(userId).select('email').lean() : null;
+  const user =
+    userId && isValidObjectId(userId)
+      ? await UserModel.findById(userId).select('email').lean()
+      : null;
   const author = user?.email.split('@')[0] ?? 'Kraven';
   return `Created on ${isoDay()} by ${author}` + (companyName ? ` - ${companyName}` : '');
 }
 
 function slugify(value: string) {
-  return value.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'document';
+  return (
+    value
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '') || 'document'
+  );
 }
 
 export function documentPdfFilename(title: string) {
@@ -81,7 +105,11 @@ export async function isPdfStale(document: DocumentDocument) {
   if (!document.pdfFile || !document.pdfRevisionId || document.status !== 'Draft') return false;
   try {
     return revisionOf(await getFile(document.googleFileId)) !== document.pdfRevisionId;
-  } catch {
+  } catch (error) {
+    logger.warn(
+      { error, documentId: document.googleFileId },
+      'could not check whether the saved PDF is stale'
+    );
     return false;
   }
 }
@@ -89,12 +117,19 @@ export async function isPdfStale(document: DocumentDocument) {
 /** All documents (or one client's/project's), newest first, paginated; client and template are populated. */
 export async function listDocuments(filters: DocumentFilterInput) {
   const parsed = documentFilterSchema.parse(filters);
-  const empty = { documents: [], total: 0, page: parsed.page, limit: parsed.limit, stale: new Set<string>() };
   const query: Record<string, unknown> = {};
   for (const key of ['client', 'project'] as const) {
     const id = parsed[key];
     if (id === undefined) continue;
-    if (!isValidObjectId(id)) return empty;
+    // An id that cannot match anything yields an empty list rather than an error.
+    if (!isValidObjectId(id))
+      return {
+        documents: [],
+        total: 0,
+        page: parsed.page,
+        limit: parsed.limit,
+        stale: new Set<string>()
+      };
     query[key] = id;
   }
   if (parsed.status) query.status = parsed.status;
@@ -110,7 +145,9 @@ export async function listDocuments(filters: DocumentFilterInput) {
     DocumentModel.countDocuments(query)
   ]);
   const staleFlags = await Promise.all(documents.map((document) => isPdfStale(document)));
-  const stale = new Set(documents.filter((_, index) => staleFlags[index]).map((document) => String(document._id)));
+  const stale = new Set(
+    documents.filter((_, index) => staleFlags[index]).map((document) => String(document._id))
+  );
   return { documents, total, page: parsed.page, limit: parsed.limit, stale };
 }
 
@@ -130,7 +167,10 @@ async function documentMergeSource(document: DocumentDocument): Promise<MergeSou
 }
 
 /** The client's Drive folder (created lazily under the root folder), or the root folder when unassigned. */
-async function folderFor(client: { _id: unknown; companyName: string; driveFolderId?: string } | null | undefined, rootFolderId?: string) {
+async function folderFor(
+  client: { _id: unknown; companyName: string; driveFolderId?: string } | null | undefined,
+  rootFolderId?: string
+) {
   if (!client) return rootFolderId;
   if (client.driveFolderId) return client.driveFolderId;
   const folderId = await ensureFolder(client.companyName, rootFolderId);
@@ -166,25 +206,44 @@ export async function createDocument(input: CreateDocumentInput, userId?: string
   if (source.client) await replacePlaceholders(file.id, buildPlaceholderMap(source));
   const access = payload.access.length > 0 ? await setAccess(file.id, payload.access) : [];
 
-  const document = await DocumentModel.create({
-    title,
-    type: template?.type,
-    client: source.client?._id,
-    project: source.project?._id,
-    template: template?._id,
-    googleFileId: file.id,
-    webViewLink: file.webViewLink ?? `https://docs.google.com/document/d/${file.id}/edit`,
-    status: 'Draft',
-    access: access.map(({ email, role, permissionId }) => ({ email, role, permissionId })),
-    createdBy: userId
-  });
+  let document: DocumentRecordDoc;
+  try {
+    document = await DocumentModel.create({
+      title,
+      type: template?.type,
+      client: source.client?._id,
+      project: source.project?._id,
+      template: template?._id,
+      googleFileId: file.id,
+      webViewLink: file.webViewLink ?? `https://docs.google.com/document/d/${file.id}/edit`,
+      status: 'Draft',
+      access: access.map(({ email, role, permissionId }) => ({ email, role, permissionId })),
+      createdBy: userId
+    });
+  } catch (error) {
+    // The Drive copy exists but the row failed: remove it so it is not orphaned.
+    await trashFile(file.id).catch((cleanupError: unknown) => {
+      logger.warn({ error: cleanupError, fileId: file.id }, 'failed to trash orphaned google doc');
+    });
+    throw error;
+  }
 
   const description = `Document created - ${title}`;
   if (source.client) {
-    await logActivity({ entityType: 'Client', entityId: String(source.client._id), action: 'document-created', description });
+    await logActivity({
+      entityType: 'Client',
+      entityId: String(source.client._id),
+      action: 'document-created',
+      description
+    });
   }
   if (source.project) {
-    await logActivity({ entityType: 'Project', entityId: String(source.project._id), action: 'document-created', description });
+    await logActivity({
+      entityType: 'Project',
+      entityId: String(source.project._id),
+      action: 'document-created',
+      description
+    });
   }
   return document;
 }
@@ -201,8 +260,18 @@ export async function updateDocument(documentId: string, input: UpdateDocumentIn
   const connection = await requireGoogle();
 
   if (payload.client !== undefined || payload.project !== undefined) {
-    const clientId = payload.client !== undefined ? payload.client : document.client ? String(document.client) : null;
-    let projectId = payload.project !== undefined ? payload.project : document.project ? String(document.project) : null;
+    const clientId =
+      payload.client !== undefined
+        ? payload.client
+        : document.client
+          ? String(document.client)
+          : null;
+    let projectId =
+      payload.project !== undefined
+        ? payload.project
+        : document.project
+          ? String(document.project)
+          : null;
     if (payload.project === undefined && projectId && payload.client !== undefined) {
       // The client changed: keep the project only if it belongs to the new client.
       const current = await loadOptionalMergeSource(null, projectId);
@@ -231,9 +300,15 @@ export async function updateDocument(documentId: string, input: UpdateDocumentIn
 export async function refillDocument(documentId: string) {
   const document = await getDocument(documentId);
   assertDraft(document, 'Only Draft documents can be refilled');
-  if (!document.client) throw new HttpError(422, 'Assign a client before filling variables');
+  if (!document.client)
+    throw new HttpError(422, 'Assign a client to this document before filling variables', {
+      client: 'Client is required'
+    });
   await requireGoogle();
-  await replacePlaceholders(document.googleFileId, buildPlaceholderMap(await documentMergeSource(document)));
+  await replacePlaceholders(
+    document.googleFileId,
+    buildPlaceholderMap(await documentMergeSource(document))
+  );
   return document;
 }
 
@@ -243,7 +318,11 @@ export async function setDocumentAccess(documentId: string, body: unknown) {
   const document = await getDocument(documentId);
   await requireGoogle();
   const result = await setAccess(document.googleFileId, entries);
-  document.access = result.map(({ email, role, permissionId }) => ({ email, role, permissionId })) as never;
+  document.access = result.map(({ email, role, permissionId }) => ({
+    email,
+    role,
+    permissionId
+  })) as never;
   await document.save();
   return document;
 }
@@ -257,11 +336,22 @@ export async function getDocumentVariables(documentId: string) {
 /** Exports the Google Doc to a PDF in object storage and records it as a client file. */
 async function exportToClientFile(
   document: DocumentRecordDoc,
-  options: { category: DocumentCategory; filename: string; clientVisible: boolean; uploadedBy?: string }
+  options: {
+    category: DocumentCategory;
+    filename: string;
+    clientVisible: boolean;
+    uploadedBy?: string;
+  }
 ) {
-  if (!document.client) throw new HttpError(422, 'Assign a client before saving a PDF');
+  if (!document.client)
+    throw new HttpError(422, 'Assign a client to this document before saving a PDF', {
+      client: 'Client is required'
+    });
   await requireGoogle();
-  const [revision, pdf] = await Promise.all([getFile(document.googleFileId), exportPdf(document.googleFileId)]);
+  const [revision, pdf] = await Promise.all([
+    getFile(document.googleFileId),
+    exportPdf(document.googleFileId)
+  ]);
   const clientId = String(document.client);
   const bucketKey = `clients/${clientId}/documents/${randomUUID()}.pdf`;
   await putObject(bucketKey, pdf, 'application/pdf');
@@ -286,7 +376,11 @@ async function exportToClientFile(
 }
 
 /** "Save as PDF": export to a categorized client file (optionally visible in the portal). */
-export async function saveDocumentPdf(documentId: string, input: SaveDocumentPdfInput, userId?: string) {
+export async function saveDocumentPdf(
+  documentId: string,
+  input: SaveDocumentPdfInput,
+  userId?: string
+) {
   const payload = saveDocumentPdfSchema.parse(input);
   const document = await getDocument(documentId);
   const file = await exportToClientFile(document, { ...payload, uploadedBy: userId });
@@ -297,7 +391,11 @@ export async function saveDocumentPdf(documentId: string, input: SaveDocumentPdf
 export async function openDocumentPdf(documentId: string) {
   const document = await getDocument(documentId);
   const file = document.pdfFile ? await FileMetadataModel.findById(document.pdfFile) : null;
-  if (!file) throw new HttpError(404, 'PDF not generated yet');
+  if (!file)
+    throw new HttpError(
+      404,
+      'No PDF has been saved for this document yet. Use "Save as PDF" first'
+    );
   return { filename: file.filename, stream: await streamObject(file.bucketKey) };
 }
 
@@ -308,7 +406,9 @@ export async function openDocumentPdf(documentId: string) {
 export async function markDocumentShared(document: DocumentRecordDoc) {
   if (document.status !== 'Draft') return document;
   if (!document.client) {
-    throw new HttpError(422, 'Assign a client before sharing this document');
+    throw new HttpError(422, 'Assign a client to this document before sharing it', {
+      client: 'Client is required'
+    });
   }
   const client = await ClientModel.findById(document.client);
   const category = TYPE_TO_CATEGORY[document.type ?? 'Other'] ?? 'Other';
@@ -336,7 +436,10 @@ export async function shareDocument(documentId: string) {
 }
 
 async function removeFromPacks(documentId: string) {
-  await PackModel.updateMany({ 'items.document': documentId }, { $pull: { items: { document: documentId } } });
+  await PackModel.updateMany(
+    { 'items.document': documentId },
+    { $pull: { items: { document: documentId } } }
+  );
 }
 
 /** Unlocks a shared document and returns it to Draft. Signed documents cannot be revised. */

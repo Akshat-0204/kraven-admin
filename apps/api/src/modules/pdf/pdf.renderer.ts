@@ -90,7 +90,11 @@ function getBrowser() {
 export async function closePdfBrowser() {
   const pending = browserPromise;
   browserPromise = null;
-  if (pending) await (await pending).close().catch(() => undefined);
+  if (pending) {
+    await (await pending).close().catch((error: unknown) => {
+      logger.warn({ error }, 'failed to close pdf browser');
+    });
+  }
 }
 
 function isTimeout(error: unknown) {
@@ -111,7 +115,7 @@ export async function htmlToPdf(html: string, options: HtmlToPdfOptions = {}): P
     browser = await getBrowser();
   } catch (error) {
     logger.error({ error }, 'chromium failed to launch');
-    throw new HttpError(503, 'PDF service unavailable');
+    throw new HttpError(503, 'PDF service is unavailable (the headless browser could not start). Try again shortly');
   }
 
   const page = await browser.newPage();
@@ -131,11 +135,13 @@ export async function htmlToPdf(html: string, options: HtmlToPdfOptions = {}): P
   } catch (error) {
     if (isTimeout(error)) {
       logger.warn({ timeoutMs }, 'pdf render timed out');
-      throw new HttpError(504, 'PDF generation timed out');
+      throw new HttpError(504, 'PDF generation timed out. Try again or simplify the document');
     }
     logger.error({ error }, 'pdf render failed');
-    throw new HttpError(502, 'PDF generation failed');
+    throw new HttpError(502, 'PDF generation failed. Try again; if it keeps failing, contact support');
   } finally {
-    await page.close().catch(() => undefined);
+    await page.close().catch((error: unknown) => {
+      logger.debug({ error }, 'failed to close pdf page');
+    });
   }
 }

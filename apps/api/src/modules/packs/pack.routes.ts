@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { sendPackEmail } from '../email/email.actions.js';
+import { logger } from '../../shared/logger/logger.js';
 import { asyncHandler } from '../../middleware/asyncHandler.js';
 import {
   createPack,
@@ -49,9 +50,11 @@ packRoutes.post(
       try {
         email = await sendPackEmail(req.params.id);
       } catch (error) {
-        emailError = error instanceof Error ? error.message : 'Email failed';
+        emailError = error instanceof Error ? error.message : 'The email could not be sent';
+        logger.warn({ error, packId: req.params.id }, 'pack sent but emailing the client failed');
       }
     }
+    // `emailError` is set when emailing was requested but failed; the pack itself is still sent.
     res.json({ pack, email, emailError });
   })
 );
