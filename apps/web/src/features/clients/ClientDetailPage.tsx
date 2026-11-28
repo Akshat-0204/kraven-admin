@@ -23,6 +23,8 @@ import { type ReactNode, useRef, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import { Button } from '../../components/ui/button';
+import { Card as ClayCard, CardHeader } from '../../components/ui/card';
+import { Tabs } from '../../components/ui/tabs';
 import { Input } from '../../components/ui/input';
 import { ProgressBar } from '../../components/ui/progressBar';
 import { ProjectStatusBadge } from '../../components/ui/statusBadge';
@@ -107,17 +109,17 @@ export function ClientDetailPage() {
   });
 
   if (clientQuery.isLoading) {
-    return <div className="rounded border border-border bg-panel p-5 text-sm text-muted">Loading client...</div>;
+    return <div className="clay-card font-body text-sm text-ink-500">Loading client...</div>;
   }
 
   if (clientQuery.isError || !clientQuery.data) {
     return (
       <div className="space-y-4">
-        <Button className="bg-transparent text-white hover:bg-white/10" onClick={() => navigate('/clients')}>
+        <Button onClick={() => navigate('/clients')}>
           <ArrowLeft className="mr-2 h-4 w-4" aria-hidden="true" />
           Back to clients
         </Button>
-        <div className="rounded border border-red-400/40 bg-panel p-5 text-sm text-red-200">
+        <div className="clay-card font-body text-sm text-danger-fg">
           Unable to load client.
         </div>
       </div>
@@ -143,26 +145,14 @@ export function ClientDetailPage() {
         <Stat label="Last activity" value={activity[0] ? formatDate(activity[0].timestamp) : '-'} hint={client.createdAt ? `Client since ${formatDate(client.createdAt)}` : undefined} />
       </div>
 
-      <div role="tablist" aria-label="Client sections" className="flex gap-1 overflow-x-auto border-b border-border">
-        {TABS.map(({ value, label }) => (
-          <button
-            key={value}
-            type="button"
-            role="tab"
-            aria-selected={tab === value}
-            onClick={() => selectTab(value)}
-            className={cn(
-              '-mb-px flex shrink-0 items-center gap-2 border-b-2 px-3 py-2 text-sm font-medium transition',
-              tab === value ? 'border-white text-white' : 'border-transparent text-muted hover:text-white'
-            )}
-          >
-            {label}
-            {counts[value] ? (
-              <span className="rounded bg-white/10 px-1.5 text-xs text-muted">{counts[value]}</span>
-            ) : null}
-          </button>
-        ))}
-      </div>
+      <Tabs
+        aria-label="Client sections"
+        items={TABS.map(({ value, label }) => ({ id: value, label, ...(counts[value] ? { count: counts[value] } : {}) }))}
+        value={tab}
+        onChange={(id) => {
+          if (isTab(id)) selectTab(id);
+        }}
+      />
 
       <div role="tabpanel">
         {tab === 'overview' ? (
@@ -207,25 +197,25 @@ export function ClientDetailPage() {
 function ClientHeader({ client, onEdit }: { client: ClientRecord; onEdit: () => void }) {
   return (
     <div className="space-y-4">
-      <Link className="inline-flex items-center text-sm text-muted hover:text-white" to="/clients">
+      <Link className="inline-flex items-center font-body text-sm text-ink-500 hover:text-olive-700" to="/clients">
         <ArrowLeft className="mr-2 h-4 w-4" aria-hidden="true" />
         Clients
       </Link>
 
-      <div className="flex flex-col gap-4 rounded border border-border bg-panel p-5 md:flex-row md:items-center md:justify-between">
+      <ClayCard className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div className="flex min-w-0 items-center gap-4">
-          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded border border-border bg-black text-lg font-semibold">
+          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-md bg-olive-100 font-display text-lg font-bold text-olive-700 shadow-clay-sm">
             {clientInitials(client.companyName)}
           </div>
           <div className="min-w-0 space-y-2">
             <div className="flex flex-wrap items-center gap-2">
-              <h1 className="truncate text-2xl font-semibold">{client.companyName}</h1>
-              <span className="inline-flex h-6 items-center rounded border border-white/20 px-2 text-xs text-muted">
+              <h1 className="truncate font-display text-2xl font-bold tracking-tight text-ink-900">{client.companyName}</h1>
+              <span className="clay-chip inline-flex h-6 items-center bg-sand-200 px-2 text-xs text-ink-700">
                 {client.sourceLead ? 'Converted lead' : 'Manual client'}
               </span>
             </div>
-            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted">
-              <span className="text-white">{client.contactPerson}</span>
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 font-body text-sm text-ink-500">
+              <span className="text-ink-900">{client.contactPerson}</span>
               {client.industry ? <MetaItem icon={<Briefcase className="h-3.5 w-3.5" />}>{client.industry}</MetaItem> : null}
               {client.email ? (
                 <MetaItem icon={<Mail className="h-3.5 w-3.5" />} href={`mailto:${client.email}`}>
@@ -245,11 +235,11 @@ function ClientHeader({ client, onEdit }: { client: ClientRecord; onEdit: () => 
             </div>
           </div>
         </div>
-        <Button className="shrink-0 bg-transparent text-white hover:bg-white/10" onClick={onEdit}>
+        <Button className="shrink-0" onClick={onEdit}>
           <Pencil className="mr-2 h-4 w-4" aria-hidden="true" />
           Edit client
         </Button>
-      </div>
+      </ClayCard>
     </div>
   );
 }
@@ -279,7 +269,7 @@ function MetaItem({
   return (
     <a
       href={href}
-      className="inline-flex min-w-0 items-center gap-1.5 hover:text-white"
+      className="inline-flex min-w-0 items-center gap-1.5 hover:text-olive-700"
       {...(external ? { target: '_blank', rel: 'noreferrer' } : {})}
     >
       {content}
@@ -289,11 +279,11 @@ function MetaItem({
 
 function Stat({ label, value, hint }: { label: string; value: string; hint?: string }) {
   return (
-    <div className="rounded border border-border bg-panel p-4">
-      <div className="text-xs uppercase tracking-wide text-muted">{label}</div>
-      <div className="mt-2 truncate text-xl font-semibold">{value}</div>
-      {hint ? <div className="mt-1 truncate text-xs text-muted">{hint}</div> : null}
-    </div>
+    <ClayCard>
+      <div className="font-body text-xs font-semibold uppercase tracking-wider text-ink-500">{label}</div>
+      <div className="mt-2 truncate font-display text-xl font-bold text-ink-900">{value}</div>
+      {hint ? <div className="mt-1 truncate font-body text-xs text-ink-500">{hint}</div> : null}
+    </ClayCard>
   );
 }
 
@@ -340,10 +330,10 @@ function OverviewTab({
                   key={note.label}
                   className={cn(
                     'rounded border p-3',
-                    note.highlight ? 'border-amber-300/30 bg-amber-300/5' : 'border-border'
+                    note.highlight ? 'border-warning-fg/30 bg-warning-bg' : 'border-[rgba(120,110,90,0.12)]'
                   )}
                 >
-                  <div className={cn('text-xs uppercase tracking-wide', note.highlight ? 'text-amber-200' : 'text-muted')}>
+                  <div className={cn('text-xs uppercase tracking-wide', note.highlight ? 'text-warning-fg' : 'text-ink-500')}>
                     {note.label}
                   </div>
                   <p className="mt-1.5 whitespace-pre-wrap text-sm leading-relaxed">{note.value}</p>
@@ -391,12 +381,12 @@ function DetailRow({
 }) {
   return (
     <div className="flex gap-3">
-      <span className="mt-0.5 text-muted" aria-hidden="true">
+      <span className="mt-0.5 text-ink-500" aria-hidden="true">
         {icon}
       </span>
       <div className="min-w-0 flex-1">
-        <dt className="text-xs text-muted">{label}</dt>
-        <dd className={cn('mt-0.5 break-words', multiline && 'whitespace-pre-wrap', !value && 'text-muted')}>
+        <dt className="text-xs text-ink-500">{label}</dt>
+        <dd className={cn('mt-0.5 break-words', multiline && 'whitespace-pre-wrap', !value && 'text-ink-500')}>
           {value || '-'}
         </dd>
       </div>
@@ -412,16 +402,16 @@ function ProjectsList({ projects, compact = false }: { projects: ProjectSummaryR
   }
 
   const list = (
-    <div className="divide-y divide-border rounded border border-border">
+    <div className="divide-y divide-[rgba(120,110,90,0.12)] rounded-md border border-[rgba(120,110,90,0.12)]">
       {projects.map((project) => (
         <Link
           key={project.id}
           to={`/projects/${project.id}`}
-          className="grid items-center gap-3 p-3 text-sm transition hover:bg-white/5 md:grid-cols-[minmax(0,2fr)_auto_minmax(0,1fr)_auto]"
+          className="grid items-center gap-3 p-3 text-sm transition hover:bg-surface-soft md:grid-cols-[minmax(0,2fr)_auto_minmax(0,1fr)_auto]"
         >
           <div className="min-w-0">
             <div className="truncate font-medium">{project.projectName}</div>
-            <div className="mt-0.5 text-xs text-muted">
+            <div className="mt-0.5 text-xs text-ink-500">
               {project.expectedCompletionDate ? `Due ${formatDate(project.expectedCompletionDate)}` : 'No due date'}
               {project.projectValue !== undefined ? ` · ${formatCurrency(project.projectValue)}` : ''}
             </div>
@@ -429,9 +419,9 @@ function ProjectsList({ projects, compact = false }: { projects: ProjectSummaryR
           <ProjectStatusBadge status={project.status} />
           <div className="flex items-center gap-2">
             <ProgressBar value={project.progressPercentage} className="h-1.5" />
-            <span className="w-9 text-right text-xs text-muted">{project.progressPercentage}%</span>
+            <span className="w-9 text-right text-xs text-ink-500">{project.progressPercentage}%</span>
           </div>
-          <ArrowRight className="hidden h-4 w-4 text-muted md:block" aria-hidden="true" />
+          <ArrowRight className="hidden h-4 w-4 text-ink-500 md:block" aria-hidden="true" />
         </Link>
       ))}
     </div>
@@ -519,7 +509,7 @@ function UploadsCard({ client, onRefresh }: { client: ClientRecord; onRefresh: (
               onRemove={() => removeMutation.mutate(document.fileId)}
               removeLabel={`Remove ${document.filename}`}
             >
-              <a className="min-w-0 flex-1 truncate text-sm hover:text-muted" href={apiUrl(`/files/${document.fileId}`)}>
+              <a className="min-w-0 flex-1 truncate text-sm hover:text-olive-700" href={apiUrl(`/files/${document.fileId}`)}>
                 {document.filename}
               </a>
             </Row>
@@ -569,7 +559,7 @@ function LinksCard({ client, onRefresh }: { client: ClientRecord; onRefresh: () 
       count={client.links.length}
       action={
         isAdding ? undefined : (
-          <Button className="h-8 bg-transparent px-2 text-white hover:bg-white/10" onClick={() => setIsAdding(true)}>
+          <Button className="h-8 px-2" onClick={() => setIsAdding(true)}>
             <Plus className="mr-1 h-4 w-4" aria-hidden="true" />
             Add
           </Button>
@@ -588,13 +578,13 @@ function LinksCard({ client, onRefresh }: { client: ClientRecord; onRefresh: () 
               removeLabel={`Remove ${link.label}`}
             >
               <a
-                className="flex min-w-0 flex-1 items-center gap-1.5 text-sm hover:text-muted"
+                className="flex min-w-0 flex-1 items-center gap-1.5 text-sm hover:text-olive-700"
                 href={link.url}
                 target="_blank"
                 rel="noreferrer"
               >
                 <span className="truncate">{link.label}</span>
-                <ExternalLink className="h-3 w-3 shrink-0 text-muted" aria-hidden="true" />
+                <ExternalLink className="h-3 w-3 shrink-0 text-ink-500" aria-hidden="true" />
               </a>
             </Row>
           ))}
@@ -625,7 +615,6 @@ function LinksCard({ client, onRefresh }: { client: ClientRecord; onRefresh: () 
               Add link
             </Button>
             <Button
-              className="bg-transparent text-white hover:bg-white/10"
               onClick={() => {
                 setIsAdding(false);
                 setDraft({ label: '', url: '' });
@@ -648,11 +637,11 @@ function ActivityTimeline({ activity }: { activity: ActivityRecord[] }) {
   }
 
   return (
-    <ol className="relative space-y-4 border-l border-border pl-4">
+    <ol className="relative space-y-4 border-l-2 border-[rgba(120,110,90,0.18)] pl-4">
       {activity.map((item) => (
         <li key={item.id} className="relative">
-          <span className="absolute -left-[21px] top-1.5 h-2 w-2 rounded-full border border-border bg-white/60" aria-hidden="true" />
-          <div className="text-xs text-muted">{formatDate(item.timestamp)}</div>
+          <span className="absolute -left-[21px] top-1.5 h-2 w-2 rounded-full border border-white bg-olive-700" aria-hidden="true" />
+          <div className="font-body text-xs text-ink-500">{formatDate(item.timestamp)}</div>
           <div className="mt-0.5 text-sm">{item.description}</div>
         </li>
       ))}
@@ -672,16 +661,18 @@ function Card({
   children: ReactNode;
 }) {
   return (
-    <section className="rounded border border-border bg-panel p-4">
-      <div className="mb-4 flex min-h-8 items-center justify-between gap-2">
-        <h2 className="flex items-center gap-2 text-sm font-semibold">
-          {title}
-          {count !== undefined ? <span className="text-xs font-normal text-muted">{count}</span> : null}
-        </h2>
-        {action ? <div className="flex items-center gap-2">{action}</div> : null}
-      </div>
+    <ClayCard>
+      <CardHeader
+        title={
+          <span className="flex items-center gap-2">
+            {title}
+            {count !== undefined ? <span className="font-body text-xs font-normal text-ink-500">{count}</span> : null}
+          </span>
+        }
+        actions={action}
+      />
       {children}
-    </section>
+    </ClayCard>
   );
 }
 
@@ -697,13 +688,13 @@ function Row({
   children: ReactNode;
 }) {
   return (
-    <div className="group flex items-center gap-2 rounded border border-border p-2">
-      <span className="text-muted" aria-hidden="true">
+    <div className="group flex items-center gap-2 rounded-md border border-[rgba(120,110,90,0.12)] bg-surface-soft p-2">
+      <span className="text-ink-500" aria-hidden="true">
         {icon}
       </span>
       {children}
       <Button
-        className="h-7 w-7 bg-transparent p-0 text-muted opacity-60 hover:bg-white/10 hover:text-white group-hover:opacity-100"
+        className="h-7 w-7 p-0 opacity-60 group-hover:opacity-100"
         onClick={onRemove}
         aria-label={removeLabel}
       >
@@ -715,7 +706,7 @@ function Row({
 
 function SeeAll({ onClick }: { onClick: () => void }) {
   return (
-    <button type="button" className="inline-flex items-center gap-1 text-xs text-muted hover:text-white" onClick={onClick}>
+    <button type="button" className="inline-flex items-center gap-1 font-body text-xs text-ink-500 hover:text-olive-700" onClick={onClick}>
       See all
       <ArrowRight className="h-3 w-3" aria-hidden="true" />
     </button>
@@ -723,5 +714,5 @@ function SeeAll({ onClick }: { onClick: () => void }) {
 }
 
 function Empty({ children }: { children: ReactNode }) {
-  return <div className="rounded border border-dashed border-border p-4 text-sm text-muted">{children}</div>;
+  return <div className="rounded-md border border-dashed border-[rgba(120,110,90,0.2)] p-4 text-center font-body text-sm text-ink-500">{children}</div>;
 }

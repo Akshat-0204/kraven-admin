@@ -3,6 +3,7 @@ import type { DocumentCategory, FileMetadataRecord } from '@kraven/types';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { toast } from 'sonner';
+import { Card } from '../../components/ui/card';
 import { Input } from '../../components/ui/input';
 import { Select } from '../../components/ui/select';
 import { listEntityFiles, portalAdminQueryKeys, updateFile } from './portalApi';
@@ -17,7 +18,7 @@ function FileRow({ file, disabled, onPatch }: { file: FileMetadataRecord; disabl
     else if (next !== file.filename) onPatch({ filename: next });
   };
   return (
-    <li className="flex flex-wrap items-center gap-2 text-sm">
+    <li className="flex flex-wrap items-center gap-2 rounded-md border border-[rgba(120,110,90,0.12)] bg-surface-soft p-2.5 font-body text-sm text-ink-800">
       <Input
         aria-label={`Filename ${file.filename}`}
         className="h-8 min-w-0 flex-1"
@@ -36,9 +37,10 @@ function FileRow({ file, disabled, onPatch }: { file: FileMetadataRecord; disabl
           <option key={value}>{value}</option>
         ))}
       </Select>
-      <label className="flex items-center gap-1 text-xs text-muted">
+      <label className="flex items-center cursor-pointer gap-1 text-xs text-ink-500">
         <input
           type="checkbox"
+          className="h-4 w-4 accent-olive-700"
           aria-label={`Share ${file.filename}`}
           checked={file.clientVisible}
           disabled={disabled}
@@ -70,17 +72,19 @@ export function SharedFilesPanel({ entityType, entityId }: { entityType: 'Client
   }
 
   return (
-    <section className="rounded border border-border bg-panel p-4">
-      <h2 className="text-sm font-semibold">Files</h2>
-      <p className="mb-3 mt-1 text-xs text-muted">Ticked files appear in the client portal&apos;s Downloads.</p>
-      {query.isLoading ? <p className="text-sm text-muted">Loading files...</p> : null}
+    <Card className="space-y-4">
+      <div className="border-b border-[rgba(120,110,90,0.12)] pb-3">
+        <h2 className="font-display text-base font-bold text-ink-900">Files</h2>
+        <p className="font-body text-xs text-ink-500">Ticked files appear in the client portal&apos;s Downloads.</p>
+      </div>
+      {query.isLoading ? <p className="font-body text-xs text-ink-500">Loading files...</p> : null}
       {!query.isLoading && files.length === 0 ? (
-        <div className="rounded border border-dashed border-border p-3 text-sm text-muted">No files</div>
+        <div className="rounded-md border border-dashed border-[rgba(120,110,90,0.2)] p-4 text-center font-body text-xs text-ink-500">No files</div>
       ) : null}
       <div className="space-y-4">
         {[...groups.entries()].map(([category, group]) => (
           <div key={category}>
-            <h3 className="mb-2 text-xs font-medium uppercase text-muted">{category}</h3>
+            <h3 className="mb-2 font-display text-xs font-semibold uppercase tracking-wider text-ink-500">{category}</h3>
             <ul className="space-y-2">
               {group.map((file) => (
                 <FileRow key={`${file.id}-${file.filename}`} file={file} disabled={patch.isPending} onPatch={(p) => patch.mutate({ id: file.id, ...p })} />
@@ -89,6 +93,6 @@ export function SharedFilesPanel({ entityType, entityId }: { entityType: 'Client
           </div>
         ))}
       </div>
-    </section>
+    </Card>
   );
 }

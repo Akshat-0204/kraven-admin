@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { FilePlus2, FileText } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '../../components/ui/button';
+import { Card, CardHeader } from '../../components/ui/card';
 import { type DocumentScope, documentQueryKeys, listDocuments } from './documentApi';
 import { useGoogleStatus } from '../google/googleApi';
 import { DocumentActions, StalePdfBadge } from './DocumentActions';
@@ -19,30 +20,38 @@ export function DocumentsPanel({ scope }: { scope: DocumentScope }) {
   const documents = documentsQuery.data?.documents ?? [];
 
   return (
-    <section className="rounded border border-border bg-panel p-4">
-      <div className="mb-4 flex items-center justify-between">
-        <h2 className="text-sm font-semibold">Documents</h2>
-        <Button className="h-8 px-2" aria-label="New document" title={google.reason ?? 'New document'} onClick={() => setIsNewOpen(true)}>
-          <FilePlus2 className="h-4 w-4" aria-hidden="true" />
-        </Button>
-      </div>
+    <Card>
+      <CardHeader
+        title="Documents"
+        className="border-b border-[rgba(120,110,90,0.12)] pb-3"
+        actions={
+          <Button
+            className="h-9 w-9 rounded-pill border border-white/80 p-0 shadow-clay-sm"
+            aria-label="New document"
+            title={google.reason ?? 'New document'}
+            onClick={() => setIsNewOpen(true)}
+          >
+            <FilePlus2 className="h-4 w-4" aria-hidden="true" />
+          </Button>
+        }
+      />
 
       {documentsQuery.isLoading ? (
-        <p className="text-sm text-muted">Loading documents...</p>
+        <p className="font-body text-xs text-ink-500">Loading documents...</p>
       ) : documentsQuery.isError ? (
-        <p className="text-sm text-red-200">Unable to load documents.</p>
+        <p className="font-body text-sm text-danger-fg">Unable to load documents.</p>
       ) : documents.length === 0 ? (
-        <div className="rounded border border-dashed border-border p-3 text-sm text-muted">No documents yet</div>
+        <div className="rounded-md border border-dashed border-[rgba(120,110,90,0.2)] p-6 text-center font-body text-xs text-ink-500">No documents yet</div>
       ) : (
-        <ul className="space-y-2">
+        <ul className="space-y-2.5">
           {documents.map((document) => (
-            <li key={document.id} className="flex items-center gap-2 rounded border border-border p-2">
-              <FileText className="h-4 w-4 shrink-0 text-muted" aria-hidden="true" />
+            <li key={document.id} className="flex items-center gap-3 rounded-md border border-[rgba(120,110,90,0.12)] bg-surface p-3 transition-colors hover:bg-surface-soft/80">
+              <FileText className="h-4 w-4 shrink-0 text-olive-700" aria-hidden="true" />
               <div className="min-w-0 flex-1">
-                <a href={document.webViewLink} target="_blank" rel="noreferrer" className="block truncate text-sm hover:text-muted">
+                <a href={document.webViewLink} target="_blank" rel="noreferrer" className="block truncate font-body text-sm font-semibold text-ink-900 hover:text-olive-700">
                   {document.title}
                 </a>
-                <p className="text-xs text-muted" title={new Date(document.updatedAt).toLocaleString()}>
+                <p className="font-body text-xs text-ink-500" title={new Date(document.updatedAt).toLocaleString()}>
                   Updated {relativeTime(document.updatedAt)}
                   <StalePdfBadge document={document} />
                 </p>
@@ -60,6 +69,6 @@ export function DocumentsPanel({ scope }: { scope: DocumentScope }) {
         defaultClientId={scope.client}
         defaultProjectId={scope.project}
       />
-    </section>
+    </Card>
   );
 }

@@ -20,14 +20,14 @@ import { readStoredWorkspace, storeWorkspace, workspaceForPath } from './workspa
 
 const navLinkClass = ({ isActive }: { isActive: boolean }) =>
   cn(
-    'block rounded px-3 py-2 text-sm text-muted hover:bg-white/10 hover:text-white',
-    isActive && 'bg-white text-black hover:bg-white hover:text-black'
+    'block rounded-pill px-3.5 py-2.5 text-sm font-medium text-ink-700 transition-all hover:bg-surface-soft hover:text-olive-700',
+    isActive && 'bg-ink-900 text-white font-semibold shadow-clay-sm hover:bg-ink-900 hover:text-white'
   );
 
 const childNavLinkClass = ({ isActive }: { isActive: boolean }) =>
   cn(
-    'block rounded px-3 py-2 text-xs text-muted hover:bg-white/10 hover:text-white',
-    isActive && 'bg-white text-black hover:bg-white hover:text-black'
+    'block rounded-pill px-3 py-1.5 text-xs font-medium text-ink-500 transition-all hover:bg-surface-soft hover:text-olive-700',
+    isActive && 'bg-olive-100 font-semibold text-olive-700 hover:bg-olive-100 hover:text-olive-700'
   );
 
 /** Active workspace comes from the URL; shared pages fall back to the last one used. */
@@ -50,7 +50,7 @@ function WorkspaceToggle({ active }: { active: Workspace }) {
   const navigate = useNavigate();
 
   return (
-    <div role="group" aria-label="Workspace" className="grid grid-cols-2 gap-1 rounded border border-border bg-black p-1">
+    <div role="group" aria-label="Workspace" className="grid grid-cols-2 gap-1 rounded-pill border border-white/80 bg-sand-200 p-1 shadow-clay-inset-sm">
       {WORKSPACES.map((workspace) => (
         <button
           key={workspace}
@@ -61,8 +61,8 @@ function WorkspaceToggle({ active }: { active: Workspace }) {
             navigate(WORKSPACE_DASHBOARD_PATHS[workspace]);
           }}
           className={cn(
-            'rounded px-3 py-1.5 text-sm font-medium text-muted transition hover:bg-white/10 hover:text-white',
-            active === workspace && 'bg-white text-black hover:bg-white hover:text-black'
+            'rounded-pill px-3 py-1.5 text-sm font-medium text-ink-700 transition-all hover:text-olive-700',
+            active === workspace && 'bg-ink-900 text-white shadow-clay-sm hover:bg-ink-900 hover:text-white'
           )}
         >
           {WORKSPACE_LABELS[workspace]}
@@ -81,7 +81,7 @@ function SidebarNav({ items, label }: { items: readonly SidebarItem[]; label: st
             {item.label}
           </NavLink>
           {item.children ? (
-            <div className="ml-4 mt-1 space-y-1 border-l border-border pl-3">
+            <div className="ml-4 mt-1 space-y-1 border-l-2 border-[rgba(120,110,90,0.18)] pl-3">
               {item.children.map((child) => (
                 <NavLink key={child.path} to={child.path} end={child.path === item.path} className={childNavLinkClass}>
                   {child.label}
@@ -113,9 +113,9 @@ export function AppShell() {
   ];
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
-      <aside className="fixed inset-y-0 left-0 hidden w-64 flex-col border-r border-border bg-black px-4 py-5 md:flex">
-        <div className="mb-5 text-lg font-semibold">{APP_NAME}</div>
+    <div className="min-h-screen bg-canvas font-body text-ink-700">
+      <aside className="fixed inset-y-0 left-0 hidden z-30 w-64 flex-col border-r border-white/60 bg-surface px-5 py-6 shadow-clay-sm md:flex">
+        <div className="mb-6 font-display text-2xl font-bold tracking-tight text-ink-900">{APP_NAME}</div>
         <div className="mb-4">
           <WorkspaceToggle active={workspace} />
         </div>
@@ -125,10 +125,13 @@ export function AppShell() {
         <div className="min-h-0 flex-1 overflow-y-auto">
           <SidebarNav items={items} label="Primary navigation" />
         </div>
-        <div className="mt-4 space-y-3 border-t border-border pt-4">
+        <div className="mt-4 space-y-3 border-t border-[rgba(120,110,90,0.12)] pt-4">
           <SidebarNav items={SHARED_SIDEBAR_ITEMS} label="Shared navigation" />
-          <div className="truncate text-xs text-muted">{user?.email}</div>
-          <Button className="w-full justify-between bg-transparent text-white hover:bg-white/10" onClick={handleLogout}>
+          <div className="truncate text-xs font-medium text-ink-500">{user?.email}</div>
+          <Button
+            className="w-full justify-between rounded-pill border border-white/80 bg-surface-soft text-ink-700 shadow-clay-sm transition-all hover:border-transparent hover:bg-danger-bg hover:text-danger-fg"
+            onClick={handleLogout}
+          >
             Logout
             <LogOut className="h-4 w-4" aria-hidden="true" />
           </Button>
@@ -136,10 +139,14 @@ export function AppShell() {
       </aside>
       <div className="md:pl-64">
         <GoogleReconnectBanner />
-        <header className="space-y-3 border-b border-border bg-black px-4 py-4 md:hidden">
+        <header className="space-y-3 border-b border-[rgba(120,110,90,0.12)] bg-surface px-4 py-4 shadow-clay-sm md:hidden">
           <div className="flex items-center justify-between">
-            <div className="text-lg font-semibold">{APP_NAME}</div>
-            <Button className="h-8 px-2" onClick={handleLogout} aria-label="Logout">
+            <div className="font-display text-xl font-bold tracking-tight text-ink-900">{APP_NAME}</div>
+            <Button
+              className="h-9 w-9 rounded-full border border-white/80 bg-surface-soft p-0 text-ink-700 shadow-clay-sm"
+              onClick={handleLogout}
+              aria-label="Logout"
+            >
               <LogOut className="h-4 w-4" aria-hidden="true" />
             </Button>
           </div>
@@ -158,7 +165,7 @@ export function AppShell() {
           </nav>
           <GlobalSearch />
         </header>
-        <main className="mx-auto w-full max-w-6xl px-4 py-6 md:px-8">
+        <main className="mx-auto w-full max-w-[1280px] px-4 py-8 md:px-8">
           <Outlet />
         </main>
       </div>
