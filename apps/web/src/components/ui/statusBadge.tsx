@@ -15,7 +15,7 @@ export function LeadStatusBadge({ status, className }: { status: LeadStatus; cla
   return (
     <span
       className={cn(
-        'clay-chip inline-flex items-center rounded-pill px-2.5 py-0.5 text-xs font-body font-medium shadow-[var(--clay-raised-sm)] border',
+        'clay-chip inline-flex items-center rounded-pill px-2.5 py-0.5 text-xs font-body font-medium shadow-clay-sm border',
         leadStatusClassName[status],
         className
       )}
@@ -38,7 +38,7 @@ export function ProjectStatusBadge({ status, className }: { status: ProjectStatu
   return (
     <span
       className={cn(
-        'clay-chip inline-flex items-center rounded-pill px-2.5 py-0.5 text-xs font-body font-medium shadow-[var(--clay-raised-sm)] border',
+        'clay-chip inline-flex items-center rounded-pill px-2.5 py-0.5 text-xs font-body font-medium shadow-clay-sm border',
         projectStatusClassName[status],
         className
       )}
@@ -59,7 +59,7 @@ export function InvoiceStatusBadge({ status, className }: { status: InvoicePayme
   return (
     <span
       className={cn(
-        'clay-chip inline-flex items-center rounded-pill px-2.5 py-0.5 text-xs font-body font-medium shadow-[var(--clay-raised-sm)] border',
+        'clay-chip inline-flex items-center rounded-pill px-2.5 py-0.5 text-xs font-body font-medium shadow-clay-sm border',
         invoiceStatusClassName[status] || 'bg-sand-200 text-ink-800 border-[rgba(120,110,90,0.18)]',
         className
       )}
