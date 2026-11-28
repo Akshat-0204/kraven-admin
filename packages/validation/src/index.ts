@@ -18,8 +18,51 @@ import {
 } from '@kraven/config';
 import { z } from 'zod';
 
+/**
+ * Friendly default messages for every schema built from this zod instance. Messages are
+ * field-agnostic ("Required", "Enter a valid email") because forms render them next to the
+ * field label; the API error handler prefixes the field name for toasts.
+ */
+const friendlyErrorMap: z.ZodErrorMap = (issue, ctx) => {
+  switch (issue.code) {
+    case z.ZodIssueCode.invalid_type:
+      if (issue.received === 'undefined' || issue.received === 'null') return { message: 'Required' };
+      if (issue.expected === 'number' && issue.received === 'nan') return { message: 'Enter a number' };
+      if (issue.expected === 'date') return { message: 'Enter a valid date' };
+      return { message: `Expected ${issue.expected}` };
+    case z.ZodIssueCode.invalid_date:
+      return { message: 'Enter a valid date' };
+    case z.ZodIssueCode.invalid_string:
+      if (issue.validation === 'email') return { message: 'Enter a valid email address' };
+      if (issue.validation === 'url') return { message: 'Enter a valid URL (including https://)' };
+      return { message: 'Invalid format' };
+    case z.ZodIssueCode.too_small:
+      if (issue.type === 'string') {
+        return { message: Number(issue.minimum) <= 1 ? 'Required' : `Must be at least ${issue.minimum} characters` };
+      }
+      if (issue.type === 'number') {
+        if (issue.minimum === 0) return { message: issue.inclusive ? 'Must be 0 or more' : 'Must be greater than 0' };
+        return { message: `Must be ${issue.inclusive ? 'at least' : 'greater than'} ${issue.minimum}` };
+      }
+      if (issue.type === 'array') return { message: Number(issue.minimum) <= 1 ? 'Add at least one item' : `Add at least ${issue.minimum} items` };
+      break;
+    case z.ZodIssueCode.too_big:
+      if (issue.type === 'string') return { message: `Must be at most ${issue.maximum} characters` };
+      if (issue.type === 'number') return { message: `Must be at most ${issue.maximum}` };
+      if (issue.type === 'array') return { message: `At most ${issue.maximum} items allowed` };
+      break;
+    case z.ZodIssueCode.invalid_enum_value:
+      return { message: `Choose one of: ${issue.options.join(', ')}` };
+    case z.ZodIssueCode.unrecognized_keys:
+      return { message: `Unknown field(s): ${issue.keys.join(', ')}` };
+  }
+  return { message: ctx.defaultError };
+};
+
+z.setErrorMap(friendlyErrorMap);
+
 const optionalDate = z.preprocess((value) => (value === '' ? undefined : value), z.coerce.date().optional());
-const objectId = z.string().min(1, 'Required id');
+const objectId = z.string().min(1, 'Required');
 const optionalObjectId = z.preprocess((value) => (value === '' ? undefined : value), objectId.optional());
 /** Strict 24-hex ObjectId, so bad ids are a 400 rather than a cast error. */
 const hexObjectId = z.string().regex(/^[a-f0-9]{24}$/i, 'Invalid id');
