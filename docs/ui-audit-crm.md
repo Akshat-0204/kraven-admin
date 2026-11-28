@@ -79,7 +79,7 @@ All paths below are relative to `apps/web/src/`.
     - `PacksPanel` has no loading state.
     - The payments table on `InvoicesPaymentsPage` has no loading state.
   - The empty state varies: dashed box, `<p>` (`EmailLogPanel.tsx:35`) or `<li>` (`PacksPanel.tsx:165`).
-  - Developer commands are shown in the UI: `TemplateListPage.tsx:32` (`npm run seed:templates`) and `PayeeProfilesSection.tsx:64` (`npm run seed:payees -w @kraven/api`).
+  - Developer commands are shown in the UI: `TemplateListPage.tsx:32` (`pnpm --filter @kraven/api seed:templates`) and `PayeeProfilesSection.tsx:64` (`pnpm --filter @kraven/api seed:payees`).
   - The `ClientDetailPage` error state uses a back `Button`, while the header uses a `Link`.
 - **Fix:**
   - Add `EmptyState {icon, title, description, action}`, `LoadingState {rows?}` (skeleton) and `ErrorState {error, onRetry}`.
@@ -234,7 +234,7 @@ Severity: **H** = breaks layout or usability, **M** = clearly inconsistent or aw
 | `documents/DocumentsPanel.tsx:127-129` | Icon-only primary "New document" toggle. | Labelled `secondary sm` button in `Card actions`. | L |
 | `documents/DocumentsPanel.tsx` (query) | No loading state; shows "No generated documents" while loading. | `QueryBoundary`. | M |
 | `documents/DocumentsPanel.tsx:189-216` | h-7 icon buttons with no labels. | `IconButton`. | L |
-| `documents/TemplateListPage.tsx:32` | Empty state shows the `npm run seed:templates` command. | `EmptyState` with a "New template" action. | M |
+| `documents/TemplateListPage.tsx:32` | Empty state shows the `pnpm --filter @kraven/api seed:templates` command. | `EmptyState` with a "New template" action. | M |
 | `documents/TemplateListPage.tsx` (table) | Different table styles (`p-3 tracking-wider`, `border-b last:border-0`); `overflow-hidden`; only the name is linked. | `DataTable`. | M |
 | `documents/TemplateEditorPage.tsx:66` | Header `md:items-end`, a different back-link wording, version shown as a stray `p text-xs`. | `PageHeader back meta={<Badge>v{n}</Badge>}`; Save in `actions`. | M |
 | `documents/TemplateEditorPage.tsx:81-96` | Name/Type fields in their own panel with `space-y-1`. | One inline row inside the header area (`grid md:grid-cols-[1fr_12rem]`) using `FormField`. | L |

@@ -4,7 +4,7 @@ Last updated: Stage 3 of the [CRM portal plan](plans/crm-portal-plan.md).
 
 ## Current state
 
-Kraven is a two-admin agency panel (npm workspaces + turbo):
+Kraven is a two-admin agency panel (pnpm workspaces + turbo):
 
 - `apps/api` - Express + Mongoose (ESM). Session-cookie auth for two seeded admins; no public registration, no roles.
 - `apps/web` - React/Vite admin UI.
@@ -44,7 +44,7 @@ Modules: auth, leads, clients, projects, finance (invoices, payments, expenses),
 - `DocumentTemplate` (sanitized Tiptap HTML with escaped `{{var}}` placeholders, `version` bumps on edit) and `Document` (immutable rendered-HTML snapshot, `templateVersion`, status Draft/Sent/Viewed/Signed, `pdfKey`).
 - Variables: `client.*`, `project.*`, `agency.*` (from `AGENCY_*` env), `today`; `GET /document-templates/variables`.
 - PDFs rendered by headless Chromium (puppeteer) from the snapshot, stored at `documents/<id>.pdf`, reused while the snapshot hash is unchanged.
-- `npm run seed:templates -w @kraven/api` inserts one generic "Project Proposal" template (insert-only).
+- `pnpm --filter @kraven/api seed:templates` inserts one generic "Project Proposal" template (insert-only).
 
 ### Client portal (Stage 3)
 
@@ -54,7 +54,7 @@ Modules: auth, leads, clients, projects, finance (invoices, payments, expenses),
 - Signed `kraven_portal` cookie (`PORTAL_COOKIE_SECRET`), httpOnly, path `/public/portal`, 30 days, carries clientId + accessVersion. Revoke, a new code, disabling or expiry invalidates it.
 - Public API `/public/portal/*`: verify, logout, me, updates, documents, documents/:id/pdf, payments, downloads, downloads/:id/url; all scoped to the cookie's client.
 - Portal shows client-visible project updates, non-Draft documents (opening a Sent one marks it Viewed), invoices with a UPI Pay page (deep links + QR), and `clientVisible` files.
-- Admin: Portal + shared-files panels on the client page, Updates + shared-files panels on the project page, Share button on Draft documents, UPI payees in Settings > Payments, payee per invoice. `npm run seed:payees -w @kraven/api` seeds the two payees.
+- Admin: Portal + shared-files panels on the client page, Updates + shared-files panels on the project page, Share button on Draft documents, UPI payees in Settings > Payments, payee per invoice. `pnpm --filter @kraven/api seed:payees` seeds the two payees.
 
 ## Planned (see plan for detail)
 

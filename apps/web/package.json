@@ -11,9 +11,9 @@
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.0",
-    "@kraven/config": "*",
-    "@kraven/types": "*",
-    "@kraven/validation": "*",
+    "@kraven/config": "workspace:*",
+    "@kraven/types": "workspace:*",
+    "@kraven/validation": "workspace:*",
     "@radix-ui/react-slot": "^1.1.0",
     "@tanstack/react-query": "^5.51.1",
     "class-variance-authority": "^0.7.0",
@@ -31,6 +31,7 @@
   },
   "devDependencies": {
     "@playwright/test": "^1.45.3",
+    "@remix-run/router": "1.23.4",
     "@testing-library/dom": "^10.4.1",
     "@testing-library/jest-dom": "^6.4.8",
     "@testing-library/react": "^16.0.0",
