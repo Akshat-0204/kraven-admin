@@ -6,6 +6,7 @@ import request from 'supertest';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createApp } from '../../app.js';
 import { TEST_USER_ID } from '../../test/mockAuthenticate.js';
+import { UserModel } from '../auth/user.model.js';
 import { ClientModel } from '../clients/client.model.js';
 import { ProjectModel } from '../projects/project.model.js';
 import { DocumentModel } from './document.model.js';
@@ -248,11 +249,17 @@ describe('document routes', () => {
     expect(logActivity).toHaveBeenCalledWith(expect.objectContaining({ entityType: 'Client', action: 'document-created' }));
   });
 
-  it('creates a blank, unassigned document in the root folder', async () => {
+  it('creates a blank, unassigned document by copying the blank doc into the root folder', async () => {
     vi.mocked(logActivity).mockClear();
+    vi.spyOn(UserModel, 'findById').mockReturnValue({
+      select: () => ({ lean: async () => ({ email: 'admin@kraven.local' }) })
+    } as never);
+    const title = `Created on ${new Date().toISOString().slice(0, 10)} by admin`;
     const response = await request(createApp()).post('/documents').send({}).expect(201);
-    expect(response.body.document).toMatchObject({ title: 'Untitled document', status: 'Draft', googleFileId: 'blank1' });
-    expect(createBlankDoc).toHaveBeenCalledWith('Untitled document', 'root');
+    expect(response.body.document).toMatchObject({ title, status: 'Draft', googleFileId: 'copy1' });
+    expect(copyFile).toHaveBeenCalledWith('1IoJZ9gJYvUXbaKMApZMwuFHo7Zu1ERIuspnwlRDOqzM', title);
+    expect(moveToFolder).toHaveBeenCalledWith('copy1', 'root');
+    expect(createBlankDoc).not.toHaveBeenCalled();
     expect(replacePlaceholders).not.toHaveBeenCalled();
     expect(logActivity).not.toHaveBeenCalled();
   });

@@ -3,7 +3,9 @@ import type { CreateDocumentInput, DocumentFilterInput, SaveDocumentPdfInput, Up
 import { createDocumentSchema, documentAccessSchema, documentFilterSchema, saveDocumentPdfSchema, updateDocumentSchema } from '@kraven/validation';
 import { isValidObjectId, type HydratedDocument } from 'mongoose';
 import { logActivity } from '../../shared/activity/activity.service.js';
+import { env } from '../../config/env.js';
 import { HttpError } from '../../shared/errors/httpError.js';
+import { UserModel } from '../auth/user.model.js';
 import { ClientModel } from '../clients/client.model.js';
 import { FileMetadataModel } from '../files/file.model.js';
 import { putObject, streamObject } from '../files/storage.service.js';
@@ -44,6 +46,13 @@ const EM_DASH = '—';
 
 function isoDay(date = new Date()) {
   return date.toISOString().slice(0, 10);
+}
+
+/** "Created on 2026-11-28 by admin - Acme Corp" (client part only when assigned). */
+async function blankDocumentTitle(userId: string | undefined, companyName?: string) {
+  const user = userId && isValidObjectId(userId) ? await UserModel.findById(userId).select('email').lean() : null;
+  const author = user?.email.split('@')[0] ?? 'Kraven';
+  return `Created on ${isoDay()} by ${author}` + (companyName ? ` - ${companyName}` : '');
 }
 
 function slugify(value: string) {
@@ -140,14 +149,15 @@ export async function createDocument(input: CreateDocumentInput, userId?: string
   const source = await loadOptionalMergeSource(payload.client, payload.project);
   const title =
     payload.title ??
-    (template || source.client
-      ? [source.client?.companyName, template?.name ?? 'Document', isoDay()].filter(Boolean).join(` ${EM_DASH} `)
-      : 'Untitled document');
+    (template
+      ? [source.client?.companyName, template.name, isoDay()].filter(Boolean).join(` ${EM_DASH} `)
+      : await blankDocumentTitle(userId, source.client?.companyName));
 
   const folderId = await folderFor(source.client as never, connection.rootFolderId);
+  const sourceFileId = template?.googleFileId ?? env.google.blankDocId;
   let file: DriveFile;
-  if (template) {
-    file = await copyFile(template.googleFileId, title);
+  if (sourceFileId) {
+    file = await copyFile(sourceFileId, title);
     if (folderId) await moveToFolder(file.id, folderId);
   } else {
     file = await createBlankDoc(title, folderId);

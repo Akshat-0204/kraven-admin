@@ -69,7 +69,9 @@ export const env = {
     redirectUri: process.env.GOOGLE_REDIRECT_URI ?? 'http://localhost:4000/google/oauth/callback',
     /** 32-byte key (64 hex chars or base64) for AES-256-GCM encryption of the refresh token. */
     tokenKey: process.env.GOOGLE_TOKEN_KEY ?? '',
-    rootFolderName: process.env.GOOGLE_DRIVE_ROOT_FOLDER_NAME ?? 'Kraven Documents'
+    rootFolderName: process.env.GOOGLE_DRIVE_ROOT_FOLDER_NAME ?? 'Kraven Documents',
+    /** Google Doc copied for "Blank document". Empty = create an empty Doc instead. */
+    blankDocId: process.env.GOOGLE_BLANK_DOC_ID ?? '1IoJZ9gJYvUXbaKMApZMwuFHo7Zu1ERIuspnwlRDOqzM'
   },
   adminUsers: [
     {
