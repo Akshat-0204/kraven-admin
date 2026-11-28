@@ -2,6 +2,9 @@ import { Bar, BarChart, CartesianGrid, Cell, Legend, Pie, PieChart, ResponsiveCo
 import {
   AlertsPanel,
   ChartPanel,
+  chartAxisColor,
+  chartGridColor,
+  chartSliceStroke,
   chartTooltipStyle,
   DashboardHeader,
   DashboardSummaryGate,
@@ -17,16 +20,16 @@ export function LeadsDashboardPage() {
         const followUps = dashboard.alerts.filter((alert) => alert.type === 'lead-follow-up');
 
         return (
-          <section className="space-y-5">
+          <section className="space-y-6 sm:space-y-8">
             <DashboardHeader eyebrow="Leads workspace" title="Leads dashboard" />
 
-            <div className="grid gap-3 md:grid-cols-3 xl:grid-cols-6">
-              <Metric label="Leads" value={dashboard.leads.total} colorClass="text-sky-400" />
-              <Metric label="New" value={dashboard.leads.new} colorClass="text-slate-300" />
-              <Metric label="In progress" value={dashboard.leads.inProgress} colorClass="text-blue-400" />
-              <Metric label="Won" value={dashboard.leads.won} colorClass="text-emerald-400" />
-              <Metric label="Lost" value={dashboard.leads.lost} colorClass="text-red-400" />
-              <Metric label="Conversion" value={`${dashboard.leads.conversionRate}%`} colorClass="text-emerald-400" />
+            <div className="grid gap-4 md:grid-cols-3 xl:grid-cols-6">
+              <Metric label="Leads" value={dashboard.leads.total} colorClass="text-sky-600" />
+              <Metric label="New" value={dashboard.leads.new} colorClass="text-slate-600" />
+              <Metric label="In progress" value={dashboard.leads.inProgress} colorClass="text-blue-600" />
+              <Metric label="Won" value={dashboard.leads.won} colorClass="text-emerald-600" />
+              <Metric label="Lost" value={dashboard.leads.lost} colorClass="text-red-600" />
+              <Metric label="Conversion" value={`${dashboard.leads.conversionRate}%`} colorClass="text-emerald-600" />
             </div>
 
             <AlertsPanel title="Follow-ups" alerts={followUps} emptyText="No leads need a follow-up right now." />
@@ -41,9 +44,9 @@ export function LeadsDashboardPage() {
                         <stop offset="100%" stopColor="#0284c7" />
                       </linearGradient>
                     </defs>
-                    <CartesianGrid stroke="#262626" strokeDasharray="3 3" />
-                    <XAxis dataKey="date" stroke="#a3a3a3" fontSize={11} />
-                    <YAxis stroke="#a3a3a3" fontSize={11} allowDecimals={false} />
+                    <CartesianGrid stroke={chartGridColor} strokeDasharray="3 3" />
+                    <XAxis dataKey="date" stroke={chartAxisColor} fontSize={11} />
+                    <YAxis stroke={chartAxisColor} fontSize={11} allowDecimals={false} />
                     <Tooltip contentStyle={chartTooltipStyle} formatter={(val: number) => [val, 'Leads']} />
                     <Legend wrapperStyle={{ paddingTop: '8px', fontSize: '12px' }} />
                     <Bar name="New Leads" dataKey="count" fill="url(#colorLeads)" radius={[4, 4, 0, 0]} />
@@ -69,7 +72,7 @@ export function LeadsDashboardPage() {
                         <Cell
                           key={entry.status}
                           fill={leadStatusColors[entry.status] ?? defaultPalette[index % defaultPalette.length]}
-                          stroke="#0f0f0f"
+                          stroke={chartSliceStroke}
                           strokeWidth={2}
                         />
                       ))}

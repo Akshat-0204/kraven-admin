@@ -88,82 +88,144 @@ export function InvoiceFormModal({ invoice, isOpen, onClose, onSubmit }: Invoice
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 px-4">
-      <div className="max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded border border-border bg-panel">
-        <div className="flex items-center justify-between border-b border-border px-5 py-4">
-          <h2 className="text-base font-semibold">{invoice ? 'Edit invoice' : 'Create invoice'}</h2>
-          <Button className="h-8 w-8 bg-transparent p-0 text-white hover:bg-white/10" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#EBE9E3]/70 p-4">
+      <div className="clay-card max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-card border border-white/80 bg-surface p-6 shadow-[var(--clay-raised-lg)]">
+        {/* Header */}
+        <div className="flex items-center justify-between border-b border-sand-300/40 pb-4">
+          <div className="space-y-0.5">
+            <h2 className="font-display text-xl font-bold tracking-tight text-ink-900">
+              {invoice ? 'Edit Invoice' : 'Create Invoice'}
+            </h2>
+            <p className="text-xs font-body text-ink-500">
+              Generate an itemized invoice for client billing and automated payment tracking
+            </p>
+          </div>
+          <Button
+            type="button"
+            className="clay-btn h-8 w-8 rounded-pill bg-surface p-0 text-ink-500 shadow-[var(--clay-raised-sm)] transition-all hover:bg-surface-soft hover:text-ink-900"
+            aria-label="Close dialog"
+            onClick={onClose}
+          >
             <X className="h-4 w-4" aria-hidden="true" />
           </Button>
         </div>
-        <form className="grid gap-4 p-5 md:grid-cols-2" onSubmit={handleSubmit(submit)}>
-          <label className="space-y-2">
-            <span className="text-sm text-muted">Client</span>
+
+        {/* Form */}
+        <form className="mt-6 grid gap-6 md:grid-cols-2" onSubmit={handleSubmit(submit)}>
+          <label className="space-y-1.5">
+            <span className="font-body text-xs font-semibold uppercase tracking-wider text-ink-700">Client</span>
             <Select aria-label="Client" {...register('client')}>
               <option value="">Select client</option>
               {(clientsQuery.data?.clients ?? []).map((client) => (
-                <option key={client.id} value={client.id}>{client.companyName}</option>
+                <option key={client.id} value={client.id}>
+                  {client.companyName}
+                </option>
               ))}
             </Select>
-            {errors.client ? <span className="text-xs text-red-300">{errors.client.message}</span> : null}
+            {errors.client ? <span className="block text-xs font-body text-red-600">{errors.client.message}</span> : null}
           </label>
-          <label className="space-y-2">
-            <span className="text-sm text-muted">Project</span>
+
+          <label className="space-y-1.5">
+            <span className="font-body text-xs font-semibold uppercase tracking-wider text-ink-700">Project</span>
             <Select aria-label="Project" {...register('project')}>
               <option value="">No project</option>
               {(projectsQuery.data?.projects ?? []).map((project) => (
-                <option key={project.id} value={project.id}>{project.projectName}</option>
+                <option key={project.id} value={project.id}>
+                  {project.projectName}
+                </option>
               ))}
             </Select>
           </label>
-          <label className="space-y-2">
-            <span className="text-sm text-muted">Invoice number</span>
-            <Input {...register('invoiceNumber')} />
+
+          <label className="space-y-1.5">
+            <span className="font-body text-xs font-semibold uppercase tracking-wider text-ink-700">Invoice Number</span>
+            <Input placeholder="e.g. INV-2026-001" {...register('invoiceNumber')} />
           </label>
-          <label className="space-y-2">
-            <span className="text-sm text-muted">Amount{fields.length > 0 ? ' (computed from line items)' : ''}</span>
+
+          <label className="space-y-1.5">
+            <span className="font-body text-xs font-semibold uppercase tracking-wider text-ink-700">
+              Amount{fields.length > 0 ? ' (computed from items)' : ''}
+            </span>
             <Input type="number" min="0" step="any" disabled={fields.length > 0} {...register('amount')} />
           </label>
-          <div className="space-y-2 md:col-span-2">
+
+          {/* Line items section */}
+          <div className="space-y-3 rounded-card border border-[rgba(120,110,90,0.14)] bg-sand-100/50 p-4 shadow-[var(--clay-inset-sm)] md:col-span-2">
             <div className="flex items-center justify-between">
-              <span className="text-sm text-muted">Line items</span>
-              <Button type="button" className="h-8 px-2" onClick={() => append({ description: '', quantity: 1, unitPrice: 0 })}>
-                <Plus className="mr-1 h-4 w-4" aria-hidden="true" />
+              <div>
+                <span className="font-display text-xs font-semibold uppercase tracking-wider text-ink-900">Line Items</span>
+                <span className="ml-2 text-xs font-body text-ink-500">Optional breakdown of deliverables</span>
+              </div>
+              <Button
+                type="button"
+                className="clay-btn h-8 rounded-pill bg-surface px-3 text-xs font-medium text-olive-700 shadow-[var(--clay-raised-sm)] transition-all hover:bg-olive-50"
+                onClick={() => append({ description: '', quantity: 1, unitPrice: 0 })}
+              >
+                <Plus className="mr-1 h-3.5 w-3.5" aria-hidden="true" />
                 Add item
               </Button>
             </div>
+
             {fields.map((field, index) => (
-              <div key={field.id} className="grid grid-cols-[1fr_5rem_7rem_2rem] gap-2">
-                <Input placeholder="Description" aria-label={`Item ${index + 1} description`} {...register(`lineItems.${index}.description`)} />
-                <Input type="number" min="0" step="any" aria-label={`Item ${index + 1} quantity`} {...register(`lineItems.${index}.quantity`)} />
-                <Input type="number" min="0" step="any" aria-label={`Item ${index + 1} unit price`} {...register(`lineItems.${index}.unitPrice`)} />
-                <Button type="button" className="h-9 w-8 bg-transparent p-0 text-white hover:bg-white/10" aria-label="Remove item" onClick={() => remove(index)}>
+              <div key={field.id} className="grid grid-cols-[1fr_5.5rem_7.5rem_2.5rem] items-center gap-2">
+                <Input
+                  placeholder="Item description"
+                  aria-label={`Item ${index + 1} description`}
+                  {...register(`lineItems.${index}.description`)}
+                />
+                <Input
+                  type="number"
+                  min="0"
+                  step="any"
+                  placeholder="Qty"
+                  aria-label={`Item ${index + 1} quantity`}
+                  {...register(`lineItems.${index}.quantity`)}
+                />
+                <Input
+                  type="number"
+                  min="0"
+                  step="any"
+                  placeholder="Price"
+                  aria-label={`Item ${index + 1} unit price`}
+                  {...register(`lineItems.${index}.unitPrice`)}
+                />
+                <Button
+                  type="button"
+                  className="clay-btn h-10 w-9 rounded-pill bg-surface p-0 text-ink-400 shadow-[var(--clay-raised-sm)] transition-all hover:bg-red-50 hover:text-red-600"
+                  aria-label="Remove item"
+                  onClick={() => remove(index)}
+                >
                   <Trash2 className="h-4 w-4" aria-hidden="true" />
                 </Button>
               </div>
             ))}
+
             {fields.length > 0 ? (
-              <div className="text-right text-xs text-muted">
-                Subtotal {subtotal.toFixed(2)} · Tax {tax.toFixed(2)} · Total {(subtotal + tax).toFixed(2)}
+              <div className="border-t border-sand-300/40 pt-2 text-right text-xs font-body text-ink-600">
+                Subtotal: <span className="font-semibold text-ink-900">₹{subtotal.toFixed(2)}</span> · Tax: <span className="font-semibold text-ink-900">₹{tax.toFixed(2)}</span> · Total: <span className="font-semibold text-emerald-700">₹{(subtotal + tax).toFixed(2)}</span>
               </div>
             ) : null}
           </div>
-          <label className="space-y-2">
-            <span className="text-sm text-muted">Tax rate (%)</span>
+
+          <label className="space-y-1.5">
+            <span className="font-body text-xs font-semibold uppercase tracking-wider text-ink-700">Tax Rate (%)</span>
             <Input type="number" min="0" max="100" step="any" disabled={fields.length === 0} {...register('taxRate')} />
           </label>
-          <label className="space-y-2">
-            <span className="text-sm text-muted">Invoice date</span>
+
+          <label className="space-y-1.5">
+            <span className="font-body text-xs font-semibold uppercase tracking-wider text-ink-700">Invoice Date</span>
             <Input type="date" {...register('invoiceDate')} defaultValue={toDateInput(invoice?.invoiceDate)} />
           </label>
-          <label className="space-y-2">
-            <span className="text-sm text-muted">Due date</span>
+
+          <label className="space-y-1.5">
+            <span className="font-body text-xs font-semibold uppercase tracking-wider text-ink-700">Due Date</span>
             <Input type="date" {...register('dueDate')} defaultValue={toDateInput(invoice?.dueDate)} />
           </label>
-          <label className="space-y-2 md:col-span-2">
-            <span className="text-sm text-muted">UPI payee (client portal Pay button)</span>
+
+          <label className="space-y-1.5 md:col-span-2">
+            <span className="font-body text-xs font-semibold uppercase tracking-wider text-ink-700">UPI Payee Profile</span>
             <Select aria-label="UPI payee" {...register('payeeProfile')}>
-              <option value="">Default payee</option>
+              <option value="">Default payee account</option>
               {(payeesQuery.data?.payeeProfiles ?? []).map((payee) => (
                 <option key={payee.id} value={payee.id}>
                   {payee.name} ({payee.vpa}){payee.isDefault ? ' · default' : ''}
@@ -171,13 +233,27 @@ export function InvoiceFormModal({ invoice, isOpen, onClose, onSubmit }: Invoice
               ))}
             </Select>
           </label>
-          <label className="space-y-2 md:col-span-2">
-            <span className="text-sm text-muted">Notes</span>
-            <Textarea {...register('notes')} />
+
+          <label className="space-y-1.5 md:col-span-2">
+            <span className="font-body text-xs font-semibold uppercase tracking-wider text-ink-700">Notes & Payment Instructions</span>
+            <Textarea placeholder="Payment terms, bank routing info, or deliverables summary..." {...register('notes')} />
           </label>
-          <div className="flex justify-end gap-2 md:col-span-2">
-            <Button className="bg-transparent text-white hover:bg-white/10" onClick={onClose}>Cancel</Button>
-            <Button type="submit" disabled={isSubmitting}>{isSubmitting ? 'Saving...' : 'Save invoice'}</Button>
+
+          <div className="flex items-center justify-end gap-3 pt-2 md:col-span-2">
+            <Button
+              type="button"
+              className="clay-btn rounded-pill bg-surface px-4 py-2 font-body text-sm font-medium text-ink-700 shadow-[var(--clay-raised-sm)] transition-all hover:bg-surface-soft hover:text-ink-900"
+              onClick={onClose}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              disabled={isSubmitting}
+              className="clay-btn--primary rounded-pill bg-[var(--grad-olive)] px-5 py-2 font-body text-sm font-medium text-white shadow-[var(--clay-raised-sm)] transition-all hover:opacity-95"
+            >
+              {isSubmitting ? 'Saving...' : invoice ? 'Update invoice' : 'Save invoice'}
+            </Button>
           </div>
         </form>
       </div>

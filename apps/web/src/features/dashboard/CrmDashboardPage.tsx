@@ -14,11 +14,14 @@ import {
   YAxis
 } from 'recharts';
 import { GoogleConnectCard } from '../google/GoogleConnectCard';
-import { ProgressBar } from '../../components/ui/progressBar';
+import { Card, CardHeader, ProgressBar } from '../../components/ui';
 import { formatCurrency } from '../finance/financeFormat';
 import {
   AlertsPanel,
   ChartPanel,
+  chartAxisColor,
+  chartGridColor,
+  chartSliceStroke,
   chartTooltipStyle,
   DashboardHeader,
   DashboardSummaryGate,
@@ -39,27 +42,27 @@ export function CrmDashboardPage() {
         const alerts = dashboard.alerts.filter((alert) => alert.type !== 'lead-follow-up');
 
         return (
-          <section className="space-y-5">
+          <section className="space-y-6 sm:space-y-8">
             <DashboardHeader eyebrow="CRM workspace" title="CRM dashboard" />
 
             <GoogleConnectCard />
 
-            <div className="grid gap-3 md:grid-cols-3 xl:grid-cols-6">
-              <Metric label="Active projects" value={dashboard.projects.totalActive} colorClass="text-blue-400" />
-              <Metric label="Overall progress" value={`${dashboard.projects.overallProgress}%`} colorClass="text-indigo-400" />
-              <Metric label="Revenue" value={formatCurrency(dashboard.finance.revenue)} colorClass="text-indigo-300" />
-              <Metric label="Received" value={formatCurrency(dashboard.finance.received)} colorClass="text-emerald-400" />
-              <Metric label="Pending" value={formatCurrency(dashboard.finance.pending)} colorClass="text-amber-400" />
-              <Metric label="Profit" value={formatCurrency(dashboard.finance.profit)} colorClass="text-violet-400" />
+            <div className="grid gap-4 md:grid-cols-3 xl:grid-cols-6">
+              <Metric label="Active projects" value={dashboard.projects.totalActive} colorClass="text-blue-600" />
+              <Metric label="Overall progress" value={`${dashboard.projects.overallProgress}%`} colorClass="text-indigo-600" />
+              <Metric label="Revenue" value={formatCurrency(dashboard.finance.revenue)} colorClass="text-indigo-500" />
+              <Metric label="Received" value={formatCurrency(dashboard.finance.received)} colorClass="text-emerald-600" />
+              <Metric label="Pending" value={formatCurrency(dashboard.finance.pending)} colorClass="text-amber-600" />
+              <Metric label="Profit" value={formatCurrency(dashboard.finance.profit)} colorClass="text-violet-600" />
             </div>
 
             <div className="grid gap-4 lg:grid-cols-2">
-              <section className="rounded border border-border bg-panel p-4">
-                <h2 className="mb-4 text-sm font-semibold">Projects</h2>
+              <Card>
+                <CardHeader title="Projects" />
                 <div className="mb-4 space-y-2">
                   <div className="flex justify-between text-sm">
-                    <span className="text-muted">Overall progress</span>
-                    <span className="font-medium text-blue-400">{dashboard.projects.overallProgress}%</span>
+                    <span className="text-ink-500">Overall progress</span>
+                    <span className="font-medium text-blue-600">{dashboard.projects.overallProgress}%</span>
                   </div>
                   <ProgressBar value={dashboard.projects.overallProgress} />
                 </div>
@@ -69,10 +72,10 @@ export function CrmDashboardPage() {
                   <Row label="Completed" value={dashboard.projects.completed} dotColor="#10b981" />
                   <Row label="Approaching deadline" value={dashboard.projects.approachingDeadline} dotColor="#f59e0b" />
                 </div>
-              </section>
+              </Card>
 
-              <section className="rounded border border-border bg-panel p-4">
-                <h2 className="mb-4 text-sm font-semibold">Finance</h2>
+              <Card>
+                <CardHeader title="Finance" />
                 <div className="grid gap-3 text-sm">
                   <Row label="Revenue" value={formatCurrency(dashboard.finance.revenue)} dotColor="#6366f1" />
                   <Row label="Received" value={formatCurrency(dashboard.finance.received)} dotColor="#10b981" />
@@ -81,7 +84,7 @@ export function CrmDashboardPage() {
                   <Row label="Expenses" value={formatCurrency(dashboard.finance.expenses)} dotColor="#f43f5e" />
                   <Row label="Profit" value={formatCurrency(dashboard.finance.profit)} dotColor="#8b5cf6" />
                 </div>
-              </section>
+              </Card>
             </div>
 
             <WaitingOnClientCard data={dashboard.waitingOnClient} />
@@ -102,9 +105,9 @@ export function CrmDashboardPage() {
                         <stop offset="95%" stopColor="#10b981" stopOpacity={0.0} />
                       </linearGradient>
                     </defs>
-                    <CartesianGrid stroke="#262626" strokeDasharray="3 3" />
-                    <XAxis dataKey="date" stroke="#a3a3a3" fontSize={11} />
-                    <YAxis stroke="#a3a3a3" fontSize={11} tickFormatter={currencyTick} />
+                    <CartesianGrid stroke={chartGridColor} strokeDasharray="3 3" />
+                    <XAxis dataKey="date" stroke={chartAxisColor} fontSize={11} />
+                    <YAxis stroke={chartAxisColor} fontSize={11} tickFormatter={currencyTick} />
                     <Tooltip contentStyle={chartTooltipStyle} formatter={(val: number) => [formatCurrency(val), '']} />
                     <Legend wrapperStyle={{ paddingTop: '8px', fontSize: '12px' }} />
                     <Area name="Invoiced" type="monotone" dataKey="invoiced" stroke="#6366f1" strokeWidth={2} fill="url(#colorInvoiced)" />
@@ -116,9 +119,9 @@ export function CrmDashboardPage() {
               <ChartPanel title="Income vs. expenses">
                 <ResponsiveContainer width="100%" height={280}>
                   <BarChart data={dashboard.revenueOverTime}>
-                    <CartesianGrid stroke="#262626" strokeDasharray="3 3" />
-                    <XAxis dataKey="date" stroke="#a3a3a3" fontSize={11} />
-                    <YAxis stroke="#a3a3a3" fontSize={11} tickFormatter={currencyTick} />
+                    <CartesianGrid stroke={chartGridColor} strokeDasharray="3 3" />
+                    <XAxis dataKey="date" stroke={chartAxisColor} fontSize={11} />
+                    <YAxis stroke={chartAxisColor} fontSize={11} tickFormatter={currencyTick} />
                     <Tooltip contentStyle={chartTooltipStyle} formatter={(val: number) => [formatCurrency(val), '']} />
                     <Legend wrapperStyle={{ paddingTop: '8px', fontSize: '12px' }} />
                     <Bar name="Income (Received)" dataKey="received" fill="#10b981" radius={[4, 4, 0, 0]} />
@@ -145,7 +148,7 @@ export function CrmDashboardPage() {
                         <Cell
                           key={entry.status}
                           fill={projectStatusColors[entry.status] ?? defaultPalette[index % defaultPalette.length]}
-                          stroke="#0f0f0f"
+                          stroke={chartSliceStroke}
                           strokeWidth={2}
                         />
                       ))}

@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import type { DashboardAlert, DashboardSummary, WaitingOnClient } from '@kraven/types';
 import type React from 'react';
 import { Link } from 'react-router-dom';
+import { Card, CardHeader, EmptyState, LoadingState, PageHeader, StatCard } from '../../components/ui';
 import { dashboardQueryKeys, getDashboardSummary } from './dashboardApi';
 
 export const leadStatusColors: Record<string, string> = {
@@ -25,7 +26,18 @@ export const projectStatusColors: Record<string, string> = {
 
 export const defaultPalette = ['#6366f1', '#10b981', '#f59e0b', '#3b82f6', '#ec4899', '#06b6d4', '#8b5cf6', '#ef4444'];
 
-export const chartTooltipStyle = { background: '#0a0a0a', border: '1px solid #262626', borderRadius: '6px' };
+export const chartTooltipStyle = {
+  background: '#FFFFFF',
+  border: '1px solid #F1E7D3',
+  borderRadius: '12px',
+  color: '#1C1F21',
+  boxShadow: '0 4px 12px rgba(28, 31, 33, 0.08)'
+};
+
+/** Shared recharts colors tuned for the light clay surface. */
+export const chartGridColor = '#E7DCC4';
+export const chartAxisColor = '#7A7F82';
+export const chartSliceStroke = '#FFFFFF';
 
 /** Both workspace dashboards read the same summary endpoint and share its cache entry. */
 export function DashboardSummaryGate({ children }: { children: (dashboard: DashboardSummary) => React.ReactNode }) {
@@ -35,14 +47,18 @@ export function DashboardSummaryGate({ children }: { children: (dashboard: Dashb
   });
 
   if (dashboardQuery.isLoading) {
-    return <div className="rounded border border-border bg-panel p-5 text-sm text-muted">Loading dashboard...</div>;
+    return (
+      <Card>
+        <LoadingState label="Loading dashboard..." />
+      </Card>
+    );
   }
 
   if (dashboardQuery.isError || !dashboardQuery.data) {
     return (
-      <div className="rounded border border-red-400/40 bg-panel p-5 text-sm text-red-200">
+      <Card className="bg-danger-bg text-sm text-danger-fg">
         Unable to load dashboard.
-      </div>
+      </Card>
     );
   }
 
@@ -50,61 +66,55 @@ export function DashboardSummaryGate({ children }: { children: (dashboard: Dashb
 }
 
 export function DashboardHeader({ eyebrow, title }: { eyebrow: string; title: string }) {
-  return (
-    <div>
-      <p className="text-xs uppercase tracking-widest text-muted">{eyebrow}</p>
-      <h1 className="mt-2 text-2xl font-semibold">{title}</h1>
-    </div>
-  );
+  return <PageHeader eyebrow={eyebrow} title={title} />;
 }
 
 export function AlertsPanel({ title, alerts, emptyText }: { title: string; alerts: DashboardAlert[]; emptyText: string }) {
   return (
-    <section className="rounded border border-border bg-panel p-4">
-      <h2 className="mb-4 text-sm font-semibold">{title}</h2>
+    <Card>
+      <CardHeader title={title} />
       {alerts.length === 0 ? (
-        <div className="rounded border border-dashed border-border p-4 text-sm text-muted">{emptyText}</div>
+        <EmptyState title={emptyText} className="py-6" />
       ) : (
-        <div className="grid gap-2 md:grid-cols-2">
+        <div className="grid gap-3 md:grid-cols-2">
           {alerts.map((alert) => (
-            <Link key={alert.id} to={alert.href} className="rounded border border-border bg-black p-3 transition hover:border-indigo-500/50">
-              <div className="text-sm font-medium text-white">{alert.title}</div>
-              <div className="mt-1 text-xs text-muted">{alert.description}</div>
+            <Link
+              key={alert.id}
+              to={alert.href}
+              className="rounded-card bg-sand-200/40 p-3 shadow-clay-inset-sm transition-all hover:-translate-y-0.5 hover:bg-sand-200/70"
+            >
+              <div className="font-body text-sm font-medium text-ink-900">{alert.title}</div>
+              <div className="mt-1 font-body text-xs text-ink-500">{alert.description}</div>
             </Link>
           ))}
         </div>
       )}
-    </section>
+    </Card>
   );
 }
 
 export function Metric({ label, value, colorClass }: { label: string; value: string | number; colorClass?: string }) {
-  return (
-    <div className="rounded border border-border bg-panel p-4">
-      <div className="text-xs uppercase text-muted">{label}</div>
-      <div className={`mt-2 text-xl font-semibold ${colorClass ?? 'text-foreground'}`}>{value}</div>
-    </div>
-  );
+  return <StatCard label={label} value={<span className={colorClass}>{value}</span>} />;
 }
 
 export function Row({ label, value, dotColor }: { label: string; value: string | number; dotColor?: string }) {
   return (
-    <div className="flex items-center justify-between border-b border-border pb-2 last:border-b-0 last:pb-0">
-      <span className="flex items-center gap-2 text-muted">
+    <div className="flex items-center justify-between border-b border-sand-300/40 pb-2 font-body last:border-b-0 last:pb-0">
+      <span className="flex items-center gap-2 text-ink-500">
         {dotColor ? <span className="h-2 w-2 rounded-full" style={{ backgroundColor: dotColor }} /> : null}
         {label}
       </span>
-      <span className="font-medium text-foreground">{value}</span>
+      <span className="font-medium text-ink-900">{value}</span>
     </div>
   );
 }
 
 export function ChartPanel({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <section className="rounded border border-border bg-panel p-4">
-      <h2 className="mb-4 text-sm font-semibold">{title}</h2>
+    <Card>
+      <CardHeader title={title} />
       {children}
-    </section>
+    </Card>
   );
 }
 
@@ -117,23 +127,26 @@ export function WaitingOnClientCard({ data }: { data: WaitingOnClient }) {
   const total = groups.reduce((sum, group) => sum + group.items.length, 0);
 
   return (
-    <section className="rounded border border-border bg-panel p-4">
-      <h2 className="mb-4 text-sm font-semibold">Waiting on client</h2>
+    <Card>
+      <CardHeader title="Waiting on client" />
       {total === 0 ? (
-        <div className="rounded border border-dashed border-border p-4 text-sm text-muted">Nothing is waiting on a client.</div>
+        <EmptyState title="Nothing is waiting on a client." className="py-6" />
       ) : (
         <div className="grid gap-4 md:grid-cols-3">
           {groups.map((group) => (
             <div key={group.label}>
-              <div className="mb-2 text-xs text-muted">
+              <div className="mb-2 font-body text-xs text-ink-500">
                 {group.label} ({group.items.length})
               </div>
               <ul className="space-y-2">
                 {group.items.map((item) => (
                   <li key={item.id}>
-                    <Link to={item.href} className="block rounded border border-border bg-black p-2 text-sm hover:border-indigo-500/50">
-                      <div className="font-medium text-white">{item.title}</div>
-                      <div className="text-xs text-muted">
+                    <Link
+                      to={item.href}
+                      className="block rounded-card bg-sand-200/40 p-2.5 text-sm shadow-clay-inset-sm transition-all hover:-translate-y-0.5 hover:bg-sand-200/70"
+                    >
+                      <div className="font-body font-medium text-ink-900">{item.title}</div>
+                      <div className="font-body text-xs text-ink-500">
                         {item.clientName}
                         {item.detail ? ` · ${item.detail}` : ''}
                       </div>
@@ -145,6 +158,6 @@ export function WaitingOnClientCard({ data }: { data: WaitingOnClient }) {
           ))}
         </div>
       )}
-    </section>
+    </Card>
   );
 }

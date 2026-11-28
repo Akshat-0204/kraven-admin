@@ -1,10 +1,9 @@
 import type { ClientInput } from '@kraven/validation';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Plus, Search, Trash2 } from 'lucide-react';
+import { Mail, Phone, Plus, Search, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
-import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { createClient, deleteClient, clientQueryKeys, listClients } from './clientApi';
 import { clientInitials } from './clientFormat';
@@ -45,68 +44,108 @@ export function ClientListPage() {
   }
 
   return (
-    <section className="space-y-5">
-      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-        <div>
-          <p className="text-xs uppercase tracking-widest text-muted">Client records</p>
-          <h1 className="mt-2 text-2xl font-semibold">Clients</h1>
+    <section className="space-y-6 sm:space-y-8">
+      {/* Header */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div className="space-y-1">
+          <p className="font-display text-xs uppercase tracking-wider text-olive-700">Client Directory</p>
+          <h1 className="font-display text-2xl sm:text-3xl font-bold text-ink-900">Clients</h1>
+          <p className="font-body text-sm text-ink-500">
+            Manage agency accounts, key stakeholders, and project relationships.
+          </p>
         </div>
-        <Button onClick={() => setIsCreateOpen(true)}>
-          <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
-          New client
-        </Button>
+        <div>
+          <button
+            type="button"
+            onClick={() => setIsCreateOpen(true)}
+            className="clay-btn clay-btn--primary inline-flex h-11 items-center justify-center gap-2 rounded-pill px-5 text-sm font-body font-medium shadow-[var(--clay-green)] transition-transform hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98]"
+          >
+            <Plus className="h-4 w-4" aria-hidden="true" />
+            <span>New client</span>
+          </button>
+        </div>
       </div>
 
-      <label className="relative block rounded border border-border bg-panel p-3">
-        <Search className="pointer-events-none absolute left-6 top-6 h-4 w-4 text-muted" aria-hidden="true" />
+      {/* Search Toolbar */}
+      <div className="clay-card p-4 rounded-lg border border-white/80 shadow-[var(--clay-raised)] bg-surface">
         <Input
-          className="pl-9"
-          placeholder="Search by company, contact, email"
+          startIcon={<Search className="h-4 w-4 text-ink-500" aria-hidden="true" />}
+          placeholder="Search by company, contact person, or email..."
           value={search}
           onChange={(event) => setSearch(event.target.value)}
         />
-      </label>
+      </div>
 
+      {/* Main Content Grid */}
       {clientsQuery.isLoading ? (
-        <div className="rounded border border-border bg-panel p-5 text-sm text-muted">Loading clients...</div>
+        <div className="clay-card p-12 text-center font-body text-sm text-ink-500">
+          <div className="inline-block h-6 w-6 animate-spin rounded-full border-2 border-olive-600 border-t-transparent mb-2" />
+          <p>Loading clients...</p>
+        </div>
       ) : clientsQuery.isError ? (
-        <div className="rounded border border-red-400/40 bg-panel p-5 text-sm text-red-200">
-          Unable to load clients.
+        <div className="clay-card p-8 text-center font-body text-sm text-danger-fg">
+          Unable to load clients. Please refresh the page.
         </div>
       ) : clients.length === 0 ? (
-        <div className="rounded border border-dashed border-border bg-panel p-8 text-center text-sm text-muted">
+        <div className="clay-card p-12 text-center font-body text-sm text-ink-500">
           No clients match the current search.
         </div>
       ) : (
-        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+        <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
           {clients.map((client) => (
-            <article key={client.id} className="rounded border border-border bg-panel p-4">
-              <Link to={`/clients/${client.id}`} className="block">
-                <div className="flex items-start gap-3">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded border border-border bg-black text-xs">
-                    {clientInitials(client.companyName)}
+            <article
+              key={client.id}
+              className="clay-card p-6 rounded-lg border border-white/80 shadow-[var(--clay-raised)] hover:shadow-[var(--clay-hover)] transition-all hover:-translate-y-0.5 bg-surface flex flex-col justify-between group"
+            >
+              <div>
+                <Link to={`/clients/${client.id}`} className="block">
+                  <div className="flex items-start gap-3.5 mb-4">
+                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-olive-100 text-olive-800 font-bold text-sm shadow-[var(--clay-raised-sm)] border border-white/90">
+                      {clientInitials(client.companyName)}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <h2 className="truncate font-display text-base font-bold text-ink-900 group-hover:text-olive-700 transition-colors">
+                        {client.companyName}
+                      </h2>
+                      <p className="mt-0.5 truncate font-body text-xs text-ink-500">
+                        {client.contactPerson}
+                      </p>
+                    </div>
                   </div>
-                  <div className="min-w-0">
-                    <h2 className="truncate text-base font-semibold">{client.companyName}</h2>
-                    <p className="mt-1 truncate text-sm text-muted">{client.contactPerson}</p>
+
+                  <div className="space-y-1.5 pt-3 border-t border-[rgba(120,110,90,0.1)] font-body text-xs text-ink-600">
+                    <div className="flex items-center gap-2 truncate">
+                      <Mail className="h-3.5 w-3.5 text-olive-700 shrink-0" />
+                      <span className="truncate">{client.email || 'No email registered'}</span>
+                    </div>
+                    <div className="flex items-center gap-2 truncate">
+                      <Phone className="h-3.5 w-3.5 text-olive-700 shrink-0" />
+                      <span className="truncate">{client.phone || 'No phone registered'}</span>
+                    </div>
                   </div>
-                </div>
-                <div className="mt-4 space-y-1 text-sm text-muted">
-                  <div>{client.email || '-'}</div>
-                  <div>{client.phone || '-'}</div>
-                </div>
-              </Link>
-              <div className="mt-4 flex justify-end">
-                <Button
-                  className="h-8 w-8 bg-transparent p-0 text-white hover:bg-white/10"
+                </Link>
+              </div>
+
+              <div className="mt-4 pt-3 border-t border-[rgba(120,110,90,0.1)] flex items-center justify-between">
+                <Link
+                  to={`/clients/${client.id}`}
+                  className="font-body text-xs font-semibold text-olive-700 hover:text-olive-900 transition-colors"
+                >
+                  View Details &rarr;
+                </Link>
+                <button
+                  type="button"
+                  aria-label={`Delete client ${client.companyName}`}
+                  title="Delete client"
+                  className="inline-flex h-8 w-8 items-center justify-center rounded-sm bg-surface shadow-[var(--clay-raised-sm)] border border-white/80 text-ink-500 hover:text-danger-fg hover:shadow-[var(--clay-hover)] transition-all active:scale-[0.96]"
                   onClick={() => {
                     if (window.confirm(`Delete client ${client.companyName}?`)) {
                       deleteMutation.mutate(client.id);
                     }
                   }}
                 >
-                  <Trash2 className="h-4 w-4" aria-hidden="true" />
-                </Button>
+                  <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
+                </button>
               </div>
             </article>
           ))}

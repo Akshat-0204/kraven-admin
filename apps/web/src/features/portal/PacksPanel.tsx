@@ -21,19 +21,17 @@ function SignatureAudit({ documentId }: { documentId: string }) {
   const signature = query.data?.signature;
   if (!signature) return null;
   return (
-    <dl className="mt-1 grid grid-cols-[auto_1fr] gap-x-2 text-xs text-muted">
-      <dt>Signed by</dt>
-      <dd>{signature.signerName} ({signature.method})</dd>
-      <dt>At</dt>
-      <dd>{new Date(signature.signedAt).toLocaleString()}</dd>
-      <dt>IP</dt>
+    <dl className="mt-2 grid grid-cols-[auto_1fr] gap-x-2 gap-y-1 text-[11px] font-body text-ink-500 bg-surface p-2.5 rounded border border-[rgba(120,110,90,0.1)]">
+      <dt className="font-semibold text-ink-700">Signed by:</dt>
+      <dd className="text-ink-900">{signature.signerName} ({signature.method})</dd>
+      <dt className="font-semibold text-ink-700">At:</dt>
+      <dd>{new Date(signature.signedAt).toLocaleString('en-IN')}</dd>
+      <dt className="font-semibold text-ink-700">IP:</dt>
       <dd>{signature.ip}</dd>
-      <dt>Device</dt>
-      <dd className="break-all">{signature.userAgent}</dd>
-      <dt>Original SHA-256</dt>
-      <dd className="break-all font-mono">{signature.originalSha256}</dd>
-      <dt>Sealed SHA-256</dt>
-      <dd className="break-all font-mono">{signature.sealedSha256}</dd>
+      <dt className="font-semibold text-ink-700">Original SHA-256:</dt>
+      <dd className="break-all font-mono text-[10px] text-ink-600">{signature.originalSha256}</dd>
+      <dt className="font-semibold text-ink-700">Sealed SHA-256:</dt>
+      <dd className="break-all font-mono text-[10px] text-ink-600">{signature.sealedSha256}</dd>
     </dl>
   );
 }
@@ -63,47 +61,70 @@ function PackCard({ pack, onChange }: { pack: PackRecord; onChange: () => void }
   });
 
   return (
-    <li className="rounded border border-border p-3">
-      <div className="flex items-center justify-between gap-2">
-        <p className="text-sm font-medium">
-          {pack.title} <span className="text-xs text-muted">({pack.status})</span>
-        </p>
-        <div className="flex gap-2">
+    <li className="rounded-md border border-[rgba(120,110,90,0.12)] bg-surface-soft p-4 space-y-3">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[rgba(120,110,90,0.1)] pb-2.5">
+        <div className="flex items-center gap-2">
+          <p className="font-body text-sm font-semibold text-ink-900">{pack.title}</p>
+          <span className="clay-chip text-[11px] py-0.5 px-2 bg-sand-200 text-ink-800">
+            {pack.status}
+          </span>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
           {pack.status === 'Draft' ? (
             <>
-              <Button type="button" onClick={() => send.mutate(false)} disabled={send.isPending}>
+              <button
+                type="button"
+                onClick={() => send.mutate(false)}
+                disabled={send.isPending}
+                className="clay-btn clay-btn--secondary h-8 px-3 rounded-pill font-body text-xs font-medium text-ink-900 bg-surface shadow-[var(--clay-raised-sm)] border border-white/80 hover:text-olive-700"
+              >
                 Send
-              </Button>
-              <Button type="button" onClick={() => send.mutate(true)} disabled={send.isPending}>
+              </button>
+              <button
+                type="button"
+                onClick={() => send.mutate(true)}
+                disabled={send.isPending}
+                className="clay-btn clay-btn--primary h-8 px-3 rounded-pill font-body text-xs font-medium text-white shadow-[var(--clay-green)]"
+              >
                 Send + email
-              </Button>
+              </button>
             </>
           ) : pack.status === 'Sent' ? (
-            <Button type="button" onClick={() => email.mutate()} disabled={email.isPending}>
+            <button
+              type="button"
+              onClick={() => email.mutate()}
+              disabled={email.isPending}
+              className="clay-btn clay-btn--secondary h-8 px-3 rounded-pill font-body text-xs font-medium text-ink-900 bg-surface shadow-[var(--clay-raised-sm)] border border-white/80 hover:text-olive-700"
+            >
               Email client
-            </Button>
+            </button>
           ) : null}
-          <Button type="button" className="bg-transparent text-white hover:bg-white/10" onClick={() => remove.mutate()}>
+          <button
+            type="button"
+            className="h-8 px-3 rounded-pill font-body text-xs font-medium text-danger-fg hover:bg-danger-fg/10 transition-colors"
+            onClick={() => remove.mutate()}
+          >
             Delete
-          </Button>
+          </button>
         </div>
       </div>
-      <ul className="mt-2 space-y-2 text-sm">
+      <ul className="space-y-2 font-body text-xs">
         {pack.items.map((item) => (
-          <li key={item.id}>
-            <div className="flex items-center justify-between gap-2">
-              <span>
-                {item.kind}: {item.title}
+          <li key={item.id} className="rounded border border-[rgba(120,110,90,0.1)] bg-surface p-2.5">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <span className="font-medium text-ink-800">
+                <span className="capitalize text-olive-800 font-semibold">{item.kind}</span>: {item.title}
                 {item.kind === 'document' ? ` · ${item.documentStatus}` : ''}
                 {item.kind === 'payment' ? ` · INR ${item.amount} · ${item.paymentStatus}` : ''}
               </span>
               {item.kind === 'payment' && item.paymentStatus !== 'Paid' ? (
-                <Button
+                <button
                   type="button"
+                  className="clay-btn clay-btn--secondary h-7 px-2.5 rounded-pill font-body text-[11px] font-medium text-ink-900 bg-surface shadow-[var(--clay-raised-sm)] border border-white/80 hover:text-olive-700"
                   onClick={() => advance.mutate({ itemId: item.id, status: item.paymentStatus === 'Pending' ? 'Sent' : 'Paid' })}
                 >
                   Mark {item.paymentStatus === 'Pending' ? 'Sent' : 'Paid'}
-                </Button>
+                </button>
               ) : null}
             </div>
             {item.kind === 'document' && item.documentStatus === 'Signed' && item.document ? <SignatureAudit documentId={item.document} /> : null}
@@ -155,34 +176,61 @@ export function PacksPanel({ clientId }: { clientId: string }) {
   }
 
   return (
-    <section className="rounded border border-border bg-panel p-4">
-      <h2 className="text-sm font-semibold">Packs</h2>
-      <p className="mb-3 mt-1 text-xs text-muted">Group documents and payment requests and send them to the client portal.</p>
-      <ul className="mb-4 space-y-2">
+    <section className="clay-card p-6 rounded-lg border border-white/80 shadow-[var(--clay-raised)] bg-surface space-y-4">
+      <div className="border-b border-[rgba(120,110,90,0.12)] pb-3">
+        <h2 className="font-display text-base font-bold text-ink-900">Document & Payment Packs</h2>
+        <p className="font-body text-xs text-ink-500">Group agreements and payment requests into signed workflows.</p>
+      </div>
+
+      <ul className="space-y-3">
         {(packs.data?.packs ?? []).map((pack) => (
           <PackCard key={pack.id} pack={pack} onChange={refresh} />
         ))}
-        {packs.data?.packs.length === 0 ? <li className="text-sm text-muted">No packs yet</li> : null}
+        {packs.data?.packs.length === 0 ? (
+          <li className="rounded-md border border-dashed border-[rgba(120,110,90,0.2)] p-4 text-center font-body text-xs text-ink-500">
+            No packs created yet
+          </li>
+        ) : null}
       </ul>
-      <form onSubmit={submit} className="space-y-2">
-        <Input aria-label="Pack title" placeholder="Pack title" value={title} onChange={(e) => setTitle(e.target.value)} />
-        {(documents.data?.documents ?? []).map((document) => (
-          <label key={document.id} className="flex items-center gap-2 text-sm">
-            <input
-              type="checkbox"
-              checked={selected.includes(document.id)}
-              onChange={(e) => setSelected(e.target.checked ? [...selected, document.id] : selected.filter((id) => id !== document.id))}
-            />
-            {document.title} <span className="text-xs text-muted">({document.status})</span>
+
+      <form onSubmit={submit} className="space-y-3 pt-2 border-t border-[rgba(120,110,90,0.12)]">
+        <div>
+          <label className="block font-body text-xs font-semibold uppercase tracking-wider text-ink-700 mb-1.5">
+            New Pack Title
           </label>
-        ))}
-        <div className="flex gap-2">
-          <Input aria-label="Payment label" placeholder="Payment label (optional)" value={payLabel} onChange={(e) => setPayLabel(e.target.value)} />
-          <Input aria-label="Payment amount" type="number" min="0" placeholder="Amount" value={payAmount} onChange={(e) => setPayAmount(e.target.value)} />
+          <Input aria-label="Pack title" placeholder="e.g. Master Agreement & Retainer" value={title} onChange={(e) => setTitle(e.target.value)} />
         </div>
-        <Button type="submit" disabled={create.isPending || !title.trim()}>
-          Create pack
-        </Button>
+
+        {(documents.data?.documents ?? []).length > 0 && (
+          <div className="space-y-1.5">
+            <span className="font-body text-xs font-semibold text-ink-700">Attach Documents:</span>
+            {(documents.data?.documents ?? []).map((document) => (
+              <label key={document.id} className="flex items-center gap-2 font-body text-xs text-ink-800 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={selected.includes(document.id)}
+                  onChange={(e) => setSelected(e.target.checked ? [...selected, document.id] : selected.filter((id) => id !== document.id))}
+                  className="accent-olive-700 h-3.5 w-3.5 rounded"
+                />
+                <span>{document.title}</span>
+                <span className="clay-chip text-[10px] py-0 px-1.5 bg-sand-200 text-ink-600">({document.status})</span>
+              </label>
+            ))}
+          </div>
+        )}
+
+        <div className="grid gap-2 sm:grid-cols-2">
+          <Input aria-label="Payment label" placeholder="Payment item (optional, e.g. Advance)" value={payLabel} onChange={(e) => setPayLabel(e.target.value)} />
+          <Input aria-label="Payment amount" type="number" min="0" placeholder="Amount (INR)" value={payAmount} onChange={(e) => setPayAmount(e.target.value)} />
+        </div>
+
+        <button
+          type="submit"
+          disabled={create.isPending || !title.trim()}
+          className="clay-btn clay-btn--primary h-9 px-4 rounded-pill font-body text-xs font-medium text-white shadow-[var(--clay-green)] disabled:opacity-50"
+        >
+          {create.isPending ? 'Creating...' : 'Create Pack'}
+        </button>
       </form>
     </section>
   );

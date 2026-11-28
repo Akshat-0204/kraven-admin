@@ -90,107 +90,152 @@ export function ProjectUpdatesPanel({ projectId }: { projectId: string }) {
   const list = updates.data?.updates ?? [];
 
   return (
-    <section className="rounded border border-border bg-panel p-4">
-      <div className="mb-4 flex items-center justify-between">
-        <h2 className="text-sm font-semibold">Updates</h2>
+    <section className="clay-card p-6 rounded-lg border border-white/80 shadow-[var(--clay-raised)] bg-surface space-y-4">
+      {/* Header */}
+      <div className="flex items-center justify-between border-b border-[rgba(120,110,90,0.12)] pb-3">
+        <div>
+          <h2 className="font-display text-base font-bold text-ink-900">Project Updates</h2>
+          <p className="font-body text-xs text-ink-500">Milestone updates published to client portal</p>
+        </div>
         {editing === null ? (
-          <Button onClick={() => startEdit()}>
-            <Plus className="mr-2 h-4 w-4" aria-hidden />
-            Post update
-          </Button>
+          <button
+            type="button"
+            onClick={() => startEdit()}
+            className="clay-btn clay-btn--secondary h-9 px-3.5 rounded-pill flex items-center gap-1.5 text-xs font-body font-medium text-ink-900 bg-surface shadow-[var(--clay-raised-sm)] border border-white/80 hover:text-olive-700"
+          >
+            <Plus className="h-3.5 w-3.5" aria-hidden="true" />
+            <span>Post update</span>
+          </button>
         ) : null}
       </div>
 
+      {/* Editing Form */}
       {editing !== null ? (
-        <form onSubmit={submit} className="mb-4 space-y-3 rounded border border-border p-3">
+        <form onSubmit={submit} className="mb-4 space-y-3 rounded-md bg-surface-soft p-4 border border-[rgba(120,110,90,0.14)]">
           <Input
             aria-label="Update title"
-            placeholder="Title"
+            placeholder="Update Title"
             value={draft.title}
             onChange={(event) => setDraft({ ...draft, title: event.target.value })}
+            className="w-full bg-surface"
           />
           <Textarea
             aria-label="Update body"
-            placeholder="What changed?"
+            placeholder="What progress was made or changed?"
             rows={4}
             value={draft.body}
             onChange={(event) => setDraft({ ...draft, body: event.target.value })}
+            className="w-full bg-surface"
           />
-          <label className="flex items-center gap-2 text-sm">
+          <label className="flex items-center gap-2 font-body text-xs text-ink-800 cursor-pointer pt-1">
             <input
               type="checkbox"
               checked={draft.clientVisible}
               onChange={(event) => setDraft({ ...draft, clientVisible: event.target.checked })}
+              className="accent-olive-700 h-4 w-4 rounded"
             />
-            Visible to the client
+            <span>Visible to the client in their portal</span>
           </label>
           {projectFiles.length > 0 ? (
-            <fieldset className="space-y-1">
-              <legend className="text-xs text-muted">Attachments (also shown in the portal when the update is visible)</legend>
+            <fieldset className="space-y-1.5 pt-2 border-t border-[rgba(120,110,90,0.1)]">
+              <legend className="font-body text-xs font-medium text-ink-600 mb-1">
+                Attachments (shown in client portal):
+              </legend>
               {projectFiles.map((file) => (
-                <label key={file.id} className="flex items-center gap-2 text-sm">
+                <label key={file.id} className="flex items-center gap-2 font-body text-xs text-ink-700 cursor-pointer">
                   <input
                     type="checkbox"
                     checked={draft.attachments.includes(file.id)}
                     onChange={(event) => toggleAttachment(file.id, event.target.checked)}
+                    className="accent-olive-700 h-3.5 w-3.5 rounded"
                   />
                   <span className="truncate">{file.filename}</span>
                 </label>
               ))}
             </fieldset>
           ) : null}
-          <div className="flex gap-2">
-            <Button type="submit" disabled={save.isPending || !draft.title.trim()}>
-              {save.isPending ? 'Saving...' : 'Save'}
-            </Button>
-            <Button className="bg-transparent text-white hover:bg-white/10" onClick={() => setEditing(null)}>
+          <div className="flex gap-2.5 pt-2">
+            <button
+              type="submit"
+              disabled={save.isPending || !draft.title.trim()}
+              className="clay-btn clay-btn--primary h-9 px-4 rounded-pill font-body text-xs font-medium text-white shadow-[var(--clay-green)] disabled:opacity-50"
+            >
+              {save.isPending ? 'Saving...' : 'Save Update'}
+            </button>
+            <button
+              type="button"
+              className="clay-btn clay-btn--secondary h-9 px-4 rounded-pill font-body text-xs font-medium text-ink-900 bg-surface shadow-[var(--clay-raised-sm)] border border-white/80 hover:text-ink-700"
+              onClick={() => setEditing(null)}
+            >
               Cancel
-            </Button>
+            </button>
           </div>
         </form>
       ) : null}
 
-      {updates.isLoading ? <p className="text-sm text-muted">Loading updates...</p> : null}
+      {/* List */}
+      {updates.isLoading ? <p className="font-body text-xs text-ink-500">Loading updates...</p> : null}
       {!updates.isLoading && list.length === 0 ? (
-        <div className="rounded border border-dashed border-border p-3 text-sm text-muted">No updates</div>
+        <div className="rounded-md border border-dashed border-[rgba(120,110,90,0.2)] p-4 text-center font-body text-xs text-ink-500">
+          No updates posted yet
+        </div>
       ) : null}
       <ul className="space-y-3">
         {list.map((update) => (
-          <li key={update.id} className="rounded border border-border p-3">
+          <li key={update.id} className="rounded-md border border-[rgba(120,110,90,0.12)] bg-surface-soft p-3.5 space-y-2">
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0">
-                <p className="font-medium">{update.title}</p>
-                <p className="text-xs text-muted">
-                  {new Date(update.postedAt).toLocaleDateString()} · {update.clientVisible ? 'Client can see' : 'Internal'}
-                </p>
+                <p className="font-body text-sm font-semibold text-ink-900">{update.title}</p>
+                <div className="flex items-center gap-2 pt-0.5">
+                  <span className={update.clientVisible ? 'clay-chip text-[10px] py-0.2 px-2 bg-olive-100 text-olive-800' : 'clay-chip text-[10px] py-0.2 px-2 bg-sand-200 text-ink-700'}>
+                    {update.clientVisible ? 'Client visible' : 'Internal only'}
+                  </span>
+                  <span className="font-body text-xs text-ink-500">
+                    {new Date(update.postedAt).toLocaleDateString('en-IN')}
+                  </span>
+                </div>
               </div>
-              <div className="flex shrink-0 gap-1">
+              <div className="flex shrink-0 items-center gap-1">
                 <button
                   type="button"
-                  className="p-1 text-muted hover:text-white"
+                  className="h-7 w-7 rounded-sm flex items-center justify-center text-ink-500 hover:text-olive-700 transition-colors"
                   onClick={() => toggle.mutate(update)}
                   aria-label={update.clientVisible ? 'Hide from client' : 'Show to client'}
+                  title={update.clientVisible ? 'Hide from client' : 'Show to client'}
                 >
-                  {update.clientVisible ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
-                </button>
-                <button type="button" className="p-1 text-muted hover:text-white" onClick={() => startEdit(update)} aria-label="Edit update">
-                  <Pencil className="h-4 w-4" />
+                  {update.clientVisible ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5" />}
                 </button>
                 <button
                   type="button"
-                  className="p-1 text-muted hover:text-red-300"
+                  className="h-7 w-7 rounded-sm flex items-center justify-center text-ink-500 hover:text-olive-700 transition-colors"
+                  onClick={() => startEdit(update)}
+                  aria-label="Edit update"
+                  title="Edit update"
+                >
+                  <Pencil className="h-3.5 w-3.5" />
+                </button>
+                <button
+                  type="button"
+                  className="h-7 w-7 rounded-sm flex items-center justify-center text-ink-500 hover:text-danger-fg transition-colors"
                   onClick={() => {
                     if (window.confirm('Delete this update?')) remove.mutate(update.id);
                   }}
                   aria-label="Delete update"
+                  title="Delete update"
                 >
-                  <Trash2 className="h-4 w-4" />
+                  <Trash2 className="h-3.5 w-3.5" />
                 </button>
               </div>
             </div>
-            {update.body ? <p className="mt-2 whitespace-pre-wrap text-sm text-neutral-300">{update.body}</p> : null}
+            {update.body ? (
+              <p className="whitespace-pre-wrap font-body text-xs text-ink-700 leading-relaxed bg-surface p-2.5 rounded border border-[rgba(120,110,90,0.1)]">
+                {update.body}
+              </p>
+            ) : null}
             {update.attachments.length > 0 ? (
-              <p className="mt-2 text-xs text-muted">Attachments: {update.attachments.map(fileName).join(', ')}</p>
+              <p className="font-body text-xs text-ink-500">
+                Attachments: {update.attachments.map(fileName).join(', ')}
+              </p>
             ) : null}
           </li>
         ))}
